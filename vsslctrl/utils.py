@@ -70,6 +70,17 @@ async def cancel_task_if_exists(task: asyncio.Task):
             pass
 
 #
+# Groups dicts by property
+#
+def group_list_by_property(input_list, property_key):
+    grouped_dict = {}
+    for item in input_list:
+        property_value = item.get(property_key)
+        if property_value is not None:
+            grouped_dict.setdefault(property_value, []).append(item)
+    return grouped_dict
+
+#
 # Repeat Timer
 #
 class RepeatTimer:
