@@ -22,7 +22,7 @@ from .settings import ZoneSettings
 from .transport import ZoneTransport
 from .group import ZoneGroup
 
-from .exceptions import ZoneError
+from .exceptions import ZoneError, ZoneInitialisationError
 
 
 class Zone:
@@ -45,8 +45,8 @@ class Zone:
         PREFIX              = 'zone.'
         INITIALISED         = PREFIX+'initialised'
         ID_RECEIVED         = PREFIX+'id_received'
+        SERIAL_RECEIVED     = PREFIX+'serial_received'
         MAC_ADDR_CHANGE     = PREFIX+'mac_addr_change'
-        SERIAL_CHANGE       = PREFIX+'serial_change'
         VOLUME_CHANGE       = PREFIX+'volume_change'
         MUTE_CHANGE         = PREFIX+'mute_change'
 
@@ -92,8 +92,9 @@ class Zone:
     # Initialise
     async def initialise(self):
 
-        # Future ID
+        # ID and serial number futures
         future_id = self.vssl.event_bus.future(Zone.Events.ID_RECEIVED, self.id)
+        future_serial = self.vssl.event_bus.future(Zone.Events.SERIAL_RECEIVED, self.id)
 
         # Subscribe to events
         self.vssl.event_bus.subscribe(ZoneTransport.Events.STATE_CHANGE, self._event_transport_state_change, self.id)
@@ -111,14 +112,23 @@ class Zone:
         # Start polling zone
         self._poller.start()
 
-        # Wait for the zone ID to be returned from the device
+        # Wait for the zone ID and serial to be returned from the device
         received_id = await future_id
+        received_serial = await future_serial
 
-        if received_id != self._id:
-            message = f"Zone ID mismatch. {self.host} returned zone ID {received_id} instead of {self._id}"
+        # Confirm the zone id is correct
+        if received_id != self.id:
+            message = f"Zone ID mismatch. {self.host} returned zone ID {received_id} instead of {self.id}"
             self._log_critical(message)
             await self.disconnect()
-            raise ZoneError(message)
+            raise ZoneInitialisationError(message)
+
+        # Confirm the zone and VSSL serial numbers match
+        if self.vssl.serial != received_serial:
+            message = f"Zone ({received_serial}) and VSSL ({self.vssl.serial}) serial numbers do not match. Does this zone belong to this VSSL?"
+            self._log_critical(message)
+            await self.disconnect()
+            raise ZoneInitialisationError(message)
 
         # Initialised
         self.initialisation.set()
@@ -255,6 +265,23 @@ class Zone:
             self._event_publish(Zone.Events.ID_RECEIVED, zone_id)
 
     #
+    # Serial Number
+    #
+    @property
+    def serial(self):
+        return self._serial
+
+    @serial.setter
+    def serial(self, serial: str):
+        pass #Immutable
+
+    def _set_serial(self, serial: str):
+        if not self.initialised:
+            self._serial = serial
+            # We wait for this in the initialise function
+            self._event_publish(Zone.Events.SERIAL_RECEIVED, serial)
+
+    #
     # MAC Address
     #
     # Note: This command wont work if there is a VSSL agent running on the network
@@ -282,27 +309,6 @@ class Zone:
                 return True
             else:
                 self._log_error(f'Invalid MAC address {mac}')
-
-    #
-    # Serial Number
-    #
-    @property
-    def serial(self):
-        return self._serial
-
-    @serial.setter
-    def serial(self, serial: str):
-        pass #Immutable
-
-    def _set_serial(self, serial: str):
-        if not self.serial:
-            if self.vssl.serial == serial:
-                self._serial = serial
-                return True
-            else:
-                message = f"Zone ({serial}) and VSSL ({self.vssl.serial}) serials do not match. Does this zone belong to this VSSL?"
-                self._log_error(message)
-                raise ZoneError(message)
 
     #
     # Transport Helper Commands

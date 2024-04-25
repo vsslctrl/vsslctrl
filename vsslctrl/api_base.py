@@ -31,7 +31,7 @@ class APIBase(ABC):
 
     @property
     def connected(self):
-        if self.connection_event == None:
+        if self.connection_event is None:
             return False
         return self.connection_event.is_set()
 
@@ -61,9 +61,19 @@ class APIBase(ABC):
     async def _disconnect(self):
 
         self._disconnecting = True
-        #Break Loops
-        self.connection_event.clear()
+
+        # Change this? _establish_connection timeout has passed 
+        # to make sure the loop is stopped by the finally statement
+        # This is here so we can disconnect the zone before it has 
+        # actually been established
+        if not self.connected:
+            await asyncio.sleep(self._timeout)
+
+        # Break Loops
+        if self.connection_event:
+            self.connection_event.clear()
         
+        # Cancel the tasks
         await cancel_task_if_exists(self._task_receive_first_byte)
         await cancel_task_if_exists(self._task_send_bytes)
         await cancel_task_if_exists(self._task_keepalive)
@@ -71,7 +81,7 @@ class APIBase(ABC):
         if self._writer:
             try:
                 self._writer.close()
-                #Writer hangs on disconnect
+                #Writer hangs on disconnect sometimes
                 await asyncio.wait_for(
                     self._writer.wait_closed(), self._timeout
                 )
@@ -79,8 +89,8 @@ class APIBase(ABC):
                 pass
 
         self._log_info(f'{self.host}:{self.port}: disconnected')
-        self._disconnecting = False
 
+        self._disconnecting = False
 
     #
     # Reconnect
@@ -117,9 +127,6 @@ class APIBase(ABC):
                 self._task_send_bytes = asyncio.create_task(self._send_bytes())
                 self._task_keepalive = asyncio.create_task(self._send_keepalive_base())
 
-                # Allow a init of the zone
-                await asyncio.wait_for(self._initialise_connection(), timeout=self._timeout)
-
                 self._log_info(f"Connected to {self.host}:{self.port}")
 
             except asyncio.TimeoutError:
@@ -133,15 +140,10 @@ class APIBase(ABC):
             except Exception as e:
                 self._log_error(f"Connection to {self.host}:{self.port} failed with exception {e}")
                 self.connection_event.clear()
+            finally:
+                if self._disconnecting:
+                    break
         
-        return self.connected
-
-    #
-    # Initalize the connection
-    #
-    # For extending classes
-    #
-    async def _initialise_connection(self) -> bool:
         return self.connected
 
     #
