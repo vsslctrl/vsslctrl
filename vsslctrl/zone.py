@@ -14,7 +14,8 @@ from . import core
 from .api_alpha import APIAlpha
 from .api_bravo import APIBravo
 
-from .utils import VsslIntEnum, add_logging_helpers, RepeatTimer, clamp_volume
+from .utils import add_logging_helpers, RepeatTimer, clamp_volume
+from .data_structure import VsslIntEnum
 
 from .track import TrackMetadata
 from .io import AnalogOutput, InputRouter
@@ -98,7 +99,6 @@ class Zone:
 
         # Subscribe to events
         self.vssl.event_bus.subscribe(ZoneTransport.Events.STATE_CHANGE, self._event_transport_state_change, self.id)
-        self.vssl.event_bus.subscribe(ZoneTransport.Events.STATE_CHANGE_STOP, self._event_transport_state_stop, self.id)
         self.vssl.event_bus.subscribe(ZoneGroup.Events.SOURCE_CHANGE, self._event_group_source_change, self.id)
 
         # Connect the APIs
@@ -180,6 +180,9 @@ class Zone:
         self.vssl.event_bus.publish(event_type, self.id, data)
 
     #
+    # Request track info on transport state change unless stopped
+    #
+    #
     # VSSL doenst clear some vars on stopping of the stream, so we will do it
     #
     # Doing this will fire the change events on the bus. Instead of conditionally
@@ -187,16 +190,12 @@ class Zone:
     #
     # VSSL has a happit of caching the last songs metadata
     #
-    async def _event_transport_state_stop(self, *args, **kwargs):
-        self.track.set_defaults()
-        self.transport.set_defaults()
-
-    #
-    # Request track info on transport state change unless stopped
-    #
     async def _event_transport_state_change(self, *args, **kwargs):
         if not self.transport.is_stopped:
             self._request_track()
+        else:
+            self.track.set_defaults()
+            self.transport.set_defaults()
 
     #
     # Propgate the track metadata from a group master to its members

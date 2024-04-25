@@ -1,10 +1,11 @@
 import logging
 from typing import Dict, Union
-from .utils import VsslIntEnum, clamp_volume
+from .utils import clamp_volume
 from .io import AnalogInput
-from .decorators import zone_data_class
+from .decorators import sterilizable
+from .data_structure import VsslIntEnum, ZoneDataClass
 
-
+@sterilizable
 class VsslPowerSettings:
 
     #
@@ -38,13 +39,6 @@ class VsslPowerSettings:
 
         self._state = VsslPowerSettings.States.ON
         self._adaptive = True #1 = auto, 0 = always on
-
-    def __iter__(self):
-        for key in VsslPowerSettings.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
 
     #
     # Power State
@@ -92,8 +86,7 @@ class VsslPowerSettings:
         self.adaptive = False if self.adaptive else True
 
 
-@zone_data_class
-class ZoneSettings:
+class ZoneSettings(ZoneDataClass):
 
     #
     # StereoMono
@@ -193,8 +186,7 @@ class ZoneSettings:
         self.mono = ZoneSettings.StereoMono.Stereo if self.mono == ZoneSettings.StereoMono.Mono else ZoneSettings.StereoMono.Mono
 
 
-@zone_data_class
-class VolumeSettings:
+class VolumeSettings(ZoneDataClass):
 
     #
     # Volume Setting Events
@@ -229,13 +221,6 @@ class VolumeSettings:
         self._default_on = 75
         self._max_left = 75
         self._max_right = 75
-
-    def __iter__(self):
-        for key in VolumeSettings.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
 
     #
     # Update from a JSON dict passed
@@ -304,8 +289,7 @@ class VolumeSettings:
             return True
 
 
-@zone_data_class
-class EQSettings:
+class EQSettings(ZoneDataClass):
 
     #
     # EQ Frequencies
@@ -374,10 +358,6 @@ class EQSettings:
         self._khz8 = 100
         self._khz15 = 100
 
-
-    def __iter__(self):
-        for key in EQSettings.DEFAULTS:
-            yield key, getattr(self, key)
 
     def as_dict(self, with_db = True):
         settings = dict(self)

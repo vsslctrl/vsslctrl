@@ -1,33 +1,27 @@
-from .utils import IntEnum
+import json
 
-def zone_data_class(cls):
-    def default_set_property(self, property_name: str, new_value):
-        log = False
-        direct_setter = f'_set_{property_name}'
+def sterilizable(cls):
 
-        if hasattr(self, direct_setter):
-            log = getattr(self, direct_setter)(new_value)
-        else:
-            current_value = getattr(self, property_name)
-            if current_value != new_value:
-                setattr(self, f'_{property_name}', new_value)
-                log = True
-                
-        if log:
-            updated_value = getattr(self, property_name)
+    # Define __iter__ method
+    def __iter__(self):
+        if hasattr(self.__class__, 'DEFAULTS'):
+            for key in getattr(self.__class__, 'DEFAULTS'):
+                yield key, getattr(self, key)
+        else:        
+            for attr_name in dir(self):
+                if not attr_name.startswith('_'):  # Exclude private attributes
+                    yield attr_name, getattr(self, attr_name)
 
-            message = ''
-            if isinstance(updated_value, IntEnum):
-                message = f'{self.__class__.__name__} set {property_name}: {updated_value.name} ({updated_value.value})'
-            else:
-                message = f'{self.__class__.__name__} set {property_name}: {updated_value}'
+    cls.__iter__ = __iter__
 
-            self._zone._log_debug(message) 
+    def _as_dict(self):
+        return dict(self)
 
-            self._zone._event_publish(
-                getattr(getattr(self.__class__, 'Events'), property_name.upper() + '_CHANGE'), 
-                updated_value
-            )
+    cls.as_dict = _as_dict
 
-    cls._set_property = default_set_property
+    def _as_json(self):
+        return json.dumps(self.as_dict())
+
+    cls.as_json = _as_json
+
     return cls

@@ -21,7 +21,7 @@ class Vssl:
     class Events():
         PREFIX                      = 'vssl.'
         NAME_CHANGE                 = PREFIX + 'name_changed'
-        MODEL_ZONE_QTY_CHANGE       = PREFIX + 'model_zone_qty'
+        MODEL_ZONE_QTY_CHANGE       = PREFIX + 'model_zone_qty_changed'
         SW_VERSION_CHANGE           = PREFIX + 'sw_version_changed'
         SERIAL_CHANGE               = PREFIX + 'serial_changed'
         OPTICAL_INPUT_NAME_CHANGE   = PREFIX + 'optical_input_name_changed'

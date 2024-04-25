@@ -1,9 +1,9 @@
 import logging
 from . import zone
 from typing import Dict, Union
-from .utils import VsslIntEnum
+from .data_structure import VsslIntEnum, ZoneDataClass
 
-class TrackMetadata:
+class TrackMetadata(ZoneDataClass):
     
     # https://florimond.dev/en/posts/2018/10/reconciling-dataclasses-and-properties-in-python
 
@@ -90,12 +90,8 @@ class TrackMetadata:
         self._url: str = None
 
 
-    def __iter__(self):
-        for key in TrackMetadata.DEFAULTS:
-            yield key, getattr(self, key)
-
     def as_dict(self):
-        dic = dict(self)
+        dic = super().as_dict()
         dic['progress_display'] = self.progress_display
         return dic
 

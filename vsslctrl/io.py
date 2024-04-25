@@ -1,11 +1,11 @@
 import logging
 from enum import IntEnum
 from typing import Dict, Union
-from .utils import VsslIntEnum, clamp_volume
-from .decorators import zone_data_class
+from .utils import clamp_volume
+from .data_structure import VsslIntEnum, ZoneDataClass
 
-@zone_data_class
-class InputRouter:
+
+class InputRouter(ZoneDataClass):
 
     #
     # Input Priority
@@ -56,13 +56,6 @@ class InputRouter:
         self._priority = InputRouter.Priorities.STREAM
         self._source = InputRouter.Sources.STREAM
 
-    def __iter__(self):
-        for key in InputRouter.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
-
     #
     # Input Priority
     #
@@ -107,8 +100,8 @@ class InputRouter:
             else:
                 self._zone._log_error(f"InputRouter.Sources {src} doesnt exist")
 
-@zone_data_class
-class AnalogOutput:
+
+class AnalogOutput(ZoneDataClass):
     """
         Should this be on the VSSL or Zone? For now its on the zone, because the zone will
         receive feedback for the corrosponding analog output id
@@ -151,14 +144,6 @@ class AnalogOutput:
         self._is_fixed_volume = False
         self._source = AnalogOutput.Sources(zone.id + 3)
 
-
-    def __iter__(self):
-        for key in AnalogOutput.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
-
     #
     # Analog Output Fix Volume
     #
@@ -195,8 +180,8 @@ class AnalogOutput:
             else:
                 self._zone._log_error(f"AnalogOutput.Sources {src} doesnt exist")
 
-@zone_data_class
-class AnalogInput:
+
+class AnalogInput(ZoneDataClass):
 
     #
     # Analog Input Events
@@ -219,14 +204,6 @@ class AnalogInput:
 
         self._name = f'Analog In {self._zone.id}'
         self._fixed_gain = 0
-
-    def __iter__(self):
-        for key in AnalogInput.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
-
 
     #
     # Analog Input Name

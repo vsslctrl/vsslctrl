@@ -1,11 +1,8 @@
-import json
 import asyncio
 import logging
-from enum import IntEnum
-from typing import Callable
-from .exceptions import VsslException
 
 _LOGGER = logging.getLogger(__name__)
+
 
 def add_logging_helpers(InstanceClass, message_prefix = ''):
 
@@ -25,27 +22,6 @@ def add_logging_helpers(InstanceClass, message_prefix = ''):
             lambda message, message_prefix=message_prefix, log_func=log_func: log_func(f"{message_prefix} {message}")
         )
 
-
-class VsslIntEnum(IntEnum):
-
-    @classmethod
-    def is_valid(cls, value):
-        try:
-            cls(value)
-            return True
-        except ValueError:
-            return False
-
-    @classmethod
-    def is_not_valid(cls, value):
-        return not cls.is_valid(value)
-
-    @classmethod
-    def get(cls, value, default = None):
-        try:
-            return cls(value)
-        except ValueError:
-            return default
 
 #
 # Hex to Int

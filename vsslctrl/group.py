@@ -1,7 +1,7 @@
 import logging
 from . import zone
 from typing import Dict, Union
-from .decorators import zone_data_class
+from .data_structure import ZoneDataClass
 
 
 """
@@ -21,8 +21,7 @@ from .decorators import zone_data_class
 
 """
 
-@zone_data_class
-class ZoneGroup:
+class ZoneGroup(ZoneDataClass):
 
     #
     # Group Events
@@ -61,13 +60,6 @@ class ZoneGroup:
         self._index = 0 
         self._source = None
         self._is_master = False
-
-    def __iter__(self):
-        for key in ZoneGroup.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
 
     #
     # Group Add Zone

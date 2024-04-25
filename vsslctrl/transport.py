@@ -1,11 +1,10 @@
 import logging
 from typing import Dict, Union
 from .track import TrackMetadata
-from .utils import VsslIntEnum, clamp_volume
-from .decorators import zone_data_class
+from .utils import clamp_volume
+from .data_structure import VsslIntEnum, ZoneDataClass
 
-@zone_data_class
-class ZoneTransport:
+class ZoneTransport(ZoneDataClass):
 
     #
     # Transport States
@@ -56,14 +55,6 @@ class ZoneTransport:
         self._shuffle = False
         self._next = False
         self._prev = False
-
-
-    def __iter__(self):
-        for key in ZoneTransport.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
 
     #
     # VSSL doenst clear some vars on stopping of the stream, so we will do it
