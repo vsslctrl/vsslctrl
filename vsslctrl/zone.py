@@ -90,7 +90,7 @@ class Zone:
         ])
         
 
-    # Initialise
+    # Initialise the zone
     async def initialise(self):
 
         # ID and serial number futures
@@ -388,7 +388,7 @@ class Zone:
     #
     # Play a URL
     #
-    def announce(self, url: str, all_zones: bool = False):
+    def play_url(self, url: str, all_zones: bool = False):
         self._api_alpha.request_action_55(url, all_zones)
         return self
 

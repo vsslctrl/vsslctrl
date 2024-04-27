@@ -13,17 +13,17 @@ class TrackMetadata(ZoneDataClass):
     # DO NOT CHANGE - VSSL Defined
     #
     class Sources(VsslIntEnum):
-        NOTSTREAMING = 0
+        NOT_STREAMING = 0
         AIRPLAY = 1
         SPOTIFY = 4
         TUNEIN = 9
-        ANALOGIN = 15
-        APPLEDEVICE = 16
-        DIRECTURL = 17 # e.g Announce
+        ANALOG_IN = 15
+        APPLE_DEVICE = 16
+        DIRECT_URL = 17 # e.g Announce
         BLUETOOTH = 19
         TIDAL = 22
         GOOGLECAST = 24
-        EXTERNALSOURCE = 25
+        EXTERNAL = 25
 
     #
     # Track Repeat
@@ -61,7 +61,7 @@ class TrackMetadata(ZoneDataClass):
         'duration': 0,
         'progress': 0,
         'cover_art': None,
-        'source': Sources.NOTSTREAMING,
+        'source': Sources.NOT_STREAMING,
         'url': None,
     }
 
@@ -86,7 +86,7 @@ class TrackMetadata(ZoneDataClass):
         self._duration: int = 0
         self._progress: int = 0
         self._cover_art: str = None
-        self._source = TrackMetadata.Sources.NOTSTREAMING
+        self._source = TrackMetadata.Sources.NOT_STREAMING
         self._url: str = None
 
 

@@ -23,6 +23,7 @@ class APIBase(ABC):
         self._writer = None
         self._writer_queue: asyncio.Queue = None
         self._disconnecting = False
+        self._connecting = False
         
         self._task_receive_first_byte: asyncio.Task = None
         self._task_send_bytes: asyncio.Task = None
@@ -62,11 +63,12 @@ class APIBase(ABC):
 
         self._disconnecting = True
 
-        # Change this? _establish_connection timeout has passed 
+        # Make sure _establish_connection timeout has passed 
         # to make sure the loop is stopped by the finally statement
         # This is here so we can disconnect the zone before it has 
-        # actually been established
-        if not self.connected:
+        # actually been established. Maybe this can be changed to using
+        # a cancelable task with wiat_for
+        if self._connecting:
             await asyncio.sleep(self._timeout)
 
         # Break Loops
@@ -108,7 +110,10 @@ class APIBase(ABC):
     @final
     async def _establish_connection(self):
         # Keep trying to connect until stopped
-        while not self.connected and not self._disconnecting:   
+        while not self.connected and not self._disconnecting: 
+
+            self._connecting = True
+
             try:
                 
                 self._log_debug(f"Attemping connection to {self.host}:{self.port}")
@@ -141,6 +146,7 @@ class APIBase(ABC):
                 self._log_error(f"Connection to {self.host}:{self.port} failed with exception {e}")
                 self.connection_event.clear()
             finally:
+                self._connecting = False
                 if self._disconnecting:
                     break
         

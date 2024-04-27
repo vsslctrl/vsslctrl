@@ -7,7 +7,7 @@ import asyncio
 from typing import Dict, Union, List
 
 from .zone import Zone
-from .exceptions import VsslException, ZoneError
+from .exceptions import VsslException, ZoneError, ZoneInitialisationError
 from .utils import add_logging_helpers
 from .event_bus import EventBus
 from .settings import VsslPowerSettings
@@ -46,51 +46,61 @@ class Vssl:
             self.add_zones(zones)
 
     #
-    # Run the program
+    # Initialise the zones
     #
-
-    async def run(self, init_timeout: int = 0):
+    # We init all the zones sequentially, so we can do some error checking
+    # and failed the init of all the zones if any of them fail.
+    #
+    async def initialise(self, init_timeout: int = 0):
         self.event_bus = EventBus()  # Needs an event loop
 
         if len(self._zones) < 1:
-            raise VsslException(f'Add atleast one zone before calling run()')
+            raise VsslException(f'No zones were added to VSSL before calling run()')
 
+        # We will get the devices supported zone count in the future
         future_model_zone_qty = self.event_bus.future(
             Vssl.Events.MODEL_ZONE_QTY_CHANGE, 0
         )
 
         # Initialize the first zone, then we can wait for some infomation
         # about the device itself. i.e the amount of zones its has
-        first_zone = next(iter(self._zones.values()), None)
-        if first_zone:
-            first_zone_task = asyncio.create_task(first_zone.initialise())
+        first = True
+        for zone in list(self._zones.values()):
 
-        #
-        # Check that the device can support the amount of zones requested
-        #
-        try:
-            if init_timeout > 0:
-                model_zone_qty = await asyncio.wait_for(future_model_zone_qty, timeout=init_timeout)
-            else:
-                model_zone_qty = await future_model_zone_qty
+            try:
+                # Lets make sure the zone is initialised, otherwsie we fail all
+                await asyncio.create_task(zone.initialise())
 
-            if len(self._zones) > model_zone_qty:
-                message = f'Device only has {model_zone_qty} zones, but requested tried to add {len(self._zones)}'
+                # Only continue after we now how many zones the device supports
+                if first:
+                    if init_timeout > 0:
+                        model_zone_qty = await asyncio.wait_for(
+                            future_model_zone_qty, timeout=init_timeout
+                        )
+                    else:
+                        model_zone_qty = await future_model_zone_qty
+
+                    if len(self._zones) > model_zone_qty:
+                        message = f'Device only has {model_zone_qty} zones instead of the {len(self._zones)} given'
+                        self._log_critical(message)
+                        await zone.disconnect()
+                        raise VsslException(message)
+
+            except asyncio.TimeoutError:
+                message = f'Timed out waiting for model infomation from zone {zone.id}, exiting!'
                 self._log_critical(message)
-                await first_zone.disconnect()
-                first_zone_task.cancel()
+                await zone.disconnect()
                 raise VsslException(message)
+                break
 
-        except asyncio.TimeoutError:
-            message = f'Timed out waiting for model infomation from zone {first_zone.id}, exiting!'
-            self._log_critical(message)
-            await first_zone.disconnect()
-            first_zone_task.cancel()
-            raise VsslException(message)
+            except Exception as e:
+                raise
+                break
 
-        # Init the rest of the zones
-        for zone in list(self._zones.values())[1:]:
-            asyncio.create_task(zone.initialise())
+            first = False
+
+        return True
+
 
     #
     # Update a property and fire the event
