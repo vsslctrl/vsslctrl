@@ -52,6 +52,9 @@ class Vssl:
     # and failed the init of all the zones if any of them fail.
     #
     async def initialise(self, init_timeout: int = 0):
+
+        print(f'core init {id(asyncio.get_event_loop())}')
+
         self.event_bus = EventBus()  # Needs an event loop
 
         if len(self._zones) < 1:

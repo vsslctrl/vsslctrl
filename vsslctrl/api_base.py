@@ -40,6 +40,7 @@ class APIBase(ABC):
     # Send a request
     #
     def send(self, data):
+        print(f'send {id(asyncio.get_event_loop())}')
         if self._writer_queue and self.connected:
             self._writer_queue.put_nowait(data)
 
@@ -48,6 +49,7 @@ class APIBase(ABC):
     #
     def connect(self):
         self.connection_event = asyncio.Event() #Need event loop
+
         return asyncio.create_task(self._establish_connection())
 
     #
@@ -149,8 +151,6 @@ class APIBase(ABC):
                 self._connecting = False
                 if self._disconnecting:
                     break
-
-            asyncio.sleep(self._timeout)
         
         return self.connected
 
