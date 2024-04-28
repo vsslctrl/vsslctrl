@@ -32,7 +32,7 @@ class TrackMetadata(ZoneDataClass):
         PREFIX              = 'track.'
         CHANGE              = PREFIX+'change'
         UPDATES             = PREFIX+'updates'
-        NAME_CHANGE         = PREFIX+'name_change'
+        TITLE_CHANGE        = PREFIX+'title_change'
         ALBUM_CHANGE        = PREFIX+'album_change'
         ARTIST_CHANGE       = PREFIX+'artist_change'
         GENRE_CHANGE        = PREFIX+'genre_change'
@@ -44,7 +44,7 @@ class TrackMetadata(ZoneDataClass):
 
 
     DEFAULTS = {
-        'name': None,
+        'title': None,
         'album': None,
         'artist': None,
         'genre': None,
@@ -57,7 +57,7 @@ class TrackMetadata(ZoneDataClass):
 
     KEY_MAP = {
         'TotalTime': 'duration',
-        'TrackName': 'name',
+        'TrackName': 'title',
         'Album': 'album',
         'Artist': 'artist',
         'CoverArtUrl': 'cover_art',
@@ -69,7 +69,7 @@ class TrackMetadata(ZoneDataClass):
     def __init__(self, zone: 'zone.Zone'):
         self._zone = zone
 
-        self._name: str = None
+        self._title: str = None
         self._album: str = None
         self._artist: str = None
         self._genre: str = None
@@ -170,15 +170,15 @@ class TrackMetadata(ZoneDataClass):
                 self._update_property(key, getattr(master.track, key), True)
 
     #
-    # Track Name
+    # Track title
     #
     @property
-    def name(self) -> str:
-        return self._name
+    def title(self) -> str:
+        return self._title
 
-    @name.setter
-    def name(self, value: str) -> None:
-        self._update_property('name', value)
+    @title.setter
+    def title(self, value: str) -> None:
+        self._update_property('title', value)
     #
     # Track Album
     #
