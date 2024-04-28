@@ -101,6 +101,8 @@ class EventBus:
     async def publish_async(self, event_type, entity=None, data=None, *args, **kwargs):
         event_type = event_type.lower()
         await self.event_queue.put((event_type, entity, data, args, kwargs))
+        # All events can still be scroped to entity
+        await self.event_queue.put(('*', entity, data, args, kwargs))
 
     #
     # Process Events
