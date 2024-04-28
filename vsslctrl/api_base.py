@@ -40,7 +40,7 @@ class APIBase(ABC):
     # Send a request
     #
     def send(self, data):
-        print(f'send {id(asyncio.get_event_loop())}')
+        self._log_info(f'send loop {id(asyncio.get_event_loop())}')
         if self._writer_queue and self.connected:
             self._writer_queue.put_nowait(data)
 
@@ -111,6 +111,9 @@ class APIBase(ABC):
     #
     @final
     async def _establish_connection(self):
+
+        self._log_info(f'_establish_connection loop {id(asyncio.get_event_loop())}')
+
         # Keep trying to connect until stopped
         while not self.connected and not self._disconnecting: 
 

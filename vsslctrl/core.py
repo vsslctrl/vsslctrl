@@ -53,7 +53,7 @@ class Vssl:
     #
     async def initialise(self, init_timeout: int = 0):
 
-        print(f'core init {id(asyncio.get_event_loop())}')
+        self._log_info(f'core init loop {id(asyncio.get_event_loop())}')
 
         self.event_bus = EventBus()  # Needs an event loop
 

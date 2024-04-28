@@ -93,7 +93,7 @@ class Zone:
     # Initialise
     async def initialise(self):
 
-        print(f'zone init {id(asyncio.get_event_loop())}')
+        self._log_info(f'zone init loop {id(asyncio.get_event_loop())}')
 
         # ID and serial number futures
         future_id = self.vssl.event_bus.future(Zone.Events.ID_RECEIVED, self.id)
