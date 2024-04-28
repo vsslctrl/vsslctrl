@@ -102,7 +102,7 @@ class EventBus:
         event_type = event_type.lower()
         await self.event_queue.put((event_type, entity, data, args, kwargs))
         # All events can still be scroped to entity
-        await self.event_queue.put(('*', entity, data, args, kwargs))
+        #await self.event_queue.put(('*', entity, data, args, kwargs))
 
     #
     # Process Events
@@ -132,6 +132,13 @@ class EventBus:
                             await callback(data, *args, **kwargs)
                             if once:
                                 self.unsubscribe(event_type, callback)
+
+                if '*' in self.subscribers:
+                    for callback, subscribed_entity, once in self.subscribers['*']:
+                        if entity is None or subscribed_entity == entity or subscribed_entity == '*':
+                            await callback(event_type, entity, data, *args, **kwargs)
+                            if once:
+                                self.unsubscribe('*', callback)
 
             except asyncio.CancelledError:
                 break
