@@ -69,21 +69,21 @@ class APIBase(ABC):
         # actually been established. Maybe this can be changed to using
         # a cancelable task with wiat_for
         if self._connecting:
-            self._log_debug("wait for connect")
+            self._log_info("wait for connect")
             await asyncio.sleep(self._timeout)
 
         # Break Loops
-        self._log_debug("break loops")
+        self._log_info("break loops")
         if self.connection_event:
             self.connection_event.clear()
         
         # Cancel the tasks
-        self._log_debug("Cancel tasks")
+        self._log_info("Cancel tasks")
         await cancel_task_if_exists(self._task_receive_first_byte)
         await cancel_task_if_exists(self._task_send_bytes)
         await cancel_task_if_exists(self._task_keepalive)
 
-        self._log_debug("Close writer")
+        self._log_info("Close writer")
         if self._writer:
             try:
                 self._writer.close()
