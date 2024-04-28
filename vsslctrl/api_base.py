@@ -69,30 +69,28 @@ class APIBase(ABC):
         # actually been established. Maybe this can be changed to using
         # a cancelable task with wiat_for
         if self._connecting:
-            self._log_info("wait for connect")
             await asyncio.sleep(self._timeout)
 
         # Break Loops
-        self._log_info("break loops")
         if self.connection_event:
             self.connection_event.clear()
         
         # Cancel the tasks
-        self._log_info("Cancel tasks")
         await cancel_task_if_exists(self._task_receive_first_byte)
         await cancel_task_if_exists(self._task_send_bytes)
         await cancel_task_if_exists(self._task_keepalive)
 
-        self._log_info("Close writer")
         if self._writer:
             try:
-                await asyncio.wait_for(
-                    self._writer.close(), self._timeout
-                )
                 #Writer hangs on disconnect sometimes
                 await asyncio.wait_for(
-                    self._writer.wait_closed(), self._timeout
+                    asyncio.gather(
+                        self._writer.close(),
+                        self._writer.wait_closed()
+                    ),
+                    self._timeout
                 )
+
             except Exception:
                 pass
 
@@ -105,6 +103,7 @@ class APIBase(ABC):
     #
     @final
     async def _reconnect(self):
+        if not self._disconnecting and not self._connecting:
             await self._disconnect()
             self._log_debug(f'{self.host}:{self.port}: reconnecting')
             return self.connect()
