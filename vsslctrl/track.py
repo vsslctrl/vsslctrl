@@ -32,8 +32,8 @@ class TrackMetadata(ZoneDataClass):
     #
     class Repeat(VsslIntEnum):
         OFF = 0 # No repeat
-        SINGLE = 1 # Repeat single track
-        QUEUE = 2 # Repeat queue / playlist / album
+        ONE = 1 # Repeat single track
+        ALL = 2 # Repeat queue / playlist / album
 
     #
     # Transport Events
