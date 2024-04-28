@@ -26,16 +26,6 @@ class TrackMetadata(ZoneDataClass):
         EXTERNAL = 25
 
     #
-    # Track Repeat
-    #
-    # DO NOT CHANGE - VSSL Defined
-    #
-    class Repeat(VsslIntEnum):
-        OFF = 0 # No repeat
-        ONE = 1 # Repeat single track
-        ALL = 2 # Repeat queue / playlist / album
-
-    #
     # Transport Events
     #
     class Events():

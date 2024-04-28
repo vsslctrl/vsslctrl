@@ -17,6 +17,16 @@ class ZoneTransport(ZoneDataClass):
         PAUSE = 2
 
     #
+    # Repeat
+    #
+    # DO NOT CHANGE - VSSL Defined
+    #
+    class Repeat(VsslIntEnum):
+        OFF = 0 # No repeat
+        ONE = 1 # Repeat single track
+        ALL = 2 # Repeat queue / playlist / album
+
+    #
     # Transport Events
     #
     class Events():
@@ -34,7 +44,7 @@ class ZoneTransport(ZoneDataClass):
 
     DEFAULTS = {
         'state': States.STOP,
-        'repeat': TrackMetadata.Repeat.OFF,
+        'repeat': Repeat.OFF,
         'shuffle': False,
         'next': False,
         'prev': False
@@ -51,7 +61,7 @@ class ZoneTransport(ZoneDataClass):
         self._zone = zone
 
         self._state = ZoneTransport.States.STOP
-        self._repeat = TrackMetadata.Repeat.OFF
+        self._repeat = ZoneTransport.Repeat.OFF
         self._shuffle = False
         self._next = False
         self._prev = False
@@ -221,8 +231,8 @@ class ZoneTransport(ZoneDataClass):
     def _set_repeat(self, val: int):
         val = self._default_on_state_stop(val, ZoneTransport.DEFAULTS['repeat'])
         if self.repeat != val: 
-            if TrackMetadata.Repeat.is_valid(val):
-                self._repeat = TrackMetadata.Repeat(val)
+            if ZoneTransport.Repeat.is_valid(val):
+                self._repeat = ZoneTransport.Repeat(val)
                 return True
             else:
-                self._zone._log_error(f"TrackMetadata.Repeat {val} doesnt exist")
+                self._zone._log_error(f"ZoneTransport.Repeat {val} doesnt exist")
