@@ -86,7 +86,9 @@ class APIBase(ABC):
         self._log_info("Close writer")
         if self._writer:
             try:
-                self._writer.close()
+                await asyncio.wait_for(
+                    self._writer.close(), self._timeout
+                )
                 #Writer hangs on disconnect sometimes
                 await asyncio.wait_for(
                     self._writer.wait_closed(), self._timeout
