@@ -99,10 +99,9 @@ class APIBase(ABC):
     #
     @final
     async def _reconnect(self):
-        if not self._disconnecting:
-            await self._disconnect()
-            self._log_debug(f'{self.host}:{self.port}: reconnecting')
-            return self.connect()
+        await self._disconnect()
+        self._log_debug(f'{self.host}:{self.port}: reconnecting')
+        return self.connect()
 
     #
     # Open Connection
