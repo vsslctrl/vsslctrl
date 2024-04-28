@@ -585,23 +585,26 @@ class APIAlpha(APIBase):
     def response_action_00_08(self, metadata: list):
         self._log_debug(f'Received 08 Status: {metadata}')
 
-        # Zone Index
-        if 'id' in metadata:
-            self.zone.id = int(metadata['id'])
+        # If the zone is not initialised, then we just return the ID and serial
+        if not self.zone.initialised:
+            # Zone Index
+            if 'id' in metadata:
+                self.zone.id = int(metadata['id'])
+
+            # Serial number and MAC address of ZONE 1
+            if 'mc' in metadata:
+                #Always set VSSL first before zone
+                if self.vssl.serial == None:
+                    self.vssl._set_property('serial', metadata['mc'])
+
+                if self.zone.serial == None:
+                    self.zone._set_property('serial', metadata['mc']) 
+
+            return
 
         # Transport state
         if 'ac' in metadata:
             self.zone.transport._set_property('state', int(metadata['ac']))
-
-        # Serial number and MAC address of ZONE 1
-        if 'mc' in metadata:
-            #Always set VSSL first before zone
-            if self.vssl.serial == None:
-                self.vssl._set_property('serial', metadata['mc'])
-
-            if self.zone.serial == None:
-                self.zone._set_property('serial', metadata['mc']) 
-
 
         # Volume
         if 'vol' in metadata:

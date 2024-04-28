@@ -134,4 +134,4 @@ class EventBus:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self._log_error(f"error processing event: {event_type} | exception: {e}")
+                self._log_error(f"error processing event exception: {e}")

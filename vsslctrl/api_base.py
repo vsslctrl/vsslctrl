@@ -149,6 +149,8 @@ class APIBase(ABC):
                 self._connecting = False
                 if self._disconnecting:
                     break
+
+            asyncio.sleep(self._timeout)
         
         return self.connected
 

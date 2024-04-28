@@ -90,7 +90,7 @@ class Zone:
         ])
         
 
-    # Initialise the zone
+    # Initialise
     async def initialise(self):
 
         # ID and serial number futures

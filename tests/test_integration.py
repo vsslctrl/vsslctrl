@@ -39,7 +39,7 @@ async def zone(request):
     vssl_instance = vssl_module.Vssl()
     zone_instance = vssl_instance.add_zone(zone, ip)
 
-    asyncio.create_task(vssl_instance.run())
+    asyncio.create_task(vssl_instance.initialise())
 
     try:
         await zone_instance.await_initialisation(3)
