@@ -38,21 +38,21 @@ class ZoneTransport(ZoneDataClass):
 
         REPEAT_CHANGE       = PREFIX+'repeat_change'
         SHUFFLE_CHANGE      = PREFIX+'shuffle_change'
-        NEXT_CHANGE         = PREFIX+'next_change'
-        PREV_CHANGE         = PREFIX+'prev_change'
+        NEXT_FLAG_CHANGE    = PREFIX+'next_flag_change'
+        PREV_FLAG_CHANGE    = PREFIX+'prev_flag_change'
 
 
     DEFAULTS = {
         'state': States.STOP,
         'repeat': Repeat.OFF,
         'shuffle': False,
-        'next': False,
-        'prev': False
+        'next_flag': False,
+        'prev_flag': False
     }
 
     KEY_MAP = {
-        'Next': 'next',
-        'Prev': 'prev',
+        'Next': 'next_flag',
+        'Prev': 'prev_flag',
         'Shuffle': 'shuffle',
         'Repeat': 'repeat',
     }
@@ -63,8 +63,8 @@ class ZoneTransport(ZoneDataClass):
         self._state = ZoneTransport.States.STOP
         self._repeat = ZoneTransport.Repeat.OFF
         self._shuffle = False
-        self._next = False
-        self._prev = False
+        self._next_flag = False
+        self._prev_flag = False
 
     #
     # VSSL doenst clear some vars on stopping of the stream, so we will do it
@@ -176,32 +176,45 @@ class ZoneTransport(ZoneDataClass):
         return self.state == ZoneTransport.States.PAUSE
 
     #
-    # Track Next
+    # Track Control
     #
-    @property
     def next(self):
-        return self._next
+        self._zone._api_alpha.request_action_40_next()
 
-    @next.setter
-    def set_next(self, val: int):
-        pass #read-only
+    def prev(self):
+        self._zone._api_alpha.request_action_40_prev()
 
-    def _set_next(self, val: int):
-        return self._set_bool_property('next', val, ZoneTransport.Events.NEXT_CHANGE)
+    def back(self):
+        self.prev()
+        self.prev()
 
     #
-    # Track Prev
+    # Track Next_flag
     #
     @property
-    def prev(self):
-        return self._prev
+    def next_flag(self):
+        return self._next_flag
 
-    @prev.setter
-    def prev(self, val: int):
+    @next_flag.setter
+    def set_next_flag(self, val: int):
         pass #read-only
 
-    def _set_prev(self, val: int):
-        return self._set_bool_property('prev', val, ZoneTransport.Events.PREV_CHANGE)
+    def _set_next_flag(self, val: int):
+        return self._set_bool_property('next_flag', val, ZoneTransport.Events.NEXT_FLAG_CHANGE)
+
+    #
+    # Track Prev_flag
+    #
+    @property
+    def prev_flag(self):
+        return self._prev_flag
+
+    @prev_flag.setter
+    def prev_flag(self, val: int):
+        pass #read-only
+
+    def _set_prev_flag(self, val: int):
+        return self._set_bool_property('prev_flag', val, ZoneTransport.Events.PREV_FLAG_CHANGE)
 
     #
     # Track Shuffle

@@ -322,14 +322,13 @@ class Zone:
         self.transport.pause()
 
     def next(self):
-        self._api_bravo.request_action_40_next()
+        self.transport.next()
 
     def prev(self):
-        self._api_bravo.request_action_40_prev()
+        self.transport.prev()
 
     def back(self):
-        self.track_prev()
-        self.track_prev()
+        self.transport.back()
     #
     # Volume
     #

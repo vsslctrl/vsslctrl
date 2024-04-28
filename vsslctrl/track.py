@@ -170,7 +170,7 @@ class TrackMetadata(ZoneDataClass):
                 self._update_property(key, getattr(master.track, key), True)
 
     #
-    # Track title
+    # Track Title
     #
     @property
     def title(self) -> str:

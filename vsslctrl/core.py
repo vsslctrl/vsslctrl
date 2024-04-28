@@ -19,6 +19,7 @@ class Vssl:
     # VSSL Events
     #
     class Events():
+        ALL                         = '*'
         PREFIX                      = 'vssl.'
         NAME_CHANGE                 = PREFIX + 'name_changed'
         MODEL_ZONE_QTY_CHANGE       = PREFIX + 'model_zone_qty_changed'
