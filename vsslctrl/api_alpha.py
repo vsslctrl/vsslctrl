@@ -600,7 +600,6 @@ class APIAlpha(APIBase):
                 if self.zone.serial == None:
                     self.zone._set_property('serial', metadata['mc']) 
 
-            return
 
         # Transport state
         if 'ac' in metadata:

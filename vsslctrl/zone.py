@@ -190,7 +190,7 @@ class Zone:
     #
     # VSSL has a happit of caching the last songs metadata
     #
-    async def _event_transport_state_change(self, *args, **kwargs):
+    async def _event_transport_state_change(self, *args):
         if not self.transport.is_stopped:
             self._request_track()
         else:
@@ -200,7 +200,7 @@ class Zone:
     #
     # Propgate the track metadata from a group master to its members
     #
-    async def _event_group_source_change(self, source: int, *args, **kwargs):
+    async def _event_group_source_change(self, source: int, *args):
         if source == None:
             self._log_debug(f'unsubscribe to group master {source} track updates')
             self.vssl.event_bus.unsubscribe(

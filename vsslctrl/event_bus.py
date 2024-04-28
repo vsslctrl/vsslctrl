@@ -30,7 +30,7 @@ class EventBus:
     #
     # Subscribe 
     #
-    def subscribe(self, event_type, callback: Callable, entity=None, once=False):
+    def subscribe(self, event_type, callback: Callable, entity='*', once=False):
         #Make sure we are using async callbacks
         if callback is not None and asyncio.iscoroutinefunction(callback):
             event_type = event_type.lower()
@@ -58,7 +58,7 @@ class EventBus:
         
         future = asyncio.Future()
 
-        async def future_callback(data, *args, **kwargs):
+        async def future_callback(data, *args):
             nonlocal future
             future.set_result(data)
 
@@ -92,15 +92,15 @@ class EventBus:
     #
     # Publish 
     #
-    def publish(self, event_type, entity=None, data=None, *args, **kwargs):
-        asyncio.create_task(self.publish_async(event_type, entity, data, args, kwargs))
+    def publish(self, event_type, entity=None, data=None):
+        asyncio.create_task(self.publish_async(event_type, entity, data))
 
     #
     # Publish Async (Use when inside events loop)
     #
-    async def publish_async(self, event_type, entity=None, data=None, *args, **kwargs):
+    async def publish_async(self, event_type, entity=None, data=None):
         event_type = event_type.lower()
-        await self.event_queue.put((event_type, entity, data, args, kwargs))
+        await self.event_queue.put((event_type, entity, data))
         # All events can still be scroped to entity
         #await self.event_queue.put(('*', entity, data, args, kwargs))
 
@@ -116,7 +116,7 @@ class EventBus:
         while self.running:
             
             try:
-                event_type, entity, data, args, kwargs = await self.event_queue.get()
+                event_type, entity, data = await self.event_queue.get()
 
                 message = f'processing event: {event_type} | entity: {entity} | data: '
                 if isinstance(data, IntEnum):
@@ -129,14 +129,14 @@ class EventBus:
                 if event_type in self.subscribers:
                     for callback, subscribed_entity, once in self.subscribers[event_type]:
                         if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            await callback(data, *args, **kwargs)
+                            await callback(data, entity, event_type)
                             if once:
                                 self.unsubscribe(event_type, callback)
 
                 if '*' in self.subscribers:
                     for callback, subscribed_entity, once in self.subscribers['*']:
                         if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            await callback(event_type, entity, data, *args, **kwargs)
+                            await callback(data, entity, event_type)
                             if once:
                                 self.unsubscribe('*', callback)
 
