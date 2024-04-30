@@ -42,18 +42,19 @@ class APIBase(ABC):
 
         self.host = host
         self.port = port
-        self._timeout = 5
-        self.connection_event = asyncio.Event()
-        self.keep_alive_received = False
         
+        self._timeout = 5
         self._keep_alive = 10
+
         self._reader = None
         self._writer = None
         self._writer_queue: asyncio.Queue = asyncio.Queue()
 
         self._disconnecting = False
         self._connecting = False
+        self.connection_event = asyncio.Event()
 
+        self._keep_alive_received = False
         self._reconection_time = self._timeout
         self._keep_connected_task = None
 
@@ -197,7 +198,7 @@ class APIBase(ABC):
                 self._cancel_keep_connected()
             except ZoneConnectionError as e:
                 # just keep trying
-                self._log_debug(f'{self.host}:{self.port}: will attempt reconnection in {self._reconection_time} sec')
+                self._log_info(f'{self.host}:{self.port}: will attempt reconnection in {self._reconection_time} sec')
                 await asyncio.sleep(self._reconection_time)
                 self._reconection_time = min(self._reconection_time * 1.5, 300) # max 5 mins
 
@@ -262,7 +263,7 @@ class APIBase(ABC):
                 if not data:
                     continue
 
-                self.keep_alive_received = True
+                self._keep_alive_received = True
 
                 await self._read_byte_stream(self._reader, data, inital_length)
 
@@ -292,14 +293,14 @@ class APIBase(ABC):
         try:
             while self.connected:
 
-                self.keep_alive_received = False
+                self._keep_alive_received = False
 
                 #Send first then sleep
                 self._send_keepalive()
 
                 await asyncio.sleep(self._keep_alive)
 
-                if not self.keep_alive_received:
+                if not self._keep_alive_received:
                     self._log_error("Keep-alive not received")
                     await self.reconnect()
 
