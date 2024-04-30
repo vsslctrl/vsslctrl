@@ -2,6 +2,7 @@ import asyncio
 from enum import IntEnum
 from typing import Callable
 from .utils import add_logging_helpers
+from .exceptions import VsslCtrlException
 
 #
 # Event Bus
@@ -41,7 +42,7 @@ class EventBus:
         else:
             message = f"EventBus: {callback.__name__} must be a coroutine. Event: {event_type} | Entity: {entity}"
             self._log_error(message)
-            raise VsslException(message)
+            raise VsslCtrlException(message)
         
     #
     # Unsubscribe 

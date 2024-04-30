@@ -23,7 +23,7 @@ from .settings import ZoneSettings
 from .transport import ZoneTransport
 from .group import ZoneGroup
 
-from .exceptions import ZoneError, ZoneInitialisationError
+from .exceptions import ZoneError
 
 
 class Zone:
@@ -102,12 +102,9 @@ class Zone:
         self.vssl.event_bus.subscribe(ZoneGroup.Events.SOURCE_CHANGE, self._event_group_source_change, self.id)
 
         # Connect the APIs
-        self._api_alpha.connect()
-        self._api_bravo.connect()
-
         # Wait until the zone is connected then continue
-        await self._api_alpha.connection_event.wait()
-        await self._api_bravo.connection_event.wait()
+        await self._api_alpha.connect()
+        await self._api_bravo.connect()
 
         # Start polling zone
         self._poller.start()
@@ -116,19 +113,19 @@ class Zone:
         received_id = await future_id
         received_serial = await future_serial
 
-        # Confirm the zone id is correct
+        # Confirm the zone id is matches returned ID
         if received_id != self.id:
             message = f"Zone ID mismatch. {self.host} returned zone ID {received_id} instead of {self.id}"
             self._log_critical(message)
             await self.disconnect()
-            raise ZoneInitialisationError(message)
+            raise ZoneError(message)
 
         # Confirm the zone and VSSL serial numbers match
         if self.vssl.serial != received_serial:
             message = f"Zone ({received_serial}) and VSSL ({self.vssl.serial}) serial numbers do not match. Does this zone belong to this VSSL?"
             self._log_critical(message)
             await self.disconnect()
-            raise ZoneInitialisationError(message)
+            raise ZoneError(message)
 
         # Initialised
         self.initialisation.set()
@@ -158,20 +155,6 @@ class Zone:
 
         await self._api_alpha.disconnect()
         await self._api_bravo.disconnect()
-
-    # 
-    # Wait until the zone is connected helper
-    #
-    async def await_initialisation(self, timeout: int = 0):
-        try:
-            if timeout > 0:
-                return await asyncio.wait_for(self.initialisation.wait(), timeout)
-            else:
-                return await self.initialisation.wait()
-        except asyncio.TimeoutError:
-            message = f"Zone {self.id} initialisation timeout"
-            self._log_error(message)
-            raise ZoneError(message)
 
     # 
     # Event Publish Wrapper

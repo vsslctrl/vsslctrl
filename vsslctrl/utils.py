@@ -38,7 +38,7 @@ def clamp_volume(vol: int):
 #
 # Cancel a task if it exsists
 #
-async def cancel_task_if_exists(task: asyncio.Task):
+def cancel_task(task: asyncio.Task):
     if isinstance(task, asyncio.Task) and not task.done():
         try:
             task.cancel()

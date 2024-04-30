@@ -42,12 +42,10 @@ async def zone(request):
     asyncio.create_task(vssl_instance.initialise())
 
     try:
-        await zone_instance.await_initialisation(3)
+        await asyncio.wait_for(zone_instance.initialisation.wait(), 3)
     except asyncio.TimeoutError:
         pytest.fail(f"Couldnt connect to Zone at {ip}, not initialised")
-
-    #TODO, maybe add a function to get a value once zone is fully inialized
-    await zone_instance.initialisation.wait()
+        
 
     if not zone_instance.transport.is_playing or zone_instance.input.source != InputRouter.Sources.STREAM:
         pytest.fail(
