@@ -15,11 +15,12 @@ class APIAlpha(APIBase):
 
     
     TCP_PORT = 50002
+    HEADER_LENGTH = 3
 
 
     def __init__(self, vssl_host: 'core.Vssl', zone: 'zone.Zone'):
         
-        super().__init__(host=zone.host, port=APIAlpha.TCP_PORT)
+        super().__init__(host=zone.host, port=self.TCP_PORT)
         
         add_logging_helpers(self, f'Zone {zone.id}: Alpha API:')
 
@@ -478,10 +479,11 @@ class APIAlpha(APIBase):
     #
     #
 
-    async def _read_byte_stream(self, reader, data, inital_length: int):
+    async def _read_byte_stream(self, reader, data):
 
-        header_length = 3
-        data += await reader.readexactly(header_length - inital_length)
+        data += await reader.readexactly(
+            self.HEADER_LENGTH - APIBase.FRIST_BYTE
+        )
         length = data[2]
 
         data += await reader.readexactly(length)

@@ -4,8 +4,12 @@ import socket
 from vsslctrl.api_alpha import APIAlpha
 from vsslctrl.utils import group_list_by_property
 
-# mDNS Discovery
-class Discovery:
+# mDNS Zone Discovery
+class ZoneDiscovery:
+
+
+    SERVICE_STRING = '._airplay._tcp.local.'
+
 
     def __init__(self, discovery_time: int = 5):
         self.discovery_time = discovery_time
@@ -49,7 +53,7 @@ class Discovery:
                         self.parent.hosts.append({
                             # Convert byte representation of IP address to string
                             "host": socket.inet_ntop(socket.AF_INET, info.addresses[0]),
-                            "name": name.rstrip('._airplay._tcp.local.'),
+                            "name": name.rstrip(f'.{ZoneDiscovery.SERVICE_STRING}'),
                             "model": properties.get(b'model', b'').decode('utf-8'),
                             "mac_addr": properties.get(b'deviceid', b'').decode('utf-8'),
                         })
@@ -59,7 +63,7 @@ class Discovery:
 
         zeroconf_instance = Zeroconf()
         listener = MyListener(self)
-        browser = ServiceBrowser(zeroconf_instance, "_airplay._tcp.local.", listener)
+        browser = ServiceBrowser(zeroconf_instance, ZoneDiscovery.SERVICE_STRING, listener)
 
         # Wait for a few seconds to allow time for discovery
         time.sleep(self.discovery_time)

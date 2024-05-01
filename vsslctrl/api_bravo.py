@@ -12,11 +12,12 @@ class APIBravo(APIBase):
 
 
     TCP_PORT = 7777
+    HEADER_LENGTH = 10
 
 
     def __init__(self, vssl_host: 'vssl.VSSL', zone: 'zone.Zone'):
 
-        super().__init__(host=zone.host, port=APIBravo.TCP_PORT)
+        super().__init__(host=zone.host, port=self.TCP_PORT)
 
         add_logging_helpers(self, f'Zone {zone.id}: Bravo API:')
 
@@ -145,10 +146,9 @@ class APIBravo(APIBase):
     # Handle Response
     #
 
-    async def _read_byte_stream(self, reader, data, inital_length: int):
+    async def _read_byte_stream(self, reader, data):
         
-        header_length = 10
-        data += await reader.readexactly(header_length - inital_length)
+        data += await reader.readexactly(self.HEADER_LENGTH - APIBase.FRIST_BYTE)
 
         length = int.from_bytes(data[8:10], 'big')
 

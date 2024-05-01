@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
+from random import randrange
 from asyncio.exceptions import IncompleteReadError
 import logging
 from typing import Callable, final
@@ -35,6 +36,14 @@ class APITaskGroup():
 
 
 class APIBase(ABC):
+
+    TIMEOUT = 5 # seconds
+    KEEP_ALIVE = 10 # seconds
+    BACKOFF_MIN = 15  # seconds
+    BACKOFF_MAX = 300  # 5 minutes
+
+    FRIST_BYTE = 1
+
     
     def __init__(self, host, port):
 
@@ -42,9 +51,6 @@ class APIBase(ABC):
 
         self.host = host
         self.port = port
-        
-        self._timeout = 5
-        self._keep_alive = 10
 
         self._reader = None
         self._writer = None
@@ -55,8 +61,8 @@ class APIBase(ABC):
         self.connection_event = asyncio.Event()
 
         self._keep_alive_received = False
-        self._reconection_time = self._timeout
         self._keep_connected_task = None
+        self._reconnection_attempts = 0
 
         self._task_group = APITaskGroup()
 
@@ -91,7 +97,7 @@ class APIBase(ABC):
         try:
             self._log_debug(f"Attemping connection to {self.host}:{self.port}")
             self._reader, self._writer = await asyncio.wait_for(
-                asyncio.open_connection(self.host, self.port), self._timeout
+                asyncio.open_connection(self.host, self.port), self.TIMEOUT
             )
 
             # Connected
@@ -149,7 +155,7 @@ class APIBase(ABC):
             try:
                 #Writer hangs on disconnect sometimes
                 self._writer.close()
-                await asyncio.wait_for(self._writer.wait_closed(), self._timeout)
+                await asyncio.wait_for(self._writer.wait_closed(), self.TIMEOUT)
 
             except asyncio.CancelledError:
                  self._log_debug(f'writer close timeout')
@@ -197,10 +203,20 @@ class APIBase(ABC):
                 await self.connect()
                 self._cancel_keep_connected()
             except ZoneConnectionError as e:
-                # just keep trying
-                self._log_info(f'{self.host}:{self.port}: will attempt reconnection in {self._reconection_time} sec')
-                await asyncio.sleep(self._reconection_time)
-                self._reconection_time = min(self._reconection_time * 1.5, 300) # max 5 mins
+
+                self._reconnection_attempts += 1
+
+                backoff = min(
+                    max(
+                        self.BACKOFF_MIN,
+                        self.BACKOFF_MIN * self._reconnection_attempts,
+                    ),
+                    self.BACKOFF_MAX,
+                )
+
+                self._log_info(f'{self.host}:{self.port}: reconnecting in {backoff} seconds')
+                await asyncio.sleep(backoff)
+                
 
     #
     # Cancel keep connected tasks
@@ -209,7 +225,7 @@ class APIBase(ABC):
     def _cancel_keep_connected(self):
         self._log_debug(f'{self.host}:{self.port}: canceling keep_connected task')
         cancel_task(self._keep_connected_task)
-        self._reconection_time = self._timeout
+        self._reconnection_attempts = 0
 
     #
     # Send Bytes
@@ -219,6 +235,7 @@ class APIBase(ABC):
         try:
             self._log_debug(f"Send task started for {self.host}:{self.port}")
             while self.connected:
+
                 # Wait until there's data in the queue
                 data = await self._writer_queue.get()
 
@@ -254,23 +271,18 @@ class APIBase(ABC):
             self._log_debug(f"Receive task started for {self.host}:{self.port}")
             while self.connected:
 
-                inital_length = 1
-                data = await asyncio.wait_for(
-                    self._reader.readexactly(inital_length), 
-                    self._keep_alive + self._timeout
-                )
+                data = await self._reader.readexactly(self.FRIST_BYTE)
 
                 if not data:
                     continue
 
                 self._keep_alive_received = True
 
-                await self._read_byte_stream(self._reader, data, inital_length)
+                await self._read_byte_stream(self._reader, data)
 
         except asyncio.CancelledError:
             self._log_debug(f"Cancelled receive task for {self.host}:{self.port}")
         except (
-            asyncio.TimeoutError,
             IncompleteReadError,
             TimeoutError,
             ConnectionResetError,
@@ -298,7 +310,7 @@ class APIBase(ABC):
                 #Send first then sleep
                 self._send_keepalive()
 
-                await asyncio.sleep(self._keep_alive)
+                await asyncio.sleep(self.KEEP_ALIVE)
 
                 if not self._keep_alive_received:
                     self._log_error("Keep-alive not received")
