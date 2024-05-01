@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from enum import IntEnum
 from typing import Callable
 from .utils import add_logging_helpers
@@ -130,7 +131,6 @@ class EventBus:
                 if event_type in self.subscribers:
                     for callback, subscribed_entity, once in self.subscribers[event_type]:
                         if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            print(data, entity, event_type)
                             await callback(data, entity, event_type)
                             if once:
                                 self.unsubscribe(event_type, callback)
@@ -138,7 +138,6 @@ class EventBus:
                 if '*' in self.subscribers:
                     for callback, subscribed_entity, once in self.subscribers['*']:
                         if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            print(data, entity, event_type)
                             await callback(data, entity, event_type)
                             if once:
                                 self.unsubscribe('*', callback)
@@ -146,4 +145,6 @@ class EventBus:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self._log_error(f"error processing event exception: {e}")
+                # Capture the traceback as a string
+                traceback_str = traceback.format_exc()
+                self._log_error(f"exception occurred processing event: {e}\n{traceback_str}")
