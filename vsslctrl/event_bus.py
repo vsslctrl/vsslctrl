@@ -21,13 +21,17 @@ class EventBus:
 
         self.running = False
 
-        asyncio.create_task(self.process_events())
+        self.process = asyncio.create_task(
+            self.process_events()
+        )
 
     #
     # Stop 
     #
     def stop(self):
         self.running = False
+        self.process.cancel()
+        self._log_debug(f"stop")
 
     #
     # Subscribe 
@@ -113,7 +117,7 @@ class EventBus:
         
         self.running = True
         
-        self._log_debug(f"Started")
+        self._log_debug(f"start")
 
         while self.running:
             

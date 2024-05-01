@@ -104,6 +104,13 @@ class Vssl:
         return True
 
     #
+    # Shutdown
+    #
+    async def shutdown(self):
+        await self.disconnect()
+        self.event_bus.stop()
+
+    #
     # Update a property and fire the event
     #
 
