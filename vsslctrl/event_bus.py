@@ -130,6 +130,7 @@ class EventBus:
                 if event_type in self.subscribers:
                     for callback, subscribed_entity, once in self.subscribers[event_type]:
                         if entity is None or subscribed_entity == entity or subscribed_entity == '*':
+                            print(data, entity, event_type)
                             await callback(data, entity, event_type)
                             if once:
                                 self.unsubscribe(event_type, callback)
@@ -137,6 +138,7 @@ class EventBus:
                 if '*' in self.subscribers:
                     for callback, subscribed_entity, once in self.subscribers['*']:
                         if entity is None or subscribed_entity == entity or subscribed_entity == '*':
+                            print(data, entity, event_type)
                             await callback(data, entity, event_type)
                             if once:
                                 self.unsubscribe('*', callback)
