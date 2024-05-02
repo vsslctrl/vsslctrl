@@ -9,8 +9,10 @@ from .api_base import APIBase
 from .transport import ZoneTransport
 from .settings import EQSettings
 
-from .utils import add_logging_helpers, hex_to_int, clamp_volume
+from .utils import hex_to_int, clamp_volume
+from .decorators import logging_helpers
 
+@logging_helpers()
 class APIAlpha(APIBase):
 
     
@@ -22,7 +24,7 @@ class APIAlpha(APIBase):
         
         super().__init__(host=zone.host, port=self.TCP_PORT)
         
-        add_logging_helpers(self, f'Zone {zone.id}: Alpha API:')
+        self._log_prefix = f'Zone {zone.id}: Alpha API:'
 
         self.vssl = vssl_host
         self.zone = zone

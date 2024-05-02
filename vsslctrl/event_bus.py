@@ -2,19 +2,20 @@ import asyncio
 import traceback
 from enum import IntEnum
 from typing import Callable
-from .utils import add_logging_helpers
 from .exceptions import VsslCtrlException
+from .decorators import logging_helpers
 
 #
 # Event Bus
 #
+
+@logging_helpers('EventBus:')
 class EventBus:
 
+    WILDCARD = '*'
     FUTURE_TIMEOUT = 5
 
     def __init__(self):
-
-        add_logging_helpers(self, 'EventBus:')
 
         self.subscribers = {}
         self.event_queue = asyncio.Queue()
@@ -31,13 +32,13 @@ class EventBus:
     def stop(self):
         self.running = False
         self.process.cancel()
-        self._log_debug(f"stop")
+        self._log_debug(f"stopped event processing")
 
     #
     # Subscribe 
     #
     def subscribe(self, event_type, callback: Callable, entity='*', once=False):
-        #Make sure we are using async callbacks
+        # Make sure we are using async callbacks
         if callback is not None and asyncio.iscoroutinefunction(callback):
             event_type = event_type.lower()
             if event_type not in self.subscribers:
@@ -45,7 +46,7 @@ class EventBus:
             self._log_debug(f"subscription for event: {event_type} | entity: {entity} | cb: {callback.__name__}")
             self.subscribers[event_type].append((callback, entity, once))
         else:
-            message = f"EventBus: {callback.__name__} must be a coroutine. Event: {event_type} | Entity: {entity}"
+            message = f"{callback.__name__} must be a coroutine. Event: {event_type} | Entity: {entity}"
             self._log_error(message)
             raise VsslCtrlException(message)
         
@@ -107,44 +108,34 @@ class EventBus:
     async def publish_async(self, event_type, entity=None, data=None):
         event_type = event_type.lower()
         await self.event_queue.put((event_type, entity, data))
-        # All events can still be scroped to entity
-        #await self.event_queue.put(('*', entity, data, args, kwargs))
 
     #
     # Process Events
     #
     async def process_events(self):
-        
-        self.running = True
-        
-        self._log_debug(f"start")
+        self._log_debug(f"starting event processing")
 
+        self.running = True
         while self.running:
             
             try:
                 event_type, entity, data = await self.event_queue.get()
 
-                message = f'processing event: {event_type} | entity: {entity} | data: '
-                if isinstance(data, IntEnum):
-                    message += f'{data.name} ({data.value})'
-                else:
-                    message += f"{data}"
+                if self._is_log_level('debug'):
+                    message = f'processing event: {event_type} | entity: {entity} | data: '
+                    if isinstance(data, IntEnum):
+                        message += f'{data.name} ({data.value})'
+                    else:
+                        message += str(data)
+                    self._log_debug(message)
 
-                self._log_debug(message)
-
-                if event_type in self.subscribers:
-                    for callback, subscribed_entity, once in self.subscribers[event_type]:
-                        if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            await callback(data, entity, event_type)
-                            if once:
-                                self.unsubscribe(event_type, callback)
-
-                if '*' in self.subscribers:
-                    for callback, subscribed_entity, once in self.subscribers['*']:
-                        if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            await callback(data, entity, event_type)
-                            if once:
-                                self.unsubscribe('*', callback)
+                for event in [event_type, self.WILDCARD]:
+                    if event in self.subscribers:
+                        for callback, subscribed_entity, once in self.subscribers[event]:
+                            if entity is None or subscribed_entity in {entity, self.WILDCARD}:
+                                await callback(data, entity, event_type)
+                                if once:
+                                    self.unsubscribe(event, callback)
 
             except asyncio.CancelledError:
                 break

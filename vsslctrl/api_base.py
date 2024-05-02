@@ -5,9 +5,9 @@ from asyncio.exceptions import IncompleteReadError
 import logging
 from typing import Callable, final
 
-from .utils import add_logging_helpers, cancel_task
+from .utils import cancel_task
 from .exceptions import ZoneConnectionError
-
+from .decorators import logging_helpers
 
 class APITaskGroup():
     def __init__(self):
@@ -35,6 +35,8 @@ class APITaskGroup():
         return await asyncio.gather(*self._tasks)
 
 
+
+@logging_helpers('Base API:')
 class APIBase(ABC):
 
     TIMEOUT = 5 # seconds
@@ -44,10 +46,7 @@ class APIBase(ABC):
 
     FRIST_BYTE = 1
 
-    
     def __init__(self, host, port):
-
-        add_logging_helpers(self, 'Base API:')
 
         self.host = host
         self.port = port

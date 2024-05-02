@@ -10,22 +10,20 @@ import asyncio
 from typing import Union
 
 from . import core
-
 from .api_alpha import APIAlpha
 from .api_bravo import APIBravo
-
-from .utils import add_logging_helpers, RepeatTimer, clamp_volume
+from .utils import RepeatTimer, clamp_volume
 from .data_structure import VsslIntEnum
-
 from .track import TrackMetadata
 from .io import AnalogOutput, InputRouter
 from .settings import ZoneSettings
 from .transport import ZoneTransport
 from .group import ZoneGroup
-
 from .exceptions import ZoneError
+from .decorators import logging_helpers
 
 
+@logging_helpers()
 class Zone:
 
     #
@@ -43,6 +41,7 @@ class Zone:
     # Zone Events
     #
     class Events():
+        ALL                 = '*'
         PREFIX              = 'zone.'
         INITIALISED         = PREFIX+'initialised'
         ID_RECEIVED         = PREFIX+'id_received'
@@ -54,7 +53,7 @@ class Zone:
 
     def __init__(self, vssl_host: 'core.Vssl', zone_id: 'Zone.IDs', host: str):
 
-        add_logging_helpers(self, f'Zone {zone_id}:')
+        self._log_prefix = f'Zone {zone_id}:'
 
         self.vssl = vssl_host
         self.initialisation = asyncio.Event()

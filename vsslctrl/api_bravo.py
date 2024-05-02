@@ -5,9 +5,10 @@ import struct
 import logging
 
 from .api_base import APIBase
-from .utils import add_logging_helpers, hex_to_int
+from .utils import hex_to_int
+from .decorators import logging_helpers
 
-
+@logging_helpers()
 class APIBravo(APIBase):
 
 
@@ -19,7 +20,7 @@ class APIBravo(APIBase):
 
         super().__init__(host=zone.host, port=self.TCP_PORT)
 
-        add_logging_helpers(self, f'Zone {zone.id}: Bravo API:')
+        self._log_prefix = f'Zone {zone.id}: Bravo API:'
 
         self.vssl = vssl_host
         self.zone = zone

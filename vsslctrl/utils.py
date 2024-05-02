@@ -1,27 +1,4 @@
 import asyncio
-import logging
-
-_LOGGER = logging.getLogger(__name__)
-
-
-def add_logging_helpers(InstanceClass, message_prefix = ''):
-
-    LOG_LEVELS = {
-        'debug': _LOGGER.debug,
-        'info': _LOGGER.info,
-        'warning': _LOGGER.warning,
-        'error': _LOGGER.error,
-        'critical': _LOGGER.critical
-    }
-
-    # Dynamically create methods for each log level
-    for level, log_func in LOG_LEVELS.items():
-        setattr(
-            InstanceClass, 
-            f"_log_{level}", 
-            lambda message, message_prefix=message_prefix, log_func=log_func: log_func(f"{message_prefix} {message}")
-        )
-
 
 #
 # Hex to Int

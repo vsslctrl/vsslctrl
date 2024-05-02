@@ -8,29 +8,26 @@ from typing import Dict, Union, List
 
 from .zone import Zone
 from .exceptions import VsslCtrlException, ZoneError
-from .utils import add_logging_helpers
 from .event_bus import EventBus
 from .settings import VsslPowerSettings
+from .decorators import logging_helpers
 
-
+@logging_helpers('VSSL:')
 class Vssl:
 
     #
     # VSSL Events
     #
     class Events():
-        ALL                         = '*'
         PREFIX                      = 'vssl.'
         NAME_CHANGE                 = PREFIX + 'name_changed'
         MODEL_ZONE_QTY_CHANGE       = PREFIX + 'model_zone_qty_changed'
         SW_VERSION_CHANGE           = PREFIX + 'sw_version_changed'
         SERIAL_CHANGE               = PREFIX + 'serial_changed'
         OPTICAL_INPUT_NAME_CHANGE   = PREFIX + 'optical_input_name_changed'
-
+        ALL                         = EventBus.WILDCARD
 
     def __init__(self, zones: Union[str, List[str]] = None):
-
-        add_logging_helpers(self, 'VSSL:')
 
         self.event_bus = EventBus()
         self._zones = {}
