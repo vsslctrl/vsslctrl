@@ -60,8 +60,8 @@ class ZoneTransport(ZoneDataClass):
     def __init__(self, zone: 'zone.Zone'):
         self._zone = zone
 
-        self._state = ZoneTransport.States.STOP
-        self._repeat = ZoneTransport.Repeat.OFF
+        self._state = self.States.STOP
+        self._repeat = self.Repeat.OFF
         self._shuffle = False
         self._next_flag = False
         self._prev_flag = False
@@ -75,7 +75,7 @@ class ZoneTransport(ZoneDataClass):
     # VSSL has a happit of caching the last song played, so we need to clear it
     #
     def set_defaults(self):
-        for key, default_value in ZoneTransport.DEFAULTS.items():
+        for key, default_value in self.DEFAULTS.items():
             set_func = f'_set_{key}'
             if hasattr(self, set_func):
                 getattr(self, set_func)(default_value)
@@ -84,13 +84,13 @@ class ZoneTransport(ZoneDataClass):
     # Set value based on transport state.
     #
     def _default_on_state_stop(self, value, default = None):
-        return default if self.state == ZoneTransport.States.STOP else value
+        return default if self.state == self.States.STOP else value
 
     #
     # Update from a JSON dict passed
     #
     def _map_response_dict(self, track_data: Dict[str, int]) -> None:
-        for track_data_key, metadata_key in ZoneTransport.KEY_MAP.items():
+        for track_data_key, metadata_key in self.KEY_MAP.items():
             if track_data_key in track_data:
                 self._set_property(metadata_key, track_data[track_data_key])
 
@@ -98,7 +98,7 @@ class ZoneTransport(ZoneDataClass):
     # Update from a JSON dict passed
     #
     def _set_bool_property(self, prop_key: str, new_value: int, event: str) -> None:
-        new_value = self._default_on_state_stop(not not new_value, ZoneTransport.DEFAULTS[prop_key])
+        new_value = self._default_on_state_stop(not not new_value, self.DEFAULTS[prop_key])
         cur_value = getattr(self, prop_key)
 
         if cur_value != new_value:
@@ -114,13 +114,13 @@ class ZoneTransport(ZoneDataClass):
 
     @state.setter
     def state(self, state: int):
-        if ZoneTransport.States.is_valid(state):
-            state = ZoneTransport.States(state)
+        if self.States.is_valid(state):
+            state = self.States(state)
             self._zone._api_alpha.request_action_3D(state)
 
             # Changing state wont work if we are part of a group
             # So if we are wanting to stop, leave the group
-            if state == ZoneTransport.States.STOP and self._zone.group.is_member:
+            if state == self.States.STOP and self._zone.group.is_member:
                 self._zone.group.leave()
         else:
             self._zone._log_error(f"ZoneTransport.States {state} doesnt exist")
@@ -128,10 +128,10 @@ class ZoneTransport(ZoneDataClass):
 
     def _set_state(self, state: int):
         if self.state != state:
-            if ZoneTransport.States.is_valid(state):
-                self._state = ZoneTransport.States(state)
+            if self.States.is_valid(state):
+                self._state = self.States(state)
                 self._zone._event_publish(
-                    getattr(ZoneTransport.Events, f'STATE_CHANGE_{self.state.name.upper()}'), 
+                    getattr(self.Events, f'STATE_CHANGE_{self.state.name.upper()}'), 
                     True
                 )
                 return True
@@ -142,7 +142,7 @@ class ZoneTransport(ZoneDataClass):
     # Transport Commands
     #
     def play(self):
-        self.state = ZoneTransport.States.PLAY
+        self.state = self.States.PLAY
 
     """
         note: stopping a stream will disconnect the client as will pausing an Airplay stream.
@@ -155,25 +155,25 @@ class ZoneTransport(ZoneDataClass):
         ref: https://vssl.gitbook.io/vssl-rest-api/zone-control/play-control
     """
     def stop(self):
-        self.state = ZoneTransport.States.STOP
+        self.state = self.States.STOP
 
     def pause(self):
-        self.state = ZoneTransport.States.PAUSE
+        self.state = self.States.PAUSE
 
     #
     # Transport States
     #
     @property
     def is_playing(self):
-        return self.state == ZoneTransport.States.PLAY
+        return self.state == self.States.PLAY
 
     @property
     def is_stopped(self):
-        return self.state == ZoneTransport.States.STOP
+        return self.state == self.States.STOP
 
     @property
     def is_paused(self):
-        return self.state == ZoneTransport.States.PAUSE
+        return self.state == self.States.PAUSE
 
     #
     # Track Control
@@ -200,7 +200,7 @@ class ZoneTransport(ZoneDataClass):
         pass #read-only
 
     def _set_next_flag(self, val: int):
-        return self._set_bool_property('next_flag', val, ZoneTransport.Events.NEXT_FLAG_CHANGE)
+        return self._set_bool_property('next_flag', val, self.Events.NEXT_FLAG_CHANGE)
 
     #
     # Track Prev_flag
@@ -214,7 +214,7 @@ class ZoneTransport(ZoneDataClass):
         pass #read-only
 
     def _set_prev_flag(self, val: int):
-        return self._set_bool_property('prev_flag', val, ZoneTransport.Events.PREV_FLAG_CHANGE)
+        return self._set_bool_property('prev_flag', val, self.Events.PREV_FLAG_CHANGE)
 
     #
     # Track Shuffle
@@ -228,7 +228,7 @@ class ZoneTransport(ZoneDataClass):
         pass #read-only
 
     def _set_shuffle(self, val: int):
-        return self._set_bool_property('shuffle', val, ZoneTransport.Events.SHUFFLE_CHANGE)
+        return self._set_bool_property('shuffle', val, self.Events.SHUFFLE_CHANGE)
 
     #
     # Track Repeat
@@ -242,10 +242,10 @@ class ZoneTransport(ZoneDataClass):
         pass #read-only
 
     def _set_repeat(self, val: int):
-        val = self._default_on_state_stop(val, ZoneTransport.DEFAULTS['repeat'])
+        val = self._default_on_state_stop(val, self.DEFAULTS['repeat'])
         if self.repeat != val: 
-            if ZoneTransport.Repeat.is_valid(val):
-                self._repeat = ZoneTransport.Repeat(val)
+            if self.Repeat.is_valid(val):
+                self._repeat = self.Repeat(val)
                 return True
             else:
                 self._zone._log_error(f"ZoneTransport.Repeat {val} doesnt exist")

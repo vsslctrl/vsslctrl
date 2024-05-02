@@ -20,12 +20,13 @@ class Vssl:
     #
     class Events():
         PREFIX                      = 'vssl.'
-        NAME_CHANGE                 = PREFIX + 'name_changed'
-        MODEL_ZONE_QTY_CHANGE       = PREFIX + 'model_zone_qty_changed'
-        SW_VERSION_CHANGE           = PREFIX + 'sw_version_changed'
-        SERIAL_CHANGE               = PREFIX + 'serial_changed'
-        OPTICAL_INPUT_NAME_CHANGE   = PREFIX + 'optical_input_name_changed'
+        NAME_CHANGE                 = PREFIX+'name_changed'
+        MODEL_ZONE_QTY_CHANGE       = PREFIX+'model_zone_qty_changed'
+        SW_VERSION_CHANGE           = PREFIX+'sw_version_changed'
+        SERIAL_CHANGE               = PREFIX+'serial_changed'
+        OPTICAL_INPUT_NAME_CHANGE   = PREFIX+'optical_input_name_changed'
         ALL                         = EventBus.WILDCARD
+
 
     def __init__(self, zones: Union[str, List[str]] = None):
 
@@ -61,7 +62,7 @@ class Vssl:
 
             # We will get the devices supported zone count in the future
             future_model_zone_qty = self.event_bus.future(
-                Vssl.Events.MODEL_ZONE_QTY_CHANGE, 0
+                self.Events.MODEL_ZONE_QTY_CHANGE, 0
             )
 
             # Lets make sure the zone is initialised, otherwsie we fail all
@@ -116,7 +117,7 @@ class Vssl:
         if current_value != new_value:
             setattr(self, f'_{property_name}', new_value)
             self.event_bus.publish(
-                getattr(Vssl.Events, property_name.upper() +
+                getattr(self.Events, property_name.upper() +
                         '_CHANGE'), 0, getattr(self, property_name)
             )
             self._log_debug(
@@ -184,7 +185,7 @@ class Vssl:
             self._model_zone_qty = sum(
                 1 for key in data if key.startswith('B') and key.endswith('Src'))
             self.event_bus.publish(
-                Vssl.Events.MODEL_ZONE_QTY_CHANGE, 0, self.model_zone_qty)
+                self.Events.MODEL_ZONE_QTY_CHANGE, 0, self.model_zone_qty)
 
     #
     # Optical Input Name

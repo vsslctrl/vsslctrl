@@ -30,15 +30,15 @@ def sterilizable(cls):
 
 def logging_helpers(prefix=''):
     def decorator(cls):
+
         logger = logging.getLogger(__name__)
 
         def _is_log_level(self, level: str):
             level = level.upper()
-            if hasattr(logger, level):
-                return getattr(logger, level) == logger.getEffectiveLevel()
+            if hasattr(logging, level):
+                return getattr(logging, level) == logger.getEffectiveLevel()
             else:
                 return False
-
 
         setattr(cls, "_is_log_level", _is_log_level)
 

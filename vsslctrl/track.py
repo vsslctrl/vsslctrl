@@ -76,7 +76,7 @@ class TrackMetadata(ZoneDataClass):
         self._duration: int = 0
         self._progress: int = 0
         self._cover_art: str = None
-        self._source = TrackMetadata.Sources.NOT_STREAMING
+        self._source = self.Sources.NOT_STREAMING
         self._url: str = None
 
 
@@ -94,7 +94,7 @@ class TrackMetadata(ZoneDataClass):
     # VSSL has a happit of caching the last song played, so we need to clear it
     #
     def set_defaults(self):
-        for key, default_value in TrackMetadata.DEFAULTS.items():
+        for key, default_value in self.DEFAULTS.items():
             self._update_property(key, default_value, True)
 
     #
@@ -105,17 +105,17 @@ class TrackMetadata(ZoneDataClass):
     def _update_property(self, key: str, new_value, ignore_transport_state = False):
         #Default if stopped
         if self._zone.transport.is_stopped and not ignore_transport_state:
-            new_value = TrackMetadata.DEFAULTS[key]
+            new_value = self.DEFAULTS[key]
 
         if getattr(self, key) != new_value:
             setattr(self, f'_{key}', new_value) #set private var
             new_set_value = getattr(self, key)
 
             self._zone._event_publish(
-                getattr(TrackMetadata.Events, f'{key.upper()}_CHANGE'), 
+                getattr(self.Events, f'{key.upper()}_CHANGE'), 
                 new_set_value
             )
-            self._zone._event_publish(TrackMetadata.Events.CHANGE, (key, new_set_value))            
+            self._zone._event_publish(self.Events.CHANGE, (key, new_set_value))            
 
     #
     # Update the track properties from a group master when part of a group.
@@ -137,7 +137,7 @@ class TrackMetadata(ZoneDataClass):
         """
         if not self._zone.group.is_member:
 
-            for track_data_key, metadata_key in TrackMetadata.KEY_MAP.items():
+            for track_data_key, metadata_key in self.KEY_MAP.items():
                 if track_data_key in track_data:
                     setattr(self, metadata_key, track_data[track_data_key])
 
@@ -165,7 +165,7 @@ class TrackMetadata(ZoneDataClass):
             self._log_error(f'Zone {zone} was not avaiable on VSSL, maybe we are not managing it')
             return
 
-        for key, default_value in TrackMetadata.DEFAULTS.items():
+        for key, default_value in self.DEFAULTS.items():
             if hasattr(master.track, key):
                 self._update_property(key, getattr(master.track, key), True)
 
@@ -271,8 +271,8 @@ class TrackMetadata(ZoneDataClass):
 
     @source.setter
     def source(self, src: Sources) -> None:
-        if TrackMetadata.Sources.is_valid(src):
-            self._update_property('source', TrackMetadata.Sources(src))
+        if self.Sources.is_valid(src):
+            self._update_property('source', self.Sources(src))
         else:
             self._zone._log_error(f"TrackMetadata.Sources {src} doesnt exist")
 

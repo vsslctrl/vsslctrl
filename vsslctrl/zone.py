@@ -60,7 +60,7 @@ class Zone:
         
         # Data / Cache
         self._host = host
-        self._id = Zone.IDs(zone_id)
+        self._id = self.IDs(zone_id)
         self._mac_addr = None
         self._serial = None
         self._volume = 0
@@ -93,8 +93,8 @@ class Zone:
     async def initialise(self):
 
         # ID and serial number futures
-        future_id = self.vssl.event_bus.future(Zone.Events.ID_RECEIVED, self.id)
-        future_serial = self.vssl.event_bus.future(Zone.Events.SERIAL_RECEIVED, self.id)
+        future_id = self.vssl.event_bus.future(self.Events.ID_RECEIVED, self.id)
+        future_serial = self.vssl.event_bus.future(self.Events.SERIAL_RECEIVED, self.id)
 
         # Subscribe to events
         self.vssl.event_bus.subscribe(ZoneTransport.Events.STATE_CHANGE, self._event_transport_state_change, self.id)
@@ -128,7 +128,7 @@ class Zone:
 
         # Initialised
         self.initialisation.set()
-        self.vssl.event_bus.publish(Zone.Events.INITIALISED, self.id, self)
+        self.vssl.event_bus.publish(self.Events.INITIALISED, self.id, self)
 
         return self
 
@@ -217,7 +217,7 @@ class Zone:
         if log:
             self._log_debug(f'Set {property_name}: {getattr(self, property_name)}')
             self._event_publish(
-                getattr(Zone.Events, property_name.upper() + '_CHANGE'), 
+                getattr(self.Events, property_name.upper() + '_CHANGE'), 
                 getattr(self, property_name)
             )
             
@@ -243,7 +243,7 @@ class Zone:
     def id(self, zone_id: int):
         if not self.initialised:
             # We wait for this in the initialise function
-            self._event_publish(Zone.Events.ID_RECEIVED, zone_id)
+            self._event_publish(self.Events.ID_RECEIVED, zone_id)
 
     #
     # Serial Number
@@ -260,7 +260,7 @@ class Zone:
         if not self.initialised:
             self._serial = serial
             # We wait for this in the initialise function
-            self._event_publish(Zone.Events.SERIAL_RECEIVED, serial)
+            self._event_publish(self.Events.SERIAL_RECEIVED, serial)
 
     #
     # MAC Address

@@ -52,6 +52,6 @@ class ZoneDataClass(ABC):
             self._zone._log_debug(message) 
 
             self._zone._event_publish(
-                getattr(getattr(self.__class__, 'Events'), property_name.upper() + '_CHANGE'), 
+                getattr(self.Events, property_name.upper() + '_CHANGE'), 
                 updated_value
             )

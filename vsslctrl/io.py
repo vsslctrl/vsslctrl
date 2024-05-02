@@ -53,8 +53,8 @@ class InputRouter(ZoneDataClass):
     def __init__(self, zone: 'zone.Zone'):
         self._zone = zone
 
-        self._priority = InputRouter.Priorities.STREAM
-        self._source = InputRouter.Sources.STREAM
+        self._priority = self.Priorities.STREAM
+        self._source = self.Sources.STREAM
 
     #
     # Input Priority
@@ -65,15 +65,15 @@ class InputRouter(ZoneDataClass):
 
     @priority.setter
     def priority(self, priority: 'InputRouter.Priorities'):
-        if InputRouter.Priorities.is_valid(priority):
+        if self.Priorities.is_valid(priority):
             self._zone._api_alpha.request_action_47(priority)
         else:
             self._zone._log_error(f"Input priority {priority} doesnt exist")
 
     def _set_priority(self, priority: int):
         if self.priority != priority:
-            if InputRouter.Priorities.is_valid(priority):
-                self._priority = InputRouter.Priorities(priority)
+            if self.Priorities.is_valid(priority):
+                self._priority = self.Priorities(priority)
                 return True
             else:
                 self._zone._log_error(f"InputRouter.Priorities {priority} doesnt exist")
@@ -87,15 +87,15 @@ class InputRouter(ZoneDataClass):
 
     @source.setter
     def source(self, src: 'InputRouter.Sources'):
-        if InputRouter.Sources.is_valid(src):
+        if self.Sources.is_valid(src):
             self._zone._api_alpha.request_action_03(src)
         else:
             self._zone._log_error(f"InputRouter.Sources {src} doesnt exist")
         
     def _set_source(self, src: int):
         if self.source != src:
-            if InputRouter.Sources.is_valid(src):
-                self._source = InputRouter.Sources(src)
+            if self.Sources.is_valid(src):
+                self._source = self.Sources(src)
                 return True
             else:
                 self._zone._log_error(f"InputRouter.Sources {src} doesnt exist")
@@ -142,7 +142,7 @@ class AnalogOutput(ZoneDataClass):
         self._zone = zone
 
         self._is_fixed_volume = False
-        self._source = AnalogOutput.Sources(zone.id + 3)
+        self._source = self.Sources(zone.id + 3)
 
     #
     # Analog Output Fix Volume
@@ -167,15 +167,15 @@ class AnalogOutput(ZoneDataClass):
 
     @source.setter
     def source(self, src: 'AnalogOutput.Sources'):
-        if AnalogOutput.Sources.is_valid(src):
+        if self.Sources.is_valid(src):
             self._zone._api_alpha.request_action_1D(src)
         else:
             self._zone._log_error(f"AnalogOutput.Sources {src} doesnt exist")
 
     def _set_source(self, src: int):
         if self.source != src:
-            if AnalogOutput.Sources.is_valid(src):
-                self._source = AnalogOutput.Sources(src)
+            if self.Sources.is_valid(src):
+                self._source = self.Sources(src)
                 return True
             else:
                 self._zone._log_error(f"AnalogOutput.Sources {src} doesnt exist")

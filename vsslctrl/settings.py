@@ -37,7 +37,7 @@ class VsslPowerSettings:
     def __init__(self, vssl: 'vsslctrl.Vssl'):
         self._vssl = vssl
 
-        self._state = VsslPowerSettings.States.ON
+        self._state = self.States.ON
         self._adaptive = True #1 = auto, 0 = always on
 
     #
@@ -54,9 +54,9 @@ class VsslPowerSettings:
 
     def _set_state(self, state: int):
         if self.state != state:
-            if VsslPowerSettings.States.is_valid(state):
-                self._state = VsslPowerSettings.States(state)
-                self._vssl.event_bus.publish(VsslPowerSettings.Events.STATE_CHANGE, 0, self.state)
+            if self.States.is_valid(state):
+                self._state = self.States(state)
+                self._vssl.event_bus.publish(self.Events.STATE_CHANGE, 0, self.state)
             else:
                 self._vssl._log_warning(f"VsslPowerSettings.States {state} doesnt exist")
 
@@ -80,7 +80,7 @@ class VsslPowerSettings:
     def _set_adaptive(self, adaptive: bool):
         if self.adaptive != adaptive:
             self._adaptive = adaptive
-            self._vssl.event_bus.publish(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0, self.adaptive)
+            self._vssl.event_bus.publish(self.Events.ADAPTIVE_CHANGE, 0, self.adaptive)
 
     def adaptive_toggle(self):
         self.adaptive = False if self.adaptive else True
@@ -169,21 +169,21 @@ class ZoneSettings(ZoneDataClass):
 
     @mono.setter
     def mono(self, mono: 'ZoneSettings.StereoMono'):
-        if ZoneSettings.StereoMono.is_valid(mono):
+        if self.StereoMono.is_valid(mono):
             self._zone._api_alpha.request_action_mono_set(mono)
         else:
             self._zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
 
     def _set_mono(self, mono: int):
         if self.mono != mono:
-            if ZoneSettings.StereoMono.is_valid(mono):
-                self._mono = ZoneSettings.StereoMono(mono)
+            if self.StereoMono.is_valid(mono):
+                self._mono = self.StereoMono(mono)
                 return True
             else:
                 self._zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
     
     def mono_toggle(self):
-        self.mono = ZoneSettings.StereoMono.Stereo if self.mono == ZoneSettings.StereoMono.Mono else ZoneSettings.StereoMono.Mono
+        self.mono = self.StereoMono.Stereo if self.mono == self.StereoMono.Mono else self.StereoMono.Mono
 
 
 class VolumeSettings(ZoneDataClass):
@@ -226,7 +226,7 @@ class VolumeSettings(ZoneDataClass):
     # Update from a JSON dict passed
     #
     def _map_response_dict(self, volume_data: Dict[str, int]) -> None:
-        for volume_data_key, settings_prop in VolumeSettings.KEY_MAP.items():
+        for volume_data_key, settings_prop in self.KEY_MAP.items():
             if volume_data_key in volume_data:
                 set_func = f'_set_{settings_prop}'
                 if hasattr(self, set_func):
@@ -363,7 +363,7 @@ class EQSettings(ZoneDataClass):
         settings = dict(self)
 
         if with_db:
-            for eq_data_key, freq_key in EQSettings.KEY_MAP.items():
+            for eq_data_key, freq_key in self.KEY_MAP.items():
                 key = f'{freq_key.name.lower()}_db'
                 settings[key] = getattr(self, key)
 
@@ -408,7 +408,7 @@ class EQSettings(ZoneDataClass):
     # Expects a value between: 90 to 110
     #
     def _set_frequency_on_device(self, freq: 'EQSettings.Freqs', value: int):
-        if EQSettings.Freqs.is_valid(freq):
+        if self.Freqs.is_valid(freq):
             self._zone._api_alpha.request_action_0D(freq, self._clamp(value))
         else:
             self._zone._log_error(f"EQSettings.Freqs {freq} doesnt exist")
@@ -425,10 +425,10 @@ class EQSettings(ZoneDataClass):
     #
     # Updade a property and emit and event if changed
     #
-    def _set_eq_freq(self, freq: 'EQSettings.Freqs', new_value: int):
-        if EQSettings.Freqs.is_valid(freq):
+    def _set_eq_freq(self, freq: 'self.Freqs', new_value: int):
+        if self.Freqs.is_valid(freq):
             
-            freq = EQSettings.Freqs(freq)
+            freq = self.Freqs(freq)
             key = freq.name.lower()
 
             self._set_property(key, self._clamp(new_value))
@@ -440,7 +440,7 @@ class EQSettings(ZoneDataClass):
     # Update from a JSON dict passed
     #
     def _map_response_dict(self, eq_data: Dict[str, int]) -> None:
-        for eq_data_key, freq_key in EQSettings.KEY_MAP.items():
+        for eq_data_key, freq_key in self.KEY_MAP.items():
             if eq_data_key in eq_data:
                 self._set_eq_freq(freq_key, int(eq_data[eq_data_key]))
 
@@ -467,7 +467,7 @@ class EQSettings(ZoneDataClass):
 
     @hz60.setter
     def hz60(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.HZ60, val)
+        self._set_frequency_on_device(self.Freqs.HZ60, val)
 
     @property
     def hz60_db(self):
@@ -475,7 +475,7 @@ class EQSettings(ZoneDataClass):
 
     @hz60_db.setter
     def hz60_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.HZ60, val)
+        self._set_frequency_on_device_db(self.Freqs.HZ60, val)
 
     #
     # EQ 200Hz
@@ -486,7 +486,7 @@ class EQSettings(ZoneDataClass):
 
     @hz200.setter
     def hz200(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.HZ200, val)
+        self._set_frequency_on_device(self.Freqs.HZ200, val)
 
     @property
     def hz200_db(self):
@@ -494,7 +494,7 @@ class EQSettings(ZoneDataClass):
 
     @hz200_db.setter
     def hz200_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.HZ200, val)
+        self._set_frequency_on_device_db(self.Freqs.HZ200, val)
 
     #
     # EQ 500Hz
@@ -505,7 +505,7 @@ class EQSettings(ZoneDataClass):
 
     @hz500.setter
     def hz500(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.HZ500, val)
+        self._set_frequency_on_device(self.Freqs.HZ500, val)
 
     @property
     def hz500_db(self):
@@ -513,7 +513,7 @@ class EQSettings(ZoneDataClass):
 
     @hz500_db.setter
     def hz500_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.HZ500, val)
+        self._set_frequency_on_device_db(self.Freqs.HZ500, val)
 
     #
     # EQ 1kHz
@@ -524,7 +524,7 @@ class EQSettings(ZoneDataClass):
 
     @khz1.setter
     def khz1(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ1, val)
+        self._set_frequency_on_device(self.Freqs.KHZ1, val)
 
     @property
     def khz1_db(self):
@@ -532,7 +532,7 @@ class EQSettings(ZoneDataClass):
 
     @khz1_db.setter
     def khz1_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ1, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ1, val)
 
     #
     # EQ 4kHz
@@ -543,7 +543,7 @@ class EQSettings(ZoneDataClass):
 
     @khz4.setter
     def khz4(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ4, val)
+        self._set_frequency_on_device(self.Freqs.KHZ4, val)
 
     @property
     def khz4_db(self):
@@ -551,7 +551,7 @@ class EQSettings(ZoneDataClass):
 
     @khz4_db.setter
     def khz4_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ4, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ4, val)
 
     #
     # EQ 8kHz
@@ -562,7 +562,7 @@ class EQSettings(ZoneDataClass):
 
     @khz8.setter
     def khz8(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ8, val)
+        self._set_frequency_on_device(self.Freqs.KHZ8, val)
 
     @property
     def khz8_db(self):
@@ -570,7 +570,7 @@ class EQSettings(ZoneDataClass):
 
     @khz8_db.setter
     def khz8_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ8, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ8, val)
 
     #
     # EQ 15kHz
@@ -581,7 +581,7 @@ class EQSettings(ZoneDataClass):
 
     @khz15.setter
     def khz15(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ15, val)
+        self._set_frequency_on_device(self.Freqs.KHZ15, val)
 
     @property
     def khz15_db(self):
@@ -589,4 +589,4 @@ class EQSettings(ZoneDataClass):
 
     @khz15_db.setter
     def khz15_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ15, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ15, val)
