@@ -34,7 +34,7 @@ async def main():
 	# Represents a physical VSSL amplifier
 	vssl = Vssl()
 
-	# Add each you which to control
+	# Add each you wish to control
 	zone1 = vssl.add_zone(Zone.IDs.ZONE_1, '192.168.1.10')
 	zone2 = vssl.add_zone(Zone.IDs.ZONE_2, '192.168.1.11')
 	zone3 = vssl.add_zone(Zone.IDs.ZONE_3, '192.168.1.12')
@@ -80,7 +80,7 @@ print(zone_name)
 >>> 'Living Room'
 ```
 
-**Important** in the above example, `zone_name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confimation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
+**Important** in the above example, `zone1.settings.name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confimation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
 
 
 # `Vssl`

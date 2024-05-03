@@ -241,11 +241,9 @@ class Vssl:
             raise ZoneError(error)
             return None
 
-        zone = Zone(self, zone_index, host)
+        self._zones[zone_index] = Zone(self, zone_index, host)
 
-        self._zones[zone_index] = zone
-
-        return zone
+        return self._zones[zone_index]
 
     #
     # Get a Zone by ID
