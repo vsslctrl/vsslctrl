@@ -36,35 +36,35 @@ class ZoneTransport(ZoneDataClass):
         STATE_CHANGE_PLAY   = PREFIX+'state_change.play'
         STATE_CHANGE_PAUSE  = PREFIX+'state_change.pause'
 
-        REPEAT_CHANGE       = PREFIX+'repeat_change'
-        SHUFFLE_CHANGE      = PREFIX+'shuffle_change'
-        NEXT_FLAG_CHANGE    = PREFIX+'next_flag_change'
-        PREV_FLAG_CHANGE    = PREFIX+'prev_flag_change'
+        REPEAT_CHANGE       = PREFIX+'is_repeat_change'
+        SHUFFLE_CHANGE      = PREFIX+'is_shuffle_change'
+        HAS_NEXT_CHANGE    = PREFIX+'has_next_change'
+        HAS_PREV_CHANGE    = PREFIX+'has_prev_change'
 
 
     DEFAULTS = {
         'state': States.STOP,
-        'repeat': Repeat.OFF,
-        'shuffle': False,
-        'next_flag': False,
-        'prev_flag': False
+        'is_repeat': Repeat.OFF,
+        'is_shuffle': False,
+        'has_next': False,
+        'has_prev': False
     }
 
     KEY_MAP = {
-        'Next': 'next_flag',
-        'Prev': 'prev_flag',
-        'Shuffle': 'shuffle',
-        'Repeat': 'repeat',
+        'Next': 'has_next',
+        'Prev': 'has_prev',
+        'Shuffle': 'is_shuffle',
+        'Repeat': 'is_repeat',
     }
 
     def __init__(self, zone: 'zone.Zone'):
         self._zone = zone
 
         self._state = self.States.STOP
-        self._repeat = self.Repeat.OFF
-        self._shuffle = False
-        self._next_flag = False
-        self._prev_flag = False
+        self._is_repeat = self.Repeat.OFF
+        self._is_shuffle = False
+        self._has_next = False
+        self._has_prev = False
 
     #
     # VSSL doenst clear some vars on stopping of the stream, so we will do it
@@ -189,63 +189,63 @@ class ZoneTransport(ZoneDataClass):
         self.prev()
 
     #
-    # Track Next_flag
+    # Is the next button enabled
     #
     @property
-    def next_flag(self):
-        return self._next_flag
+    def has_next(self):
+        return self._has_next
 
-    @next_flag.setter
-    def set_next_flag(self, val: int):
+    @has_next.setter
+    def set_has_next(self, val: int):
         pass #read-only
 
-    def _set_next_flag(self, val: int):
-        return self._set_bool_property('next_flag', val, self.Events.NEXT_FLAG_CHANGE)
+    def _set_has_next(self, val: int):
+        return self._set_bool_property('has_next', val, self.Events.HAS_NEXT_CHANGE)
 
     #
     # Track Prev_flag
     #
     @property
-    def prev_flag(self):
-        return self._prev_flag
+    def has_prev(self):
+        return self._has_prev
 
-    @prev_flag.setter
-    def prev_flag(self, val: int):
+    @has_prev.setter
+    def has_prev(self, val: int):
         pass #read-only
 
-    def _set_prev_flag(self, val: int):
-        return self._set_bool_property('prev_flag', val, self.Events.PREV_FLAG_CHANGE)
+    def _set_has_prev(self, val: int):
+        return self._set_bool_property('has_prev', val, self.Events.HAS_PREV_CHANGE)
 
     #
     # Track Shuffle
     #
     @property
-    def shuffle(self):
-        return self._shuffle
+    def is_shuffle(self):
+        return self._is_shuffle
 
-    @shuffle.setter
-    def shuffle(self, val: int):
+    @is_shuffle.setter
+    def is_shuffle(self, val: int):
         pass #read-only
 
-    def _set_shuffle(self, val: int):
-        return self._set_bool_property('shuffle', val, self.Events.SHUFFLE_CHANGE)
+    def _set_is_shuffle(self, val: int):
+        return self._set_bool_property('is_shuffle', val, self.Events.SHUFFLE_CHANGE)
 
     #
     # Track Repeat
     #
     @property
-    def repeat(self):
-        return self._repeat
+    def is_repeat(self):
+        return self._is_repeat
 
-    @repeat.setter
-    def repeat(self, val: int):
+    @is_repeat.setter
+    def is_repeat(self, val: int):
         pass #read-only
 
-    def _set_repeat(self, val: int):
-        val = self._default_on_state_stop(val, self.DEFAULTS['repeat'])
-        if self.repeat != val: 
+    def _set_is_repeat(self, val: int):
+        val = self._default_on_state_stop(val, self.DEFAULTS['is_repeat'])
+        if self.is_repeat != val: 
             if self.Repeat.is_valid(val):
-                self._repeat = self.Repeat(val)
+                self._is_repeat = self.Repeat(val)
                 return True
             else:
                 self._zone._log_error(f"ZoneTransport.Repeat {val} doesnt exist")

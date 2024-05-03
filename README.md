@@ -1,26 +1,29 @@
 # vsslctrl
  Package for controlling [VSSL](https://www.vssl.com/) range of streaming amplifiers.
 
- **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner**
+ **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
- Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/). I wanted control which didnt have to rely on mDNS discovery. The VSSL API was discovered using Wireshark packet captures while using their native app.
+ Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/). I wanted control which didnt have to rely on mDNS discovery. The VSSL API was reverse engineered using Wireshark, while usings VSSLs native legacy iOS app and their deprecated [`vsslagent`](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
 
  I am looking for testers with any VSSL models, please get in touch if you interested in helping.
 
- Tested on VSSL **A.3x** software version **p15305.016.3701**
+ Tested on VSSL **A.3x** software version **p15305.016.3701**.
 
 ## TODOs
 
-* Test and support for other models (help needed).
-* More and better unit tests
+* Test on other models (hardware needed)
+* Implement `zeroconf` discovery
+* Home Assistant integration (in progress)
+* Function scoping to supported feature / models
+* Unit tests
 * Linting
-* HA Integration (in progress)
 * Web app
+* EQ Presets, saving, recalling
 
 Basic Usage
 -----------
 
-**Vsslctrl** needs to be running inside a **asyncio** event loop.
+`vsslctrl` needs to be running inside a **[asyncio](https://docs.python.org/3/library/asyncio.html)** event loop.
 
 ```python
 import asyncio
@@ -31,13 +34,13 @@ async def main():
 	# Represents a physical VSSL amplifier
 	vssl = Vssl()
 
-	# Add each zone of above VSSL amplifier
+	# Add each you which to control
 	zone1 = vssl.add_zone(Zone.IDs.ZONE_1, '192.168.1.10')
 	zone2 = vssl.add_zone(Zone.IDs.ZONE_2, '192.168.1.11')
 	zone3 = vssl.add_zone(Zone.IDs.ZONE_3, '192.168.1.12')
 	#... up to 6 zones
 
-	# Connect and initiate above zones.
+	# Connect and initiate zones.
    	await vssl.initialise()
 
    	"""Control Examples"""
@@ -77,10 +80,10 @@ print(zone_name)
 >>> 'Living Room'
 ```
 
-Note, in the above example, `zone_name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confimation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
+**Important** in the above example, `zone_name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confimation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
 
 
-### `Vssl`
+# `Vssl`
 
 | Property      	| Description | Type 		| 
 | ---------------------- 	| ----------- | ----------- |
@@ -112,17 +115,18 @@ vssl.reboot()
 """Example"""
 # Setting power adaptive
 zone1.power.adaptive = True
->>> None
 ```
 
 
-### `Zone`
+# `Zone`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
 | `id`     			 	| Zone number / ID |	`int` readonly	| `Zone.IDs`
 | `host`   			| IP address        |	`str` readonly
-| `volume`   			| Volume        |	`int`  | 0...100
+| `volume`   			| Volume        |	`int`  | `0...100`
+| `volume_raise([step=1])`   			| Raise volume by `step`       |	`func`  | step: `int` `1...99`
+| `volume_lower([step=1])`   			| Lower volume by `step`      |	`func`  | step: `int` `1...99`
 | `mute`   			| Volume muted        |	`bool`  |
 | `mute_toggle()`   			| Mute / Unmute        |	`func`  |
 | `play()`   			| Play        |	`func`  |
@@ -138,6 +142,8 @@ zone1.power.adaptive = True
 """Examples"""
 # Set volume to 50%
 zone1.volume = 50
+# Raise volume by 5%
+zone1.volume_raise(5)
 # Mute
 zone1.mute = True
 # Toggle mute
@@ -146,23 +152,117 @@ zone1.mute_toggle()
 zone1.pause()
 # Next track
 zone1.next()
-# Play a URL on this zone
+# Play a URL on this zone1
 zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3')
 # Play a URL on all zones
 zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', True)
 ```
 
-### `Zone.group`
+### `Zone.transport` 
+
+A VSSL amplifier can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- | ----------- | ----------- |----------- |
+| `state`     			 | Transport state. i.e Play, Stop, Pause | `int`	| `ZoneTransport.States`
+| `play()`   		 | Play   |	`func`  |
+| `stop()`   		 | Stop     |	`func`  |
+| `pause()`   		 | Pause     |	`func`  |
+| `next()`   			| Next track       |	`func`  |
+| `prev()`   			| Begining of track or previous track        |	`func`  |
+| `is_playing`   			| Is the zone playing        |	`bool` readonly
+| `is_stopped`   			| Is the zone stopped        |	`bool` readonly
+| `is_pasued`   			| Is the zone pasued        |	`bool` readonly
+| `is_repeat`     			 | Repeat state. i.e all, one, off | `int` readonly	| `ZoneTransport.Repeat`
+| `is_shuffle`   			| Is shuffle enabled       |	`bool` readonly
+| `has_next`   			| Is the next button enabled       |	`bool` readonly
+| `has_prev`   			| Is the prev button enabled       |	`bool` readonly
+
+```python
+"""Example"""
+# Pause the stream
+zone1.transport.pause()
+# or
+zone1.transport.state = ZoneTransport.States.PAUSE
+```
+
+### `Zone.track` 
+
+* Not all source, have all metadata - they will be default values
+* VSSL default cover art URL link `[zone.host]/img/default_cover_art.png` is broken
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- | ----------- | ----------- |----------- |
+| `title`     			 | Title | `str` readonly	| 
+| `album`     			 | Album | `str` readonly	| 
+| `artist`     			 | Artist | `str` readonly	| 
+| `genre`     			 | Genre | `str` readonly	| 
+| `duration`     		| Length in miliseconds (ms) | `int` readonly	| 
+| `progress`     		| Current position in miliseconds (ms) | `int` readonly	|
+| `cover_art_url`     	| URL to cover art | `str` readonly	| 
+| `source`     			| Track source e.g Spotify |	`int` readonly	| `TrackMetadata.Sources`
+| `url`     	| URL of file or track | `str` readonly	| 
+
+
+### `Zone.input` 
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- 	| ----------- | ----------- |----------- |
+| `source`     			 	| Change input source |	`int`	| `InputRouter.Sources`
+| `priority`     			| Change input priority. Stream or analog in higher priority  |	`int`	| `InputRouter.Priorities`
+
+```python
+"""Example"""
+# Change zone 1 to listen to analog input 4
+zone1.input.source = InputRouter.Sources.ANALOG_IN_4
+
+# Change zone 1 to perfer analog input (local) over stream
+zone1.input.priority = InputRouter.Priorities.LOCAL
+```
+
+### `Zone.group` 
+
+Working on A.3x but offically unsupported in x series amplifiers.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
 | `source`     			 	| Zone ID of group master / source |	`int` readonly	| `Zone.IDs`
 | `is_master`   			| This zone is the group master        |	`bool` readonly
-| `add_member()`   			| Group master: Add zone to group |	`func`  | `Zone.IDs`
-| `remove_member()`   		| Group master: Remove zone from group      |	`func`  | `Zone.IDs`
-| `dissolve()`   			| Group master: Dissolve / Destroy group       |	`func`  |
-| `leave()`   				| Group member: Leave the group        |	`func`  |
+| `add_member()`   			| Add zone to group / create group |	`func`  | `Zone.IDs`
+| `remove_member()`   		| Remove zone from group      |	`func`  | `Zone.IDs`
+| `dissolve()`   			| Dissolve group / remove all members       |	`func`  |
+| `leave()`   				| Leave the group if a member       |	`func`  |
 
+```python
+"""Examples"""
+# Add group 2 to a group with zone 1 as master
+zone1.group.add_member(Zone.IDs.ZONE_2)
+# Remove zone 2 from group.
+zone2.group.leave() # or
+zone1.group.remove_member(Zone.IDs.ZONE_2)
+# If zone 1 is a master, remove all members
+zone1.group.dissolve()
+```
+
+### `Zone.analog_output` 
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- 	| ----------- | ----------- |----------- |
+| `source`     			 	| Where the AO is routed from. i.e a zone, optical input or off |	`int`	| `AnalogOutput.Sources`
+| `is_fixed_volume`   			| Fix the output volume. Output wont respond to volume control        |	`bool` readonly
+| `is_fixed_volume_toggle()`   			| Toggle fixed volume      |	`func`  |
+
+```python
+"""Examples"""
+# Change analog output of zone1 to be outputting the optical input
+zone1.analog_output.source = AnalogOutput.Sources.OPTICAL_IN
+
+# Change analog output of zone1 to be outputting the zone 2 source (whatever zone 2 is using as a source)
+zone1.analog_output.source = AnalogOutput.Sources.ZONE_2
+
+# Fix the analog output volume. 
+zone1.analog_output.is_fixed_volume = True
+```
 
 ### `Zone.settings`
 
@@ -184,13 +284,30 @@ zone1.disabled = True
 zone1.mono_toggle()
 ```
 
+### `Zone.settings.analog_input` 
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- 	| ----------- | ----------- |----------- |
+| `name`     			 	| Name |	`str`	| 
+| `fixed_gain`   		| Fix the input gain to a specific value       |`int` | `0...100`
+
+```python
+"""Examples"""
+# Change zone1 analog input name
+zone1.settings.analog_input.name = 'BluRay Player'
+
+# Fix zone1 analog input gain to 50%.
+zone1.settings.analog_input.fixed_gain = 50
+```
+
+
 ### `Zone.settings.volume`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `default_on`     			 	| Default on volume  |	`int`  | 0...100 
-| `max_left`     			 	| Max volume left channel  |	`int`  | 0...100 
-| `max_right`     			 	| Max volume right channel  |	`int`  | 0...100 
+| `default_on`     			 	| Default on volume  |	`int`  | `0...100` 
+| `max_left`     			 	| Max volume left channel  |	`int`  | `0...100` 
+| `max_right`     			 	| Max volume right channel  |	`int`  | `0...100` 
 
 ```python
 """Examples"""
@@ -202,32 +319,26 @@ zone1.settings.volume.default_on = 75
 
 ### `Zone.settings.eq`
 
-EQ settings can either be set using `int` values of `90` to `110` or dB values of `-10` to `10`. Be sure to use the correct property.
-
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
 | `enabled`     			 	| Enable / disable EQ        |	`bool` 
-| `hz60`     			 	| 60Hz EQ  |	`int`  | 90...110 
-| `hz60_db`     			 	| 60Hz EQ in dB |	`int`  | -10...10
-| `hz200`     			 	| 200Hz EQ  |	`int`  | 90...110 
-| `hz200_db`     			 	| 200Hz EQ in dB |	`int`  | -10...10
-| `hz500`     			 	| 500Hz EQ  |	`int`  | 90...110 
-| `hz500_db`     			 	| 500Hz EQ in dB |	`int`  | -10...10
-| `khz1`     			 	| 1kHz EQ  |	`int`  | 90...110 
-| `khz1_db`     			 	| 1kHz EQ in dB |	`int`  | -10...10
-| `khz4`     			 	| 4kHz EQ  |	`int`  | 90...110 
-| `khz4_db`     			 	| 4kHz EQ in dB |	`int`  | -10...10
-| `khz8`     			 	| 8kHz EQ  |	`int`  | 90...110 
-| `khz8_db`     			 	| 8kHz EQ in dB |	`int`  | -10...10
-| `khz15`     			 	| 15kHz EQ  |	`int`  | 90...110 
-| `khz15_db`     			 	| 15kHz EQ in dB |	`int`  | -10...10
+
+EQ be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `-10`dB to `+10`dB
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- 	| ----------- | ----------- |----------- | 
+| `hz60_db`     			 	| 60Hz |	`int`  | `-10...10`
+| `hz200_db`     			 	| 200Hz |	`int`  | `-10...10`
+| `hz500_db`     			 	| 500Hz |	`int`  | `-10...10`
+| `khz1_db`     			 	| 1kHz |	`int`  | `-10...10`
+| `khz4_db`     			 	| 4kHz |	`int`  | `-10...10`
+| `khz8_db`     			 	| 8kHz |	`int`  | `-10...10`
+| `khz15_db`     			 	| 15kHz |	`int`  | `-10...10`
 
 ```python
 """Examples"""
 # Set 1kHz EQ to -2
 zone1.settings.eq.khz1_db = -2
-# or
-zone1.settings.eq.khz1 = 98
 ```
 
 

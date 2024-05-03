@@ -29,18 +29,18 @@ class TrackMetadata(ZoneDataClass):
     # Transport Events
     #
     class Events():
-        PREFIX              = 'track.'
-        CHANGE              = PREFIX+'change'
-        UPDATES             = PREFIX+'updates'
-        TITLE_CHANGE        = PREFIX+'title_change'
-        ALBUM_CHANGE        = PREFIX+'album_change'
-        ARTIST_CHANGE       = PREFIX+'artist_change'
-        GENRE_CHANGE        = PREFIX+'genre_change'
-        DURATION_CHANGE     = PREFIX+'duration_change'
-        PROGRESS_CHANGE     = PREFIX+'progress_change'
-        COVER_ART_CHANGE    = PREFIX+'cover_art_change'
-        SOURCE_CHANGE       = PREFIX+'source_change'
-        URL_CHANGE          = PREFIX+'url_change'
+        PREFIX               = 'track.'
+        CHANGE               = PREFIX+'change'
+        UPDATES              = PREFIX+'updates'
+        TITLE_CHANGE         = PREFIX+'title_change'
+        ALBUM_CHANGE         = PREFIX+'album_change'
+        ARTIST_CHANGE        = PREFIX+'artist_change'
+        GENRE_CHANGE         = PREFIX+'genre_change'
+        DURATION_CHANGE      = PREFIX+'duration_change'
+        PROGRESS_CHANGE      = PREFIX+'progress_change'
+        COVER_ART_URL_CHANGE = PREFIX+'cover_art_url_change'
+        SOURCE_CHANGE        = PREFIX+'source_change'
+        URL_CHANGE           = PREFIX+'url_change'
 
 
     DEFAULTS = {
@@ -50,7 +50,7 @@ class TrackMetadata(ZoneDataClass):
         'genre': None,
         'duration': 0,
         'progress': 0,
-        'cover_art': None,
+        'cover_art_url': None,
         'source': Sources.NOT_STREAMING,
         'url': None,
     }
@@ -60,7 +60,7 @@ class TrackMetadata(ZoneDataClass):
         'TrackName': 'title',
         'Album': 'album',
         'Artist': 'artist',
-        'CoverArtUrl': 'cover_art',
+        'CoverArtUrl': 'cover_art_url',
         'Current Source': 'source',
         'Genre': 'genre',
         'PlayUrl': 'url'
@@ -75,7 +75,7 @@ class TrackMetadata(ZoneDataClass):
         self._genre: str = None
         self._duration: int = 0
         self._progress: int = 0
-        self._cover_art: str = None
+        self._cover_art_url: str = None
         self._source = self.Sources.NOT_STREAMING
         self._url: str = None
 
@@ -255,12 +255,12 @@ class TrackMetadata(ZoneDataClass):
     # Track Cover Art
     #
     @property
-    def cover_art(self) -> str:
-        return self._cover_art
+    def cover_art_url(self) -> str:
+        return self._cover_art_url
 
-    @cover_art.setter
-    def cover_art(self, value: str) -> None:
-        self._update_property('cover_art', value)
+    @cover_art_url.setter
+    def cover_art_url(self, value: str) -> None:
+        self._update_property('cover_art_url', value)
 
     #
     # Track Source

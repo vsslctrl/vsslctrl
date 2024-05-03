@@ -341,12 +341,14 @@ class Zone:
     # Volume Commands
     #
     def volume_raise(self, step: int = 1):
+        step = max(min(step, 99), 1)
         if step > 1:
             self.volume = self.volume + step
         else:
             self._api_alpha.request_action_05_raise()
 
     def volume_lower(self, step: int = 1):
+        step = max(min(step, 99), 1)
         if step > 1:
             self.volume = self.volume - step
         else:

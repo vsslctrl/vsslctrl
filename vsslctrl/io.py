@@ -145,7 +145,7 @@ class AnalogOutput(ZoneDataClass):
         self._source = self.Sources(zone.id + 3)
 
     #
-    # Analog Output Fix Volume
+    # Analog Output Fix Volume. Output wont respond to volume control
     #
     @property
     def is_fixed_volume(self):
