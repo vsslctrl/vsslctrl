@@ -417,47 +417,6 @@ class Zone:
         self._api_bravo.request_action_2A()
         return self
 
-    # Return the current state
-    @property
-    def state(self):
-        return {
-            'id': self.id,
-            'initialised': self.initialised,
-            'connected': self.connected,
-            'transport': self.transport.as_dict(),
-            'volume': self.volume,
-            'mute': self.mute,
-            'group': self.group.as_dict(),
-            'track': self.track.as_dict(),
-            'input': self.input.as_dict(),
-            'analog_output': self.analog_output.as_dict(),
-        }
-
-    # Return the current settings
-    @property
-    def settingsP(self):
-        return {
-            'id': self.id,
-            'name': self.settings.name,
-            'host': self.host,
-            'mac_addr': self.mac_addr,
-            'disabled': self.settings.disabled,
-            'mono': self.settings.mono,
-            'eq': self.settings.eq.as_dict(),
-            'volume': self.settings.volume.as_dict(),
-            'analog_input': self.settings.analog_input.as_dict()
-            
-        }
-
-    # Return the current settings
-    @property
-    def state_settings(self):
-        json = self.state
-        json['settings'] = self.settingsP
-        return json
-
-
-
 class ZonePoller:
 
     def __init__(self, zone, requests = [], interval = 30):

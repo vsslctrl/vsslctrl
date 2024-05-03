@@ -2,11 +2,63 @@ import logging
 from typing import Dict, Union
 from .utils import clamp_volume
 from .io import AnalogInput
-from .decorators import sterilizable
-from .data_structure import VsslIntEnum, ZoneDataClass
+from .data_structure import VsslIntEnum, VsslDataClass, ZoneDataClass
 
-@sterilizable
-class VsslPowerSettings:
+VSSL_SETTINGS_EVENT_PREFIX = 'vssl.settings.'
+
+class VsslSettings(VsslDataClass):
+
+    #
+    # VSSL Events
+    #
+    class Events():
+        PREFIX                      = VSSL_SETTINGS_EVENT_PREFIX
+        NAME_CHANGE                 = PREFIX+'name_changed'
+        OPTICAL_INPUT_NAME_CHANGE   = PREFIX+'optical_input_name_changed' 
+
+    #
+    # Defaults
+    #
+    DEFAULTS = {
+        'name': None,
+        'optical_input_name': 'Optical In'
+    }
+
+    def __init__(self, vssl: 'vsslctrl.Vssl'):
+        self._vssl = vssl
+
+        self._name = None  # device name
+        self._optical_input_name = self.DEFAULTS['optical_input_name']
+        self.power = VsslPowerSettings(vssl)
+
+    #
+    # Name
+    #
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        zone = self._vssl.get_connected_zone()
+        if zone and name:
+            zone._api_alpha.request_action_18(name)
+
+    #
+    # Optical Input Name
+    #
+    @property
+    def optical_input_name(self):
+        return self._optical_input_name
+
+    @optical_input_name.setter
+    def optical_input_name(self, name: str):
+        zone = self._vssl.get_connected_zone()
+        if zone:
+            zone._api_alpha.request_action_15_12(name)
+
+
+class VsslPowerSettings(VsslDataClass):
 
     #
     # Transport States
@@ -22,7 +74,7 @@ class VsslPowerSettings:
     # Volume Setting Events
     #
     class Events():
-        PREFIX            = 'vssl.power.'
+        PREFIX            = VSSL_SETTINGS_EVENT_PREFIX+'power.'
         STATE_CHANGE      = PREFIX+'state_changed'
         ADAPTIVE_CHANGE   = PREFIX+'adaptive_changed'
 
@@ -56,11 +108,10 @@ class VsslPowerSettings:
         if self.state != state:
             if self.States.is_valid(state):
                 self._state = self.States(state)
-                self._vssl.event_bus.publish(self.Events.STATE_CHANGE, 0, self.state)
+                return True
             else:
                 self._vssl._log_warning(f"VsslPowerSettings.States {state} doesnt exist")
-
-
+                
     #
     # Adaptive Power (always on or auto)
     #
@@ -76,11 +127,6 @@ class VsslPowerSettings:
         zone = self._vssl.get_connected_zone()
         if zone:
             zone._api_alpha.request_action_4F(not not enabled)
-
-    def _set_adaptive(self, adaptive: bool):
-        if self.adaptive != adaptive:
-            self._adaptive = adaptive
-            self._vssl.event_bus.publish(self.Events.ADAPTIVE_CHANGE, 0, self.adaptive)
 
     def adaptive_toggle(self):
         self.adaptive = False if self.adaptive else True

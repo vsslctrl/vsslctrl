@@ -569,11 +569,11 @@ class APIAlpha(APIBase):
 
         # B2Nm - Bus2 Name - For A3.X this is the optical input name
         if 'B2Nm' in metadata:
-            self.vssl._set_property('optical_input_name', metadata['B2Nm'].strip())
+            self.vssl.settings._set_property('optical_input_name', metadata['B2Nm'].strip())
 
         #Set the device name
         if 'dev' in metadata:
-            self.vssl._set_property('name', metadata['dev'].strip())
+            self.vssl.settings._set_property('name', metadata['dev'].strip())
 
         #Set the software version
         if 'ver' in metadata and self.vssl.sw_version == None:
@@ -691,7 +691,7 @@ class APIAlpha(APIBase):
 
         # Power State
         if 'Pwr' in metadata:
-            self.vssl.power._set_state(int(metadata['Pwr']))
+            self.vssl.settings.power._set_property('state', int(metadata['Pwr']))
 
         # Analog input fixed gain
         if 'fxv' in metadata:
@@ -699,7 +699,7 @@ class APIAlpha(APIBase):
 
         # Alway On power state = 0 else 1 = auto
         if 'AtPwr' in metadata:
-            self.vssl.power._set_adaptive(bool(int(metadata['AtPwr'])))
+            self.vssl.settings.power._set_property('adaptive', bool(int(metadata['AtPwr'])))
         
 
     #
@@ -886,7 +886,7 @@ class APIAlpha(APIBase):
         #Optical Input
         elif input_id == 12:
             self._log_debug(f'Received optical input name: {name}')
-            self.vssl._set_property('optical_input_name', name.strip())
+            self.vssl.settings._set_property('optical_input_name', name.strip())
 
 
     #
@@ -910,7 +910,7 @@ class APIAlpha(APIBase):
 
             self._log_debug(f'Received device name: {name}')
 
-            self.vssl._set_property('name', name.strip())
+            self.vssl.settings._set_property('name', name.strip())
 
         except Exception as error:
             self._log_error(f'Exception occurred receiving device name: {error}')
@@ -986,7 +986,7 @@ class APIAlpha(APIBase):
         if hex_to_int(hexl[2]) == 2:
             enabled = hex_to_int(hexl[4])
             self._log_debug(f'Received adaptive power setting: {enabled}')
-            self.vssl.power._set_adaptive(bool(int(enabled)))    
+            self.vssl.settings.power._set_property('adaptive', bool(int(enabled)))    
         
     #
     # Command confimation

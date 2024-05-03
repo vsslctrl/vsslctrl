@@ -4,8 +4,6 @@ from typing import Dict, Union
 from .data_structure import VsslIntEnum, ZoneDataClass
 
 class TrackMetadata(ZoneDataClass):
-    
-    # https://florimond.dev/en/posts/2018/10/reconciling-dataclasses-and-properties-in-python
 
     #
     # Stream Sources

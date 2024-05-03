@@ -9,22 +9,22 @@ from typing import Dict, Union, List
 from .zone import Zone
 from .exceptions import VsslCtrlException, ZoneError
 from .event_bus import EventBus
-from .settings import VsslPowerSettings
+from .settings import VsslSettings, VsslPowerSettings
 from .decorators import logging_helpers
 
 @logging_helpers('VSSL:')
 class Vssl:
+
+    ENTITY_ID = 0
 
     #
     # VSSL Events
     #
     class Events():
         PREFIX                      = 'vssl.'
-        NAME_CHANGE                 = PREFIX+'name_changed'
         MODEL_ZONE_QTY_CHANGE       = PREFIX+'model_zone_qty_changed'
         SW_VERSION_CHANGE           = PREFIX+'sw_version_changed'
         SERIAL_CHANGE               = PREFIX+'serial_changed'
-        OPTICAL_INPUT_NAME_CHANGE   = PREFIX+'optical_input_name_changed'
         ALL                         = EventBus.WILDCARD
 
 
@@ -32,13 +32,10 @@ class Vssl:
 
         self.event_bus = EventBus()
         self._zones = {}
-
-        self._name = None  # device name
         self._sw_version = None  # e.g p15305.016.3701
         self._serial = None  # We use this to check the zones belong to the same hardware
         self._model_zone_qty = 0
-        self._optical_input_name = 'Optical In'
-        self.power = VsslPowerSettings(self)
+        self.settings = VsslSettings(self)
 
         # Add zones if any are passed
         if zones:
@@ -62,7 +59,7 @@ class Vssl:
 
             # We will get the devices supported zone count in the future
             future_model_zone_qty = self.event_bus.future(
-                self.Events.MODEL_ZONE_QTY_CHANGE, 0
+                self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID
             )
 
             # Lets make sure the zone is initialised, otherwsie we fail all
@@ -118,7 +115,7 @@ class Vssl:
             setattr(self, f'_{property_name}', new_value)
             self.event_bus.publish(
                 getattr(self.Events, property_name.upper() +
-                        '_CHANGE'), 0, getattr(self, property_name)
+                        '_CHANGE'), self.ENTITY_ID, getattr(self, property_name)
             )
             self._log_debug(
                 f'Set {property_name}: {getattr(self, property_name)}')
@@ -129,19 +126,6 @@ class Vssl:
     @property
     def zones(self):
         return self._zones
-
-    #
-    # Name
-    #
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name: str):
-        zone = self.get_connected_zone()
-        if zone and name:
-            zone._api_alpha.request_action_18(name)
 
     #
     # Software Version
@@ -185,21 +169,7 @@ class Vssl:
             self._model_zone_qty = sum(
                 1 for key in data if key.startswith('B') and key.endswith('Src'))
             self.event_bus.publish(
-                self.Events.MODEL_ZONE_QTY_CHANGE, 0, self.model_zone_qty)
-
-    #
-    # Optical Input Name
-    #
-    @property
-    def optical_input_name(self):
-        return self._optical_input_name
-
-    @optical_input_name.setter
-    def optical_input_name(self, name: str):
-        zone = self.get_connected_zone()
-        if zone:
-            zone._api_alpha.request_action_15_12(name)
-
+                self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID, self.model_zone_qty)
     #
     # Disconnect / Shutdown
     #
@@ -300,16 +270,3 @@ class Vssl:
         zone = self.get_connected_zone()
         if zone:
             zone._api_alpha.request_action_33_device()
-
-    # Return the current state
-    @property
-    def state(self):
-        return {
-            'name': self.name,
-            'sw_version': self.sw_version,
-            'serial': self.serial,
-            'model_zone_qty': self.model_zone_qty,
-            'optical_input_name': self.optical_input_name,
-            'power': self.power.as_dict(),
-            'zones': self.get_zones_state()
-        }

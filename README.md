@@ -87,24 +87,33 @@ print(zone_name)
 
 | Property      	| Description | Type 		| 
 | ---------------------- 	| ----------- | ----------- |
-| `name`     			 	| Device name |	`str`
 | `sw_version`   			| Software version        |	`str` readonly
 | `serial`   			| Serial number        |	`str` readonly
 | `model_zone_qty`   			| Number of zones the device has        |	`int` readonly
-| `optical_input_name`   			| Name of the optical input        |	`str`
 | `reboot()`   			| Reboot all zones        |	`func`  |
 
 ```python
 """Example"""
-# Setting device name
-vssl.name = 'My House'
-# Setting optical input name
-vssl.optical_input_name = 'Optical Input 1'
 # Reboot all zones
 vssl.reboot()
 ```
 
-### `Vssl.power`
+## `Vssl.settings`
+
+| Property      	| Description | Type 		| 
+| ---------------------- 	| ----------- | ----------- |
+| `name`     			 	| Device name |	`str`
+| `optical_input_name`   			| Name of the optical input        |	`str`
+
+```python
+"""Example"""
+# Setting device name
+vssl.settings.name = 'My House'
+# Setting optical input name
+vssl.settings.optical_input_name = 'Optical Input 1'
+```
+
+## `Vssl.settings.power`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -114,7 +123,7 @@ vssl.reboot()
 ```python
 """Example"""
 # Setting power adaptive
-zone1.power.adaptive = True
+zone1.settings.power.adaptive = True
 ```
 
 
@@ -158,7 +167,7 @@ zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3')
 zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', True)
 ```
 
-### `Zone.transport` 
+## `Zone.transport` 
 
 A VSSL amplifier can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 
@@ -186,7 +195,7 @@ zone1.transport.pause()
 zone1.transport.state = ZoneTransport.States.PAUSE
 ```
 
-### `Zone.track` 
+## `Zone.track` 
 
 * Not all source, have all metadata - they will be default values
 * VSSL default cover art URL link `[zone.host]/img/default_cover_art.png` is broken
@@ -204,7 +213,7 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 | `url`     	| URL of file or track | `str` readonly	| 
 
 
-### `Zone.input` 
+## `Zone.input` 
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -220,7 +229,7 @@ zone1.input.source = InputRouter.Sources.ANALOG_IN_4
 zone1.input.priority = InputRouter.Priorities.LOCAL
 ```
 
-### `Zone.group` 
+## `Zone.group` 
 
 Working on A.3x but offically unsupported in x series amplifiers.
 
@@ -244,7 +253,7 @@ zone1.group.remove_member(Zone.IDs.ZONE_2)
 zone1.group.dissolve()
 ```
 
-### `Zone.analog_output` 
+## `Zone.analog_output` 
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -264,7 +273,7 @@ zone1.analog_output.source = AnalogOutput.Sources.ZONE_2
 zone1.analog_output.is_fixed_volume = True
 ```
 
-### `Zone.settings`
+## `Zone.settings`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -284,7 +293,7 @@ zone1.disabled = True
 zone1.mono_toggle()
 ```
 
-### `Zone.settings.analog_input` 
+## `Zone.settings.analog_input` 
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -301,7 +310,7 @@ zone1.settings.analog_input.fixed_gain = 50
 ```
 
 
-### `Zone.settings.volume`
+## `Zone.settings.volume`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -317,7 +326,7 @@ zone1.settings.volume.default_on = 50
 zone1.settings.volume.default_on = 75
 ```
 
-### `Zone.settings.eq`
+## `Zone.settings.eq`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -343,7 +352,7 @@ zone1.settings.eq.khz1_db = -2
 
 
 
-### Awaiting Property Updates
+## Awaiting Property Updates
 
 ```python
 zone_name = await zone1.settings.set_name('Living Room')
