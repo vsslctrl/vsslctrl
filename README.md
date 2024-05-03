@@ -1,25 +1,21 @@
 # vsslctrl
  Package for controlling [VSSL](https://www.vssl.com/) range of streaming amplifiers.
 
- Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/) and I wanted control which didnt have to rely on mDNS discovery. The VSSL API was discovered using Wireshark packet captures while using their native app.
+ **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner**
+
+ Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/). I wanted control which didnt have to rely on mDNS discovery. The VSSL API was discovered using Wireshark packet captures while using their native app.
 
  I am looking for testers with any VSSL models, please get in touch if you interested in helping.
 
-## Important
+ Tested on VSSL **A.3x** software version **p15305.016.3701**
 
-`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner
+## TODOs
 
-## Known Issues & Limitiations
-
-* Tested on VSSL **A.3x** software version **p15305.016.3701**
-* Not tested on A.1x, A.6.x or original A series range of amplifiers (testers welcome)
-* VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
-* Not all sources set the volume to 0 when the zone is muted
-* Grouping feedback is flaky on the X series amplifiers
-* VSSL likes to cache old track metadata. For example when playing a URL after Spotify for example, sometimes it the device will respond with the previous tracks metadata
-* `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source 
-
-
+* Test and support for other models (help needed).
+* More and better unit tests
+* Linting
+* HA Integration (in progress)
+* Web app
 
 Basic Usage
 -----------
@@ -93,6 +89,7 @@ Note, in the above example, `zone_name` wont be set to its new value until after
 | `serial`   			| Serial number        |	`str` readonly
 | `model_zone_qty`   			| Number of zones the device has        |	`int` readonly
 | `optical_input_name`   			| Name of the optical input        |	`str`
+| `reboot()`   			| Reboot all zones        |	`func`  |
 
 ```python
 """Example"""
@@ -100,6 +97,8 @@ Note, in the above example, `zone_name` wont be set to its new value until after
 vssl.name = 'My House'
 # Setting optical input name
 vssl.optical_input_name = 'Optical Input 1'
+# Reboot all zones
+vssl.reboot()
 ```
 
 ### `Vssl.power`
@@ -152,6 +151,18 @@ zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3')
 # Play a URL on all zones
 zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', True)
 ```
+
+### `Zone.group`
+
+| Property      	| Description | Type		| Values 		| 
+| ---------------------- 	| ----------- | ----------- |----------- |
+| `source`     			 	| Zone ID of group master / source |	`int` readonly	| `Zone.IDs`
+| `is_master`   			| This zone is the group master        |	`bool` readonly
+| `add_member()`   			| Group master: Add zone to group |	`func`  | `Zone.IDs`
+| `remove_member()`   		| Group master: Remove zone from group      |	`func`  | `Zone.IDs`
+| `dissolve()`   			| Group master: Dissolve / Destroy group       |	`func`  |
+| `leave()`   				| Group member: Leave the group        |	`func`  |
+
 
 ### `Zone.settings`
 
@@ -228,3 +239,15 @@ zone_name = await zone1.settings.set_name('Living Room')
 print(zone_name)
 >>> 'Living Room'
 ```
+
+## Known Issues & Limitiations
+
+* Tested on VSSL **A.3x** software version **p15305.016.3701**
+* Not tested on A.1x, A.6.x or original A series range of amplifiers (testers welcome)
+* VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
+* Not all sources set the volume to 0 when the zone is muted
+* Grouping feedback is flaky on the X series amplifiers
+* VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
+* `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source
+* Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects
+

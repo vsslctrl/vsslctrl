@@ -14,7 +14,7 @@ from vsslctrl.settings import ZoneSettings, VolumeSettings, EQSettings, VsslPowe
 
 
 
-FUTURE_TIMEOUT = 2
+FUTURE_TIMEOUT = 5
 
 # Mark all tests in this module with the pytest custom "integration" marker so
 # they can be selected or deselected as a whole, eg:
