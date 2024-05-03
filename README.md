@@ -1,7 +1,7 @@
 # vsslctrl
  Package for controlling [VSSL](https://www.vssl.com/) range of streaming amplifiers.
 
- Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/) and I wanted control which didnt have to rely on mDNS discovery.
+ Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/) and I wanted control which didnt have to rely on mDNS discovery. The VSSL API was discovered using Wireshark packet captures while using their native app.
 
  I am looking for testers with any VSSL models, please get in touch if you interested in helping.
 
@@ -96,9 +96,10 @@ Note, in the above example, `zone_name` wont be set to its new value until after
 
 ```python
 """Example"""
+# Setting device name
+vssl.name = 'My House'
 # Setting optical input name
-zone1.optical_input_name = 'Optical Input 1'
->>> None
+vssl.optical_input_name = 'Optical Input 1'
 ```
 
 ### `Vssl.power`
@@ -210,7 +211,13 @@ EQ settings can either be set using `int` values of `90` to `110` or dB values o
 | `khz15`     			 	| 15kHz EQ  |	`int`  | 90...110 
 | `khz15_db`     			 	| 15kHz EQ in dB |	`int`  | -10...10
 
-
+```python
+"""Examples"""
+# Set 1kHz EQ to -2
+zone1.settings.eq.khz1_db = -2
+# or
+zone1.settings.eq.khz1 = 98
+```
 
 
 
