@@ -19,7 +19,7 @@ class TrackMetadata(ZoneDataClass):
         TUNEIN = 9
         ANALOG_IN = 15
         APPLE_DEVICE = 16
-        DIRECT_URL = 17 # e.g Announce
+        DIRECT_URL = 17 # e.g play_url
         BLUETOOTH = 19
         TIDAL = 22
         GOOGLECAST = 24

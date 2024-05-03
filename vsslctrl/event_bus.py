@@ -74,7 +74,7 @@ class EventBus:
         return future
 
     #
-    # Helper to await a future with a timeout and timeout result
+    # Helper to await a future with a timeout
     #
     async def wait_future(self, future, timeout: int = FUTURE_TIMEOUT):
         if timeout != 0:
