@@ -21,26 +21,20 @@ from .data_structure import ZoneDataClass
 
 """
 
-class ZoneGroup(ZoneDataClass):
 
+class ZoneGroup(ZoneDataClass):
     #
     # Group Events
     #
-    class Events():
-        PREFIX              = 'zone.group.'
-        INDEX_CHANGE        = PREFIX+'index_change'
-        SOURCE_CHANGE       = PREFIX+'source_change'
-        IS_MASTER_CHANGE    = PREFIX+'is_master_change'
+    class Events:
+        PREFIX = "zone.group."
+        INDEX_CHANGE = PREFIX + "index_change"
+        SOURCE_CHANGE = PREFIX + "source_change"
+        IS_MASTER_CHANGE = PREFIX + "is_master_change"
 
+    DEFAULTS = {"index": 0, "source": None, "is_master": False}
 
-    DEFAULTS = {
-        'index': 0,
-        'source': None,
-        'is_master': False
-    }
-
-    def __init__(self, zone: 'zone.Zone'):
-
+    def __init__(self, zone: "zone.Zone"):
         self._zone = zone
 
         """ On a A3.x the group index are, Im not sure if this is consistant with A1.x or A6.x:
@@ -56,15 +50,15 @@ class ZoneGroup(ZoneDataClass):
         """
         self._index_id = zone.id + 8
 
-        #index is assigned when a stream is started (see action_32)
-        self._index = 0 
+        # index is assigned when a stream is started (see action_32)
+        self._index = 0
         self._source = None
         self._is_master = False
 
     #
     # Group Add Zone
     #
-    def add_member(self, zone_id: 'zone.Zone.IDs'):
+    def add_member(self, zone_id: "zone.Zone.IDs"):
         if self._zone.id == zone_id:
             self._zone._log_error(f"Zone {zone_id} cant be parent and member")
             return False
@@ -74,21 +68,23 @@ class ZoneGroup(ZoneDataClass):
             return False
 
         if self.is_member:
-            self._zone._log_error(f"Zone {self._zone.id} already a member of Zone {self.source} group")
+            self._zone._log_error(
+                f"Zone {self._zone.id} already a member of Zone {self.source} group"
+            )
             return False
 
         if self._zone.transport.is_stopped:
-            self._zone._log_error(f"Zone {self._zone.id} cant be a group master when not playing a source")
+            self._zone._log_error(
+                f"Zone {self._zone.id} cant be a group master when not playing a source"
+            )
             return False
 
-
         self._zone._api_alpha.request_action_4B_add(zone_id)
-
 
     #
     # Group Remove Child
     #
-    def remove_member(self, zone_id: 'zone.Zone.IDs'):
+    def remove_member(self, zone_id: "zone.Zone.IDs"):
         self._zone._api_alpha.request_action_4B_remove(zone_id)
 
     #
@@ -103,15 +99,13 @@ class ZoneGroup(ZoneDataClass):
     def leave(self) -> None:
         self._zone._api_alpha.request_action_4B_remove(self._zone.id)
 
-
     @property
     def index_id(self):
         return self._index_id
 
     @index_id.setter
     def index_id(self, index_id: int):
-        pass #read-only
-
+        pass  # read-only
 
     #
     # Group Index
@@ -124,7 +118,7 @@ class ZoneGroup(ZoneDataClass):
 
     @index.setter
     def index(self, index: int):
-        pass #read-only
+        pass  # read-only
 
     #
     # Group Source
@@ -135,11 +129,12 @@ class ZoneGroup(ZoneDataClass):
 
     @source.setter
     def source(self, grs: int):
-        pass #read-only
+        pass  # read-only
 
     def _set_source(self, grs: int):
-
-        new_source = zone.Zone.IDs(grs) if grs != 255 and zone.Zone.IDs.is_valid(grs) else None
+        new_source = (
+            zone.Zone.IDs(grs) if grs != 255 and zone.Zone.IDs.is_valid(grs) else None
+        )
 
         if self.source != new_source:
             self._source = new_source
@@ -152,7 +147,7 @@ class ZoneGroup(ZoneDataClass):
     #
     # Group: This zone is a master for a group
     #
-    # TODO: propogate track meta to member zones. 
+    # TODO: propogate track meta to member zones.
     # Only play state is propgated by the VSSL device
     #
     @property
@@ -161,7 +156,7 @@ class ZoneGroup(ZoneDataClass):
 
     @is_master.setter
     def is_master(self, grm: int):
-        pass #read-only
+        pass  # read-only
 
     def _set_is_master(self, grm: int):
         if self.is_master != bool(grm):

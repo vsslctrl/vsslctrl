@@ -3,9 +3,9 @@
 
  **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
- Motovation for this project was to intergrate my VSSL A.3x into [Home Assistant](https://www.home-assistant.io/). I wanted control which didnt have to rely on mDNS discovery. The VSSL API was reverse engineered using Wireshark, while usings VSSLs native legacy iOS app and their deprecated [`vsslagent`](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
+ Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and not soley rely on mDNS for discovery. 
 
- I am looking for testers with any VSSL models, please get in touch if you interested in helping.
+ I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping.
 
  Tested on VSSL **A.3x** software version **p15305.016.3701**.
 
@@ -123,7 +123,7 @@ vssl.settings.optical_input_name = 'Optical Input 1'
 ```python
 """Example"""
 # Setting power adaptive
-zone1.settings.power.adaptive = True
+vssl.settings.power.adaptive = True
 ```
 
 
@@ -134,8 +134,8 @@ zone1.settings.power.adaptive = True
 | `id`     			 	| Zone number / ID |	`int` readonly	| `Zone.IDs`
 | `host`   			| IP address        |	`str` readonly
 | `volume`   			| Volume        |	`int`  | `0...100`
-| `volume_raise([step=1])`   			| Raise volume by `step`       |	`func`  | step: `int` `1...99`
-| `volume_lower([step=1])`   			| Lower volume by `step`      |	`func`  | step: `int` `1...99`
+| `volume_raise([step=1])`   			| Raise volume by `step`       |	`func`  | step: `int` `1...100`
+| `volume_lower([step=1])`   			| Lower volume by `step`      |	`func`  | step: `int` `1...100`
 | `mute`   			| Volume muted        |	`bool`  |
 | `mute_toggle()`   			| Mute / Unmute        |	`func`  |
 | `play()`   			| Play        |	`func`  |
@@ -167,7 +167,7 @@ zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3')
 zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', True)
 ```
 
-## `Zone.transport` 
+## `Zone.transport`
 
 A VSSL amplifier can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 
@@ -195,9 +195,9 @@ zone1.transport.pause()
 zone1.transport.state = ZoneTransport.States.PAUSE
 ```
 
-## `Zone.track` 
+## `Zone.track`
 
-* Not all source, have all metadata - they will be default values
+* Not all source, have all metadata - missing value will be defaults
 * VSSL default cover art URL link `[zone.host]/img/default_cover_art.png` is broken
 
 | Property      	| Description | Type		| Values 		| 
@@ -213,7 +213,7 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 | `url`     	| URL of file or track | `str` readonly	| 
 
 
-## `Zone.input` 
+## `Zone.input`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -229,7 +229,7 @@ zone1.input.source = InputRouter.Sources.ANALOG_IN_4
 zone1.input.priority = InputRouter.Priorities.LOCAL
 ```
 
-## `Zone.group` 
+## `Zone.group`
 
 Working on A.3x but offically unsupported in x series amplifiers.
 
@@ -253,7 +253,7 @@ zone1.group.remove_member(Zone.IDs.ZONE_2)
 zone1.group.dissolve()
 ```
 
-## `Zone.analog_output` 
+## `Zone.analog_output`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -293,7 +293,7 @@ zone1.disabled = True
 zone1.mono_toggle()
 ```
 
-## `Zone.settings.analog_input` 
+## `Zone.settings.analog_input`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -359,6 +359,10 @@ zone_name = await zone1.settings.set_name('Living Room')
 print(zone_name)
 >>> 'Living Room'
 ```
+
+## Credit
+
+The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start). VSSLs non-legacy iSO app version 1.1.3(1) is crashing my A.3x.
 
 ## Known Issues & Limitiations
 

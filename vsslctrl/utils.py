@@ -1,16 +1,19 @@
 import asyncio
 
+
 #
 # Hex to Int
 #
 def hex_to_int(str: str, base: int = 16):
     return int(str, base)
 
+
 #
 # Clamp Volume
 #
 def clamp_volume(vol: int):
     return max(0, min(int(vol), 100))
+
 
 #
 # Cancel a task if it exsists
@@ -21,6 +24,7 @@ def cancel_task(task: asyncio.Task):
             task.cancel()
         except asyncio.CancelledError:
             pass
+
 
 #
 # Groups dicts by property
@@ -33,11 +37,11 @@ def group_list_by_property(input_list, property_key):
             grouped_dict.setdefault(property_value, []).append(item)
     return grouped_dict
 
+
 #
 # Repeat Timer
 #
 class RepeatTimer:
-    
     def __init__(self, interval, function, start_delay=False, *args, **kwargs):
         self.interval = interval
         self.function = function

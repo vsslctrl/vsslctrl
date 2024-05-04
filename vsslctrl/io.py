@@ -6,7 +6,6 @@ from .data_structure import VsslIntEnum, ZoneDataClass
 
 
 class InputRouter(ZoneDataClass):
-
     #
     # Input Priority
     #
@@ -16,7 +15,7 @@ class InputRouter(ZoneDataClass):
     # DO NOT CHANGE - VSSL Defined
     #
     class Priorities(VsslIntEnum):
-        STREAM = 0 
+        STREAM = 0
         LOCAL = 1
 
     #
@@ -37,20 +36,17 @@ class InputRouter(ZoneDataClass):
     #
     # Router Events
     #
-    class Events():
-        PREFIX          = 'zone.input_router.'
-        PRIORITY_CHANGE = PREFIX+'priority_change'
-        SOURCE_CHANGE   = PREFIX+'source_change'
+    class Events:
+        PREFIX = "zone.input_router."
+        PRIORITY_CHANGE = PREFIX + "priority_change"
+        SOURCE_CHANGE = PREFIX + "source_change"
 
     #
     # Defaults
     #
-    DEFAULTS = {
-        'priority': Priorities.STREAM,
-        'source': Sources.STREAM
-    }
+    DEFAULTS = {"priority": Priorities.STREAM, "source": Sources.STREAM}
 
-    def __init__(self, zone: 'zone.Zone'):
+    def __init__(self, zone: "zone.Zone"):
         self._zone = zone
 
         self._priority = self.Priorities.STREAM
@@ -64,7 +60,7 @@ class InputRouter(ZoneDataClass):
         return self._priority
 
     @priority.setter
-    def priority(self, priority: 'InputRouter.Priorities'):
+    def priority(self, priority: "InputRouter.Priorities"):
         if self.Priorities.is_valid(priority):
             self._zone._api_alpha.request_action_47(priority)
         else:
@@ -86,12 +82,12 @@ class InputRouter(ZoneDataClass):
         return self._source
 
     @source.setter
-    def source(self, src: 'InputRouter.Sources'):
+    def source(self, src: "InputRouter.Sources"):
         if self.Sources.is_valid(src):
             self._zone._api_alpha.request_action_03(src)
         else:
             self._zone._log_error(f"InputRouter.Sources {src} doesnt exist")
-        
+
     def _set_source(self, src: int):
         if self.source != src:
             if self.Sources.is_valid(src):
@@ -103,8 +99,8 @@ class InputRouter(ZoneDataClass):
 
 class AnalogOutput(ZoneDataClass):
     """
-        Should this be on the VSSL or Zone? For now its on the zone, because the zone will
-        receive feedback for the corrosponding analog output id
+    Should this be on the VSSL or Zone? For now its on the zone, because the zone will
+    receive feedback for the corrosponding analog output id
     """
 
     #
@@ -113,7 +109,7 @@ class AnalogOutput(ZoneDataClass):
     # DO NOT CHANGE - VSSL Defined
     #
     class Sources(VsslIntEnum):
-        OFF = 0 # Disconnected / Off / No Output
+        OFF = 0  # Disconnected / Off / No Output
         ZONE_1 = 3
         ZONE_2 = 4
         ZONE_3 = 5
@@ -125,20 +121,17 @@ class AnalogOutput(ZoneDataClass):
     #
     # Output Events
     #
-    class Events():
-        PREFIX                  = 'zone.analog_output.'
-        IS_FIXED_VOLUME_CHANGE  = PREFIX+'is_fixed_volume_change'
-        SOURCE_CHANGE           = PREFIX+'source_change'
+    class Events:
+        PREFIX = "zone.analog_output."
+        IS_FIXED_VOLUME_CHANGE = PREFIX + "is_fixed_volume_change"
+        SOURCE_CHANGE = PREFIX + "source_change"
 
     #
     # Defaults
     #
-    DEFAULTS = {
-        'is_fixed_volume': False,
-        'source': Sources.OFF
-    }
+    DEFAULTS = {"is_fixed_volume": False, "source": Sources.OFF}
 
-    def __init__(self, zone: 'zone.Zone'):
+    def __init__(self, zone: "zone.Zone"):
         self._zone = zone
 
         self._is_fixed_volume = False
@@ -166,7 +159,7 @@ class AnalogOutput(ZoneDataClass):
         return self._source
 
     @source.setter
-    def source(self, src: 'AnalogOutput.Sources'):
+    def source(self, src: "AnalogOutput.Sources"):
         if self.Sources.is_valid(src):
             self._zone._api_alpha.request_action_1D(src)
         else:
@@ -182,27 +175,23 @@ class AnalogOutput(ZoneDataClass):
 
 
 class AnalogInput(ZoneDataClass):
-
     #
     # Analog Input Events
     #
-    class Events():
-        PREFIX              = 'zone.analog_input.'
-        NAME_CHANGE         = PREFIX+'name_change'
-        FIXED_GAIN_CHANGE   = PREFIX+'fixed_gain_change'
+    class Events:
+        PREFIX = "zone.analog_input."
+        NAME_CHANGE = PREFIX + "name_change"
+        FIXED_GAIN_CHANGE = PREFIX + "fixed_gain_change"
 
     #
     # Defaults
     #
-    DEFAULTS = {
-        'name': 'Analog In',
-        'fixed_gain': 0
-    }
+    DEFAULTS = {"name": "Analog In", "fixed_gain": 0}
 
-    def __init__(self, zone: 'zone.Zone'):
+    def __init__(self, zone: "zone.Zone"):
         self._zone = zone
 
-        self._name = f'Analog In {self._zone.id}'
+        self._name = f"Analog In {self._zone.id}"
         self._fixed_gain = 0
 
     #
@@ -227,7 +216,7 @@ class AnalogInput(ZoneDataClass):
 
     @fixed_gain.setter
     def fixed_gain(self, gain: int):
-         self._zone._api_alpha.request_action_05_00(gain)
+        self._zone._api_alpha.request_action_05_00(gain)
 
     def _set_fixed_gain(self, gain: int):
         gain = clamp_volume(gain)

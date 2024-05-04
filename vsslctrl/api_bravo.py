@@ -8,25 +8,22 @@ from .api_base import APIBase
 from .utils import hex_to_int
 from .decorators import logging_helpers
 
+
 @logging_helpers()
 class APIBravo(APIBase):
-
-
     TCP_PORT = 7777
     HEADER_LENGTH = 10
 
-
-    def __init__(self, vssl_host: 'vssl.VSSL', zone: 'zone.Zone'):
-
+    def __init__(self, vssl_host: "vssl.VSSL", zone: "zone.Zone"):
         super().__init__(host=zone.host, port=self.TCP_PORT)
 
-        self._log_prefix = f'Zone {zone.id}: Bravo API:'
+        self._log_prefix = f"Zone {zone.id}: Bravo API:"
 
         self.vssl = vssl_host
         self.zone = zone
 
     #
-    # Send keep alive 
+    # Send keep alive
     #
     def _send_keepalive(self):
         self.request_action_03()
@@ -34,7 +31,7 @@ class APIBravo(APIBase):
     #
     #
     #
-    # Requests 
+    # Requests
     #
     #
     #
@@ -47,9 +44,9 @@ class APIBravo(APIBase):
     #
     def _build_request_with_data(self, cmd: int, data: str):
         command = self._build_request(cmd, False)
-        command.extend(struct.pack('>B', len(data)))
+        command.extend(struct.pack(">B", len(data)))
         command.extend([0])
-        command.extend(data.encode('utf-8'))
+        command.extend(data.encode("utf-8"))
         return command
 
     #
@@ -57,7 +54,7 @@ class APIBravo(APIBase):
     # Keep alive
     #
     def request_action_03(self):
-        self._log_debug('Sending keep alive with IP')
+        self._log_debug("Sending keep alive with IP")
         self.send(self._build_request_with_data(3, self.zone.host))
 
     #
@@ -65,9 +62,9 @@ class APIBravo(APIBase):
     # Zone Name - Request
     #
     def request_action_5A(self):
-        self._log_debug('Requesting name')
+        self._log_debug("Requesting name")
         command = self._build_request(90)
-        command.extend([0,0])
+        command.extend([0, 0])
         self.send(command)
 
     #
@@ -75,18 +72,17 @@ class APIBravo(APIBase):
     # Zone Name - Rename
     #
     def request_action_5A_set(self, name: str):
-        self._log_debug(f'Requesting to set name: {name}')
+        self._log_debug(f"Requesting to set name: {name}")
         self.send(self._build_request_with_data(90, name))
-
 
     #
     # 5B [91]
     # MAC Address
     #
     def request_action_5B(self):
-        self._log_debug('Requesting MAC address')
+        self._log_debug("Requesting MAC address")
         command = self._build_request(91)
-        command.extend([0,0])
+        command.extend([0, 0])
         self.send(command)
 
     #
@@ -94,9 +90,9 @@ class APIBravo(APIBase):
     # Track Metadata
     #
     def request_action_2A(self):
-        self._log_debug('Requesting track metadata')
+        self._log_debug("Requesting track metadata")
         command = self._build_request(42)
-        command.extend([0,0])
+        command.extend([0, 0])
         self.send(command)
 
     #
@@ -107,9 +103,9 @@ class APIBravo(APIBase):
     # aaaa01280000000004004e455854
     #
     def request_action_40_next(self):
-        self._log_debug('Requesting next track')
+        self._log_debug("Requesting next track")
         command = self._build_request(40, False)
-        command.extend([4,0,78,69,88,84])
+        command.extend([4, 0, 78, 69, 88, 84])
         self.send(command)
 
     #
@@ -120,9 +116,9 @@ class APIBravo(APIBase):
     # aaaa012800000000080050524556
     #
     def request_action_40_prev(self):
-        self._log_debug('Requesting previous track')
+        self._log_debug("Requesting previous track")
         command = self._build_request(40, False)
-        command.extend([8,0,80,82,69,86])
+        command.extend([8, 0, 80, 82, 69, 86])
         self.send(command)
 
     #
@@ -130,15 +126,15 @@ class APIBravo(APIBase):
     # Zone Volume
     #
     def request_action_64(self):
-        self._log_debug('Requesting volume')
+        self._log_debug("Requesting volume")
         command = self._build_request(64)
-        command.extend([0,0])
+        command.extend([0, 0])
         self.send(command)
 
     #
     #
     #
-    # Respsonses 
+    # Respsonses
     #
     #
     #
@@ -148,23 +144,21 @@ class APIBravo(APIBase):
     #
 
     async def _read_byte_stream(self, reader, data):
-        
         data += await reader.readexactly(self.HEADER_LENGTH - APIBase.FRIST_BYTE)
 
-        length = int.from_bytes(data[8:10], 'big')
+        length = int.from_bytes(data[8:10], "big")
 
         data += await reader.readexactly(length)
-        
-        self._log_debug(f'Response: {data}')
+
+        self._log_debug(f"Response: {data}")
 
         await self._handle_response(data)
 
-
     async def _handle_response(self, response: bytes):
         try:
-            #Convert to HEX and split into a array
-            hexl = response.hex('-').split('-')
-            action = f'response_action_{hexl[4].upper()}'
+            # Convert to HEX and split into a array
+            hexl = response.hex("-").split("-")
+            action = f"response_action_{hexl[4].upper()}"
             length = hexl[2]
 
             self._log_debug(f"Response action: {action}")
@@ -177,10 +171,9 @@ class APIBravo(APIBase):
             method = getattr(self, action)
             if callable(method):
                 return method(hexl, response)
-        #Default
+        # Default
         return self.response_action_default(hexl, response)
 
-        
     #
     # Extract Data
     #
@@ -188,10 +181,12 @@ class APIBravo(APIBase):
         try:
             header = response[:9]
             length_field = response[8:10]
-            length = int.from_bytes(length_field, 'big')
-            return response[10:10+length].decode("ascii")
+            length = int.from_bytes(length_field, "big")
+            return response[10 : 10 + length].decode("ascii")
         except Exception as e:
-            self._log_error(f"Unable to extract response data. Exception: {e} | Response: {hexl}")
+            self._log_error(
+                f"Unable to extract response data. Exception: {e} | Response: {hexl}"
+            )
 
     #
     # 03 [3]
@@ -199,7 +194,7 @@ class APIBravo(APIBase):
     #
     def response_action_03(self, hexl: list, response: bytes):
         if hex_to_int(hexl[5]) != 1:
-            self._log_debug(f"Couldnt register, trying again", 'critical')
+            self._log_debug(f"Couldnt register, trying again", "critical")
             self.request_action_03()
 
         self._log_debug(f"Received keep alive")
@@ -211,8 +206,7 @@ class APIBravo(APIBase):
     def response_action_5A(self, hexl: list, response: bytes):
         name = self._extract_response_data(response)
         self._log_debug(f"Received zone name: {name}")
-        self.zone.settings._set_property('name', name.strip())
-       
+        self.zone.settings._set_property("name", name.strip())
 
     #
     # 31 [49]
@@ -227,27 +221,29 @@ class APIBravo(APIBase):
     #
     def response_action_2A(self, hexl: list, response: bytes):
         """
-                
-            Example PlayView Response:
 
-            {'Album': 'International Skankers', 'Artist': 'Ashkabad', 'BitDepth': 16, 
-            'BitRate': '320000', 'CoverArtUrl': 'https://i.scdn.co/image/ab67616d0000b2730cbb03a339c6ffd18d10eab2', 
-            'Current Source': 4, 'Current_time': -1, 'DSDType': '', 'Fav': False, 'FileSize': 0, 'Genre': '', 
-            'Index': 0, 'Mime': 'Ogg', 'Next': False, 'PlayState': 0, 'PlayUrl': 'spotify:track:0IHTiLO5qBYhf7Hmn0UDBN', 
-            'Prev': False, 'Repeat': 0, 'SampleRate': '44100', 'Seek': False, 'Shuffle': 0, 'SinglePlay': False, 
-            'TotalTime': 203087, 'TrackName': 'Beijing'}
+        Example PlayView Response:
+
+        {'Album': 'International Skankers', 'Artist': 'Ashkabad', 'BitDepth': 16,
+        'BitRate': '320000', 'CoverArtUrl': 'https://i.scdn.co/image/ab67616d0000b2730cbb03a339c6ffd18d10eab2',
+        'Current Source': 4, 'Current_time': -1, 'DSDType': '', 'Fav': False, 'FileSize': 0, 'Genre': '',
+        'Index': 0, 'Mime': 'Ogg', 'Next': False, 'PlayState': 0, 'PlayUrl': 'spotify:track:0IHTiLO5qBYhf7Hmn0UDBN',
+        'Prev': False, 'Repeat': 0, 'SampleRate': '44100', 'Seek': False, 'Shuffle': 0, 'SinglePlay': False,
+        'TotalTime': 203087, 'TrackName': 'Beijing'}
         """
         try:
             jsonr = response[10:]
             metadata = json.loads(jsonr)
-            #CMD ID = 1 BrowseView - VSSL File Browser
-            #CMD ID = 3 PlayView (Track Info)
+            # CMD ID = 1 BrowseView - VSSL File Browser
+            # CMD ID = 3 PlayView (Track Info)
             if "CMD ID" in metadata and metadata["CMD ID"] == 3:
-                track_data = metadata['Window CONTENTS']
+                track_data = metadata["Window CONTENTS"]
                 self.zone.track._map_response_dict(track_data)
                 self.zone.transport._map_response_dict(track_data)
             else:
-                self._log_debug(f"{metadata['Title']} is currently unsupported: {metadata}")
+                self._log_debug(
+                    f"{metadata['Title']} is currently unsupported: {metadata}"
+                )
 
         except Exception as e:
             self._log_error(f"Unable to parse JSON. Exception: {e} | Response: {hexl}")
@@ -261,12 +257,12 @@ class APIBravo(APIBase):
 
     #
     # 32 [50]
-    # Track Source Update 
+    # Track Source Update
     #
     def response_action_32(self, hexl: list, response: bytes):
         self.zone.track.source = int(self._extract_response_data(response))
         self._log_debug(f"Received stream source: {self.zone.track.source}")
-    
+
     #
     # 33 [51]
     # Transport State
@@ -280,21 +276,20 @@ class APIBravo(APIBase):
     #
     def response_action_33(self, hexl: list, response: bytes):
         """
-            Alpha API will handle transport state
+        Alpha API will handle transport state
 
-            self._log_debug(f"Received transport state 33: {hexl}")
-            state = int(self._extract_response_data(response))
-                        
-            if state == 0:
-                self.zone.transport._set_state(ZoneTransport.States.PLAY) 
-            elif state == 1:
-                self.zone.transport._set_state(ZoneTransport.States.STOP) 
-            else:
-                self.zone.transport._set_state(state) 
+        self._log_debug(f"Received transport state 33: {hexl}")
+        state = int(self._extract_response_data(response))
+
+        if state == 0:
+            self.zone.transport._set_state(ZoneTransport.States.PLAY)
+        elif state == 1:
+            self.zone.transport._set_state(ZoneTransport.States.STOP)
+        else:
+            self.zone.transport._set_state(state)
 
         """
-        return 
-        
+        return
 
     #
     # 36 [54]
@@ -307,12 +302,11 @@ class APIBravo(APIBase):
     # error_nonextsong
     #
     def response_action_36(self, hexl: list, response: bytes):
-        feedback = self._extract_response_data(response).split('_')
+        feedback = self._extract_response_data(response).split("_")
         if len(feedback) > 1:
             self._log_debug(f"Received feedback {feedback[0]}: {feedback[1]}")
         else:
             self._log_debug(f"Received feedback: {feedback[0]}")
-
 
     #
     # 3F [63]
@@ -320,18 +314,17 @@ class APIBravo(APIBase):
     #
     def response_action_3F(self, hexl: list, response: bytes):
         """
-            Alpha API will handle the mute feedback
+        Alpha API will handle the mute feedback
 
-            state = self._extract_response_data(response)
-            self._log_debug(f"Received mute status: {state}")
-            if state == "MUTE":
-                self.zone._set_property('mute', True)
-            elif state == "UNMUTE":
-                self.zone._set_property('mute', False)
+        state = self._extract_response_data(response)
+        self._log_debug(f"Received mute status: {state}")
+        if state == "MUTE":
+            self.zone._set_property('mute', True)
+        elif state == "UNMUTE":
+            self.zone._set_property('mute', False)
 
         """
         return
-
 
     #
     # 40 [64]
@@ -339,18 +332,18 @@ class APIBravo(APIBase):
     #
     def response_action_40(self, hexl: list, response: bytes):
         """
-            Alpha API will handle the volume, there is some strange behavior
-            that the Bravo API gets a 0 vol when the zone is muted, but then
-            the device status responses with the actual volume level, even
-            though the zone is muted. 
+        Alpha API will handle the volume, there is some strange behavior
+        that the Bravo API gets a 0 vol when the zone is muted, but then
+        the device status responses with the actual volume level, even
+        though the zone is muted.
 
-            vol = int(self._extract_response_data(response))
-            self._log_debug(f"Received volume: {vol}%")
-            self.zone._set_property('volume', int(vol))
+        vol = int(self._extract_response_data(response))
+        self._log_debug(f"Received volume: {vol}%")
+        self.zone._set_property('volume', int(vol))
 
         """
         return
-        
+
     #
     # 46 [70]
     # Unknown | Speaker active / inactive
@@ -396,7 +389,7 @@ class APIBravo(APIBase):
     def response_action_5B(self, hexl: list, response: bytes):
         mac = self._extract_response_data(response)
         self._log_debug(f"Received MAC address: {mac}")
-        self.zone._set_property('mac_addr', mac) 
+        self.zone._set_property("mac_addr", mac)
 
     #
     # 70 [112]
