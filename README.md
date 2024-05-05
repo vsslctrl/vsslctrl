@@ -12,11 +12,9 @@
 ## TODOs
 
 * Test on other models (hardware needed)
-* Implement `zeroconf` discovery
 * Home Assistant integration (in progress)
 * Function scoping to supported feature / models
-* Unit tests
-* Linting
+* Better test coverage
 * Web app
 * EQ Presets, saving, recalling
 
@@ -362,7 +360,7 @@ print(zone_name)
 
 ## Credit
 
-The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start). VSSLs non-legacy iSO app version 1.1.3(1) is crashing my A.3x.
+The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start). VSSLs non-legacy iOS app version 1.1.3(1) is crashing my A.3x.
 
 ## Known Issues & Limitiations
 
@@ -371,6 +369,7 @@ The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS a
 * VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 * Not all sources set the volume to 0 when the zone is muted
 * Grouping feedback is flaky on the X series amplifiers
+* Cant stop a URL playback, feedback is worng at least
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
 * `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source
 * Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects

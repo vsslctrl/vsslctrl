@@ -9,7 +9,8 @@ from .exceptions import VsslCtrlException, ZoneError
 from .event_bus import EventBus
 from .settings import VsslSettings
 from .decorators import logging_helpers
-from .discovery import VsslDiscovery
+
+# from .discovery import VsslDiscovery
 
 
 @logging_helpers("VSSL:")

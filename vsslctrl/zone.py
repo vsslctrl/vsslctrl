@@ -94,6 +94,9 @@ class Zone:
         # ID and serial number futures
         future_id = self.vssl.event_bus.future(self.Events.ID_RECEIVED, self.id)
         future_serial = self.vssl.event_bus.future(self.Events.SERIAL_RECEIVED, self.id)
+        future_name = self.vssl.event_bus.future(
+            ZoneSettings.Events.NAME_CHANGE, self.id
+        )
 
         # Subscribe to events
         self.vssl.event_bus.subscribe(
@@ -113,9 +116,10 @@ class Zone:
         # Start polling zone
         self._poller.start()
 
-        # Wait for the zone ID and serial to be returned from the device
+        # Wait for the ID, serial and name to be returned from the device
         received_id = await future_id
         received_serial = await future_serial
+        await future_name
 
         # Confirm the zone id is matches returned ID
         if received_id != self.id:
