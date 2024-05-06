@@ -67,7 +67,7 @@ class APIAlpha(APIBase):
 
     def request_action_00_08(self):
         self._log_debug("Requesting zone status")
-        self.send(ZONE_STATUS)  # HEX: 10000108
+        self.send(self.ZONE_STATUS)  # HEX: 10000108
 
     #
     # 00 [0] - 09 [9]
