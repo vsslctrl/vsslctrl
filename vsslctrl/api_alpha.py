@@ -63,9 +63,11 @@ class APIAlpha(APIBase):
     # 00 [0] - 08 [8]
     # Status General
     #
+    ZONE_STATUS = bytearray([16, 0, 1, 8])
+
     def request_action_00_08(self):
         self._log_debug("Requesting zone status")
-        self.send(bytearray([16, 0, 1, 8]))  # HEX: 10000108
+        self.send(ZONE_STATUS)  # HEX: 10000108
 
     #
     # 00 [0] - 09 [9]

@@ -5,12 +5,11 @@ import asyncio
 from typing import Dict, Union, List
 
 from .zone import Zone
-from .exceptions import VsslCtrlException, ZoneError
+from .exceptions import VsslCtrlException, ZoneError, ZeroConfNotInstalled
 from .event_bus import EventBus
 from .settings import VsslSettings
 from .decorators import logging_helpers
-
-# from .discovery import VsslDiscovery
+from .discovery import check_zeroconf_availability
 
 
 @logging_helpers("VSSL:")
@@ -107,10 +106,17 @@ class Vssl:
     #
     # Discover host on the network using zero_conf package
     #
-    async def discover(self):
-        service = VsslDiscovery()
-        vssls = await service.discover()
-        print(vssls)
+    async def discover(self, *args):
+        try:
+            check_zeroconf_availability()
+
+            from .discovery import VsslDiscovery
+
+            service = VsslDiscovery(*args)
+            return await service.discover()
+        except ZeroConfNotInstalled as e:
+            self._log_error(e)
+            raise
 
     #
     # Update a property and fire the event
