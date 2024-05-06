@@ -348,16 +348,6 @@ EQ be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `-10
 zone1.settings.eq.khz1_db = -2
 ```
 
-
-
-## Awaiting Property Updates
-
-```python
-zone_name = await zone1.settings.set_name('Living Room')
-print(zone_name)
->>> 'Living Room'
-```
-
 ## Credit
 
 The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start). VSSLs non-legacy iOS app version 1.1.3(1) is crashing my A.3x.
