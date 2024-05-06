@@ -54,7 +54,7 @@ async def main():
 
 
    	# Shutdown and disconnect all zones
-   	vssl.shutdown()
+   	await vssl.shutdown()
 
 
 asyncio.run(main())
@@ -195,8 +195,8 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 
 ## `Zone.track`
 
-* Not all source, have all metadata - missing value will be defaults
-* VSSL default cover art URL link `[zone.host]/img/default_cover_art.png` is broken
+* Not all sources have complete metadata - missing value will be set to defaults
+* VSSLs default cover art URL link `[zone.host]/img/default_cover_art.png` is broken on the A.3x
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- | ----------- | ----------- |----------- |
