@@ -1,10 +1,21 @@
 import logging
 from . import zone
 from typing import Dict, Union
-from .data_structure import VsslIntEnum, ZoneDataClass
+from .data_structure import VsslIntEnum, ZoneDataClass, TrackMetadataExtKeys
 
 
 class TrackMetadata(ZoneDataClass):
+    class Keys:
+        TITLE = "title"
+        ALBUM = "album"
+        ARTIST = "artist"
+        GENRE = "genre"
+        DURATION = "duration"
+        PROGRESS = "progress"
+        COVER_ART_URL = "cover_art_url"
+        SOURCE = "source"
+        URL = "url"
+
     #
     # Stream Sources
     #
@@ -41,26 +52,26 @@ class TrackMetadata(ZoneDataClass):
         URL_CHANGE = PREFIX + "url_change"
 
     DEFAULTS = {
-        "title": None,
-        "album": None,
-        "artist": None,
-        "genre": None,
-        "duration": 0,
-        "progress": 0,
-        "cover_art_url": None,
-        "source": Sources.NOT_STREAMING,
-        "url": None,
+        Keys.TITLE: None,
+        Keys.ALBUM: None,
+        Keys.ARTIST: None,
+        Keys.GENRE: None,
+        Keys.DURATION: 0,
+        Keys.PROGRESS: 0,
+        Keys.COVER_ART_URL: None,
+        Keys.SOURCE: Sources.NOT_STREAMING,
+        Keys.URL: None,
     }
 
     KEY_MAP = {
-        "TotalTime": "duration",
-        "TrackName": "title",
-        "Album": "album",
-        "Artist": "artist",
-        "CoverArtUrl": "cover_art_url",
-        "Current Source": "source",
-        "Genre": "genre",
-        "PlayUrl": "url",
+        TrackMetadataExtKeys.DURATION: Keys.DURATION,
+        TrackMetadataExtKeys.TITLE: Keys.TITLE,
+        TrackMetadataExtKeys.ALBUM: Keys.ALBUM,
+        TrackMetadataExtKeys.ARTIST: Keys.ARTIST,
+        TrackMetadataExtKeys.COVER_ART_URL: Keys.COVER_ART_URL,
+        TrackMetadataExtKeys.SOURCE: Keys.SOURCE,
+        TrackMetadataExtKeys.GENRE: Keys.GENRE,
+        TrackMetadataExtKeys.URL: Keys.URL,
     }
 
     def __init__(self, zone: "zone.Zone"):
@@ -175,7 +186,7 @@ class TrackMetadata(ZoneDataClass):
 
     @title.setter
     def title(self, value: str) -> None:
-        self._update_property("title", value)
+        self._update_property(self.Keys.TITLE, value)
 
     #
     # Track Album
@@ -186,7 +197,7 @@ class TrackMetadata(ZoneDataClass):
 
     @album.setter
     def album(self, value: str) -> None:
-        self._update_property("album", value)
+        self._update_property(self.Keys.ALBUM, value)
 
     #
     # Track Artist
@@ -197,7 +208,7 @@ class TrackMetadata(ZoneDataClass):
 
     @artist.setter
     def artist(self, value: str) -> None:
-        self._update_property("artist", value)
+        self._update_property(self.Keys.ARTIST, value)
 
     #
     # Track Genre
@@ -208,7 +219,7 @@ class TrackMetadata(ZoneDataClass):
 
     @genre.setter
     def genre(self, value: str) -> None:
-        self._update_property("genre", value)
+        self._update_property(self.Keys.GENRE, value)
 
     #
     # Track Duration
@@ -219,7 +230,7 @@ class TrackMetadata(ZoneDataClass):
 
     @duration.setter
     def duration(self, value: int) -> None:
-        self._update_property("duration", value)
+        self._update_property(self.Keys.DURATION, value)
 
     #
     # Track Duration
@@ -230,7 +241,7 @@ class TrackMetadata(ZoneDataClass):
 
     @progress.setter
     def progress(self, value: int) -> None:
-        self._update_property("progress", value)
+        self._update_property(self.Keys.PROGRESS, value)
 
     @property
     def progress_display(self):
@@ -262,7 +273,7 @@ class TrackMetadata(ZoneDataClass):
 
     @cover_art_url.setter
     def cover_art_url(self, value: str) -> None:
-        self._update_property("cover_art_url", value)
+        self._update_property(self.Keys.COVER_ART_URL, value)
 
     #
     # Track Source
@@ -274,12 +285,12 @@ class TrackMetadata(ZoneDataClass):
     @source.setter
     def source(self, src: Sources) -> None:
         if self.Sources.is_valid(src):
-            self._update_property("source", self.Sources(src))
+            self._update_property(self.Keys.SOURCE, self.Sources(src))
         else:
             self._zone._log_error(f"TrackMetadata.Sources {src} doesnt exist")
 
     #
-    # Track Duration
+    # Track URL
     #
     @property
     def url(self) -> str:
@@ -287,4 +298,4 @@ class TrackMetadata(ZoneDataClass):
 
     @url.setter
     def url(self, value: str) -> None:
-        self._update_property("url", value)
+        self._update_property(self.Keys.URL, value)

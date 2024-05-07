@@ -9,7 +9,7 @@ from .exceptions import VsslCtrlException, ZoneError, ZeroConfNotInstalled
 from .event_bus import EventBus
 from .settings import VsslSettings
 from .decorators import logging_helpers
-from .discovery import check_zeroconf_availability
+from .discovery import check_zeroconf_availability, fetch_zone_id_serial
 
 
 @logging_helpers("VSSL:")

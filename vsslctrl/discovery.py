@@ -17,9 +17,14 @@ from zeroconf.asyncio import (
 from .utils import group_list_by_property
 from .api_alpha import APIAlpha
 from .decorators import logging_helpers
-from .exceptions import ZeroConfNotInstalled
+from .exceptions import ZeroConfNotInstalled, ZoneConnectionError, ZoneError
+
+from .data_structure import ZoneStatusExtKeys
 
 
+#
+# Check to see if Zeroconf is available on the system
+#
 def check_zeroconf_availability():
     try:
         import zeroconf
@@ -31,6 +36,50 @@ def check_zeroconf_availability():
             "Error: 'zeroconf' package is not installed. Install using 'pip install zeroconf'."
         )
         return False
+
+
+#
+# Attempt to connect to zone and return id and serial from a given host IP
+#
+async def fetch_zone_id_serial(host):
+    try:
+        # Open a connection to the server
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(host, APIAlpha.TCP_PORT), APIAlpha.TIMEOUT
+        )
+
+        # Request zones status
+        writer.write(APIAlpha.ZONE_STATUS)
+
+        # Wait until the data is flushed
+        await writer.drain()
+
+        # Receive response
+        response = await reader.read(1024)
+        string = response[APIAlpha.JSON_HEADER_LENGTH :].decode("ascii")
+        metadata = json.loads(string)
+
+        if (
+            ZoneStatusExtKeys.ID not in metadata
+            or ZoneStatusExtKeys.SERIAL_NUMBER not in metadata
+        ):
+            raise ZoneError(
+                f"Host {host}:{APIAlpha.TCP_PORT} didnt return ID or serial number"
+            )
+
+    except asyncio.TimeoutError:
+        raise ZoneConnectionError(f"Connection to {host}:{APIAlpha.TCP_PORT} timed out")
+
+    finally:
+        # Close the connection
+        writer.close()
+        await writer.wait_closed()
+
+    # Return the response received from the server
+    return (
+        metadata[ZoneStatusExtKeys.ID],
+        metadata[ZoneStatusExtKeys.SERIAL_NUMBER],
+    )
 
 
 @logging_helpers()
@@ -68,7 +117,7 @@ class VsslDiscovery:
         hosts = []
         for zone in self.discovered_zones:
             try:
-                zone_id, serial = await self._fetch_zone_info(zone["host"])
+                zone_id, serial = await fetch_zone_id_serial(zone["host"])
                 if zone_id and serial:
                     zone["zone_id"] = zone_id
                     zone["serial"] = serial
@@ -144,32 +193,3 @@ class VsslDiscovery:
                         ),
                     }
                 )
-
-    #
-    # Get zone info
-    #
-    async def _fetch_zone_info(self, host):
-        try:
-            # Open a connection to the server
-            reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, APIAlpha.TCP_PORT), APIAlpha.TIMEOUT
-            )
-
-            # Request zones status
-            writer.write(APIAlpha.ZONE_STATUS)
-
-            # Wait until the data is flushed
-            await writer.drain()
-
-            # Receive response
-            response = await reader.read(1024)
-            string = response[4:].decode("ascii")
-            metadata = json.loads(string)
-
-        finally:
-            # Close the connection
-            writer.close()
-            await writer.wait_closed()
-
-        # Return the response received from the server
-        return (metadata["id"], metadata["mc"])

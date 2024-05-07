@@ -11,12 +11,19 @@ from .settings import EQSettings
 
 from .utils import hex_to_int, clamp_volume
 from .decorators import logging_helpers
+from .data_structure import (
+    ZoneStatusExtKeys,
+    ZoneEQStatusExtKeys,
+    ZoneRouterStatusExtKeys,
+    DeviceStatusExtKeys,
+)
 
 
 @logging_helpers()
 class APIAlpha(APIBase):
     TCP_PORT = 50002
     HEADER_LENGTH = 3
+    JSON_HEADER_LENGTH = HEADER_LENGTH + 1  # action is 1 byte
 
     def __init__(self, vssl_host: "core.Vssl", zone: "zone.Zone"):
         super().__init__(host=zone.host, port=self.TCP_PORT)
@@ -527,9 +534,10 @@ class APIAlpha(APIBase):
         try:
             packet_length = hexl[2]
 
-            offset = 4
             length = hex_to_int(packet_length) - 1
-            string = response[offset : offset + length].decode("ascii")
+            string = response[
+                self.JSON_HEADER_LENGTH : self.JSON_HEADER_LENGTH + length
+            ].decode("ascii")
             metadata = json.loads(string)
 
             # Call a sub action
@@ -559,7 +567,7 @@ class APIAlpha(APIBase):
         self.vssl._infer_model_zone_qty(metadata)
 
         # Analog output source
-        key = f"B{self.zone.id}Src"
+        key = DeviceStatusExtKeys.add_zone_to_bus_key(self.zone.id)
         if key in metadata:
             self.zone.analog_output._set_property("source", int(metadata[key]))
 
@@ -567,18 +575,23 @@ class APIAlpha(APIBase):
         # Not used?
 
         # B2Nm - Bus2 Name - For A3.X this is the optical input name
-        if "B2Nm" in metadata:
+        if DeviceStatusExtKeys.OPTICAL_INPUT_NAME in metadata:
             self.vssl.settings._set_property(
-                "optical_input_name", metadata["B2Nm"].strip()
+                "optical_input_name",
+                metadata[DeviceStatusExtKeys.OPTICAL_INPUT_NAME].strip(),
             )
 
         # Set the device name
-        if "dev" in metadata:
-            self.vssl.settings._set_property("name", metadata["dev"].strip())
+        if DeviceStatusExtKeys.DEVICE_NAME in metadata:
+            self.vssl.settings._set_property(
+                "name", metadata[DeviceStatusExtKeys.DEVICE_NAME].strip()
+            )
 
         # Set the software version
-        if "ver" in metadata and self.vssl.sw_version == None:
-            self.vssl._set_property("sw_version", metadata["ver"].strip())
+        if DeviceStatusExtKeys.SW_VERSION in metadata and self.vssl.sw_version == None:
+            self.vssl._set_property(
+                "sw_version", metadata[DeviceStatusExtKeys.SW_VERSION].strip()
+            )
 
     #
     # 00_08
@@ -593,46 +606,56 @@ class APIAlpha(APIBase):
         # If the zone is not initialised, then we just return the ID and serial
         if not self.zone.initialised:
             # Zone Index
-            if "id" in metadata:
-                self.zone.id = int(metadata["id"])
+            if ZoneStatusExtKeys.ID in metadata:
+                self.zone.id = int(metadata[ZoneStatusExtKeys.ID])
 
             # Serial number and MAC address of ZONE 1
-            if "mc" in metadata:
+            if ZoneStatusExtKeys.SERIAL_NUMBER in metadata:
                 # Always set VSSL first before zone
                 if self.vssl.serial == None:
-                    self.vssl._set_property("serial", metadata["mc"])
+                    self.vssl._set_property(
+                        "serial", metadata[ZoneStatusExtKeys.SERIAL_NUMBER]
+                    )
 
                 if self.zone.serial == None:
-                    self.zone._set_property("serial", metadata["mc"])
+                    self.zone._set_property(
+                        "serial", metadata[ZoneStatusExtKeys.SERIAL_NUMBER]
+                    )
 
         # Transport state
-        if "ac" in metadata:
-            self.zone.transport._set_property("state", int(metadata["ac"]))
+        if ZoneStatusExtKeys.TRANSPORT_STATE in metadata:
+            self.zone.transport._set_property(
+                "state", int(metadata[ZoneStatusExtKeys.TRANSPORT_STATE])
+            )
 
         # Volume
-        if "vol" in metadata:
-            self.zone._set_property("volume", int(metadata["vol"]))
+        if ZoneStatusExtKeys.VOLUME in metadata:
+            self.zone._set_property("volume", int(metadata[ZoneStatusExtKeys.VOLUME]))
 
         # Mute
-        if "mt" in metadata:
-            self.zone._set_property("mute", bool(int(metadata["mt"])))
+        if ZoneStatusExtKeys.MUTE in metadata:
+            self.zone._set_property("mute", bool(int(metadata[ZoneStatusExtKeys.MUTE])))
 
-        # Party Mode ('pa')
+        # Party Mode
         # Not supported by X series?
-
-        # IS PA meaning power adaptive is active?!
+        if ZoneStatusExtKeys.PARTY_MODE in metadata:
+            pass
 
         # Group Index see below
-        if "rm" in metadata:
-            self.zone.group._set_property("index", int(metadata["rm"]))
+        if ZoneStatusExtKeys.GROUP_INDEX in metadata:
+            self.zone.group._set_property(
+                "index", int(metadata[ZoneStatusExtKeys.GROUP_INDEX])
+            )
 
         # Set Stream Source
-        if "lb" in metadata:
-            self.zone.track.source = int(metadata["lb"])
+        if ZoneStatusExtKeys.TRACK_SOURCE in metadata:
+            self.zone.track.source = int(metadata[ZoneStatusExtKeys.TRACK_SOURCE])
 
         # Zone Enabled (0) or Disabled (1)
-        if "wr" in metadata:
-            self.zone.settings._set_property("disabled", bool(int(metadata["wr"])))
+        if ZoneStatusExtKeys.DISABLED in metadata:
+            self.zone.settings._set_property(
+                "disabled", bool(int(metadata[ZoneStatusExtKeys.DISABLED]))
+            )
 
     #
     # 00_09
@@ -645,13 +668,15 @@ class APIAlpha(APIBase):
         self._log_debug(f"Received 09 Status: {metadata}")
 
         # Mono output
-        if "mono" in metadata:
-            self.zone.settings._set_property("mono", int(metadata["mono"]))
+        if ZoneEQStatusExtKeys.MONO in metadata:
+            self.zone.settings._set_property(
+                "mono", int(metadata[ZoneEQStatusExtKeys.MONO])
+            )
 
         # Analog Input Name
-        if "AiNm" in metadata:
+        if ZoneEQStatusExtKeys.ANALOG_INPUT_NAME in metadata:
             self.zone.settings.analog_input._set_property(
-                "name", metadata["AiNm"].strip()
+                "name", metadata[ZoneEQStatusExtKeys.ANALOG_INPUT_NAME].strip()
             )
 
         self.zone.settings.eq._map_response_dict(metadata)
@@ -668,44 +693,60 @@ class APIAlpha(APIBase):
         self._log_debug(f"Received 0A Status: {metadata}")
 
         # EQ Switch
-        if "eqsw" in metadata:
-            self.zone.settings.eq._set_property("enabled", bool(int(metadata["eqsw"])))
+        if ZoneRouterStatusExtKeys.EQ_ENABLED in metadata:
+            self.zone.settings.eq._set_property(
+                "enabled", bool(int(metadata[ZoneRouterStatusExtKeys.EQ_ENABLED]))
+            )
 
         # Input Source
-        if "inSrc" in metadata:
-            self.zone.input._set_property("source", int(metadata["inSrc"]))
+        if ZoneRouterStatusExtKeys.INPUT_SOURCE in metadata:
+            self.zone.input._set_property(
+                "source", int(metadata[ZoneRouterStatusExtKeys.INPUT_SOURCE])
+            )
 
         # Source Priority
-        if "SP" in metadata:
-            self.zone.input._set_property("priority", int(metadata["SP"]))
+        if ZoneRouterStatusExtKeys.SOURCE_PRIORITY in metadata:
+            self.zone.input._set_property(
+                "priority", int(metadata[ZoneRouterStatusExtKeys.SOURCE_PRIORITY])
+            )
 
         # Analog Output Fix Volume
         #  e.g BF1
-        key = f"BF{self.zone.id}"
+        key = ZoneRouterStatusExtKeys.add_zone_to_ao_fixed_volume_key(self.zone.id)
         if key in metadata:
             self.zone.analog_output._set_property(
                 "is_fixed_volume", bool(int(metadata[key]))
             )
 
         # Handle groups
-        if "GRM" in metadata and "GRS" in metadata:
-            self.zone.group._set_property("source", int(metadata["GRS"]))
-            self.zone.group._set_property("is_master", int(metadata["GRM"]))
+        if (
+            ZoneRouterStatusExtKeys.GROUP_MASTER in metadata
+            and ZoneRouterStatusExtKeys.GROUP_SOURCE in metadata
+        ):
+            self.zone.group._set_property(
+                "source", int(metadata[ZoneRouterStatusExtKeys.GROUP_SOURCE])
+            )
+            self.zone.group._set_property(
+                "is_master", int(metadata[ZoneRouterStatusExtKeys.GROUP_MASTER])
+            )
 
         # Power State
-        if "Pwr" in metadata:
-            self.vssl.settings.power._set_property("state", int(metadata["Pwr"]))
+        if ZoneRouterStatusExtKeys.POWER_STATE in metadata:
+            self.vssl.settings.power._set_property(
+                "state", int(metadata[ZoneRouterStatusExtKeys.POWER_STATE])
+            )
 
         # Analog input fixed gain
-        if "fxv" in metadata:
+        if ZoneRouterStatusExtKeys.ANALOG_INPUT_FIXED_GAIN in metadata:
             self.zone.settings.analog_input._set_property(
-                "fixed_gain", int(metadata["fxv"])
+                "fixed_gain",
+                int(metadata[ZoneRouterStatusExtKeys.ANALOG_INPUT_FIXED_GAIN]),
             )
 
         # Alway On power state = 0 else 1 = auto
-        if "AtPwr" in metadata:
+        if ZoneRouterStatusExtKeys.ADAPTIVE_POWER in metadata:
             self.vssl.settings.power._set_property(
-                "adaptive", bool(int(metadata["AtPwr"]))
+                "adaptive", bool(int(metadata[ZoneRouterStatusExtKeys.ADAPTIVE_POWER]))
             )
 
     #
@@ -903,9 +944,10 @@ class APIAlpha(APIBase):
     #
     def response_action_19(self, hexl: list, response: bytes):
         try:
-            offset = 4
             length = hex_to_int(hexl[2]) - 1
-            name = response[offset : offset + length].decode("ascii")
+            name = response[
+                self.JSON_HEADER_LENGTH : self.JSON_HEADER_LENGTH + length
+            ].decode("ascii")
 
             self._log_debug(f"Received device name: {name}")
 

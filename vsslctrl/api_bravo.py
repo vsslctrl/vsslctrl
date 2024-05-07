@@ -7,6 +7,7 @@ import logging
 from .api_base import APIBase
 from .utils import hex_to_int
 from .decorators import logging_helpers
+from .data_structure import TrackMetadataExtKeys
 
 
 @logging_helpers()
@@ -236,13 +237,16 @@ class APIBravo(APIBase):
             metadata = json.loads(jsonr)
             # CMD ID = 1 BrowseView - VSSL File Browser
             # CMD ID = 3 PlayView (Track Info)
-            if "CMD ID" in metadata and metadata["CMD ID"] == 3:
-                track_data = metadata["Window CONTENTS"]
+            if (
+                TrackMetadataExtKeys.COMMAND_ID in metadata
+                and metadata[TrackMetadataExtKeys.COMMAND_ID] == 3
+            ):
+                track_data = metadata[TrackMetadataExtKeys.WINDOW_CONTENTS]
                 self.zone.track._map_response_dict(track_data)
                 self.zone.transport._map_response_dict(track_data)
             else:
                 self._log_debug(
-                    f"{metadata['Title']} is currently unsupported: {metadata}"
+                    f"{metadata[TrackMetadataExtKeys.WINDOW_TITLE]} is currently unsupported: {metadata}"
                 )
 
         except Exception as e:

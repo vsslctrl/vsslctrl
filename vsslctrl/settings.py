@@ -2,12 +2,21 @@ import logging
 from typing import Dict, Union
 from .utils import clamp_volume
 from .io import AnalogInput
-from .data_structure import VsslIntEnum, VsslDataClass, ZoneDataClass
+from .data_structure import (
+    VsslIntEnum,
+    VsslDataClass,
+    ZoneDataClass,
+    ZoneEQStatusExtKeys,
+)
 
 VSSL_SETTINGS_EVENT_PREFIX = "vssl.settings."
 
 
 class VsslSettings(VsslDataClass):
+    class Keys:
+        NAME = "name"
+        OPTICAL_INPUT_NAME = "optical_input_name"
+
     #
     # VSSL Events
     #
@@ -19,13 +28,13 @@ class VsslSettings(VsslDataClass):
     #
     # Defaults
     #
-    DEFAULTS = {"name": None, "optical_input_name": "Optical In"}
+    DEFAULTS = {Keys.NAME: None, Keys.OPTICAL_INPUT_NAME: "Optical In"}
 
     def __init__(self, vssl: "vsslctrl.Vssl"):
         self._vssl = vssl
 
         self._name = None  # device name
-        self._optical_input_name = self.DEFAULTS["optical_input_name"]
+        self._optical_input_name = self.DEFAULTS[self.Keys.OPTICAL_INPUT_NAME]
         self.power = VsslPowerSettings(vssl)
 
     #
@@ -229,6 +238,11 @@ class ZoneSettings(ZoneDataClass):
 
 
 class VolumeSettings(ZoneDataClass):
+    class Keys:
+        DEFAULT_ON = "default_on"
+        MAX_LEFT = "max_left"
+        MAX_RIGHT = "max_right"
+
     #
     # Volume Setting Events
     #
@@ -242,15 +256,19 @@ class VolumeSettings(ZoneDataClass):
     # Defaults
     #
     DEFAULTS = {
-        "default_on": 75,
-        "max_left": 75,
-        "max_right": 75,
+        Keys.DEFAULT_ON: 75,
+        Keys.MAX_LEFT: 75,
+        Keys.MAX_RIGHT: 75,
     }
 
     #
     # Key Map
     #
-    KEY_MAP = {"vold": "default_on", "voll": "max_left", "volr": "max_right"}
+    KEY_MAP = {
+        ZoneEQStatusExtKeys.VOL_DEFAULT_ON: Keys.DEFAULT_ON,
+        ZoneEQStatusExtKeys.VOL_MAX_LEFT: Keys.MAX_LEFT,
+        ZoneEQStatusExtKeys.VOL_MAX_RIGHT: Keys.MAX_RIGHT,
+    }
 
     def __init__(self, zone: "zone.Zone"):
         self._zone = zone
@@ -373,13 +391,13 @@ class EQSettings(ZoneDataClass):
     # Key Map
     #
     KEY_MAP = {
-        "eq1": Freqs.HZ60,
-        "eq2": Freqs.HZ200,
-        "eq3": Freqs.HZ500,
-        "eq4": Freqs.KHZ1,
-        "eq5": Freqs.KHZ4,
-        "eq6": Freqs.KHZ8,
-        "eq7": Freqs.KHZ15,
+        ZoneEQStatusExtKeys.HZ60: Freqs.HZ60,
+        ZoneEQStatusExtKeys.HZ200: Freqs.HZ200,
+        ZoneEQStatusExtKeys.HZ500: Freqs.HZ500,
+        ZoneEQStatusExtKeys.KHZ1: Freqs.KHZ1,
+        ZoneEQStatusExtKeys.KHZ4: Freqs.KHZ4,
+        ZoneEQStatusExtKeys.KHZ8: Freqs.KHZ8,
+        ZoneEQStatusExtKeys.KHZ15: Freqs.KHZ15,
     }
 
     def __init__(self, zone: "zone.Zone"):
