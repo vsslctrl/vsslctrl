@@ -59,6 +59,9 @@ async def fetch_zone_id_serial(host):
         string = response[APIAlpha.JSON_HEADER_LENGTH :].decode("ascii")
         metadata = json.loads(string)
 
+        writer.close()
+        await writer.wait_closed()
+
         if (
             ZoneStatusExtKeys.ID not in metadata
             or ZoneStatusExtKeys.SERIAL_NUMBER not in metadata
@@ -67,15 +70,10 @@ async def fetch_zone_id_serial(host):
                 f"Host {host}:{APIAlpha.TCP_PORT} didnt return ID or serial number"
             )
 
-    except asyncio.TimeoutError:
+    except (asyncio.TimeoutError, asyncio.CancelledError):
         raise ZoneConnectionError(f"Connection to {host}:{APIAlpha.TCP_PORT} timed out")
 
-    finally:
-        # Close the connection
-        writer.close()
-        await writer.wait_closed()
-
-    # Return the response received from the server
+    # Return the ID and serial
     return (
         metadata[ZoneStatusExtKeys.ID],
         metadata[ZoneStatusExtKeys.SERIAL_NUMBER],
