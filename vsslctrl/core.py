@@ -289,3 +289,18 @@ class Vssl:
         zone = self.get_connected_zone()
         if zone:
             zone._api_alpha.request_action_33_device()
+
+    #
+    # Zones Groups. Build a dict of zone according to any group membership
+    #
+    @property
+    def zone_groups(self):
+        MASTER = "master"
+        MEMBERS = "members"
+
+        groups = []
+        for zone in self.zones.values():
+            if zone.group.is_master:
+                groups.append({MASTER: zone, MEMBERS: zone.group.members})
+
+        return groups

@@ -162,3 +162,16 @@ class ZoneGroup(ZoneDataClass):
         if self.is_master != bool(grm):
             self._is_master = grm != 0
             return True
+
+    #
+    # Get zone members of this groups
+    #
+    @property
+    def members(self):
+        if not self.is_master:
+            return []
+        return [
+            zone
+            for zone in self._zone.vssl.zones.values()
+            if zone.group.index == self.index and zone.group.is_member
+        ]
