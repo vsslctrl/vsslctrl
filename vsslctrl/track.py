@@ -168,7 +168,7 @@ class TrackMetadata(ZoneDataClass):
         master = self._zone.vssl.get_zone(zone)
 
         if not master:
-            self._log_error(
+            self._zone._log_error(
                 f"Zone {zone} was not avaiable on VSSL, maybe we are not managing it"
             )
             return
