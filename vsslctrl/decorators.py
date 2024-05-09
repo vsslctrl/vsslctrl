@@ -1,26 +1,5 @@
 import json
 import logging
-from .exceptions import NotSupportedException
-
-
-def only_on_models(valid_models):
-    if isinstance(valid_models, str):
-        valid_models = [valid_models]
-
-    def decorator(method):
-        @wraps(method)
-        def wrapper(self, *args, **kwargs):
-            if self._zone.model not in valid_models:
-                raise NotSupportedException(
-                    f"The VSSL model {self._zone.model.name} doesn't support {method.__name__}."
-                )
-
-            # Call the original method
-            return method(self, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 def sterilizable(cls):

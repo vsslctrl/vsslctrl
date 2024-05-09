@@ -35,16 +35,13 @@ class Vssl:
     ):
         self.event_bus = EventBus()
         self._zones = {}
-        self._sw_version = None  # e.g p15305.016.3701
-        self._serial = (
-            None  # We use this to check the zones belong to the same hardware
-        )
-
+        self._sw_version = None
+        self._serial = None
         self._model = None
-        self.model = model
-
         self._model_zone_qty = 0
         self.settings = VsslSettings(self)
+
+        self.model = model
 
         # Add zones if any are passed
         if zones:
@@ -54,7 +51,7 @@ class Vssl:
     # Initialise the zones
     #
     # We init all the zones sequentially, so we can do some error checking
-    # and failed the init of all the zones if any of them fail.
+    # and fail if any of the zones are in error
     #
     async def initialise(self, init_timeout: int = 10):
         if len(self._zones) < 1:

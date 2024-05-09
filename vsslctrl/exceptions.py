@@ -19,7 +19,3 @@ class ZoneConnectionError(ZoneError):
 
 class ZeroConfNotInstalled(VsslCtrlException):
     """Zone Exception"""
-
-
-class NotSupportedException(VsslCtrlException):
-    """Zone Exception"""
