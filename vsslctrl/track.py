@@ -169,7 +169,7 @@ class TrackMetadata(ZoneDataClass):
 
         if not master:
             self._zone._log_error(
-                f"Zone {zone} was not avaiable on VSSL, maybe we are not managing it"
+                f"Zone {zone} was not avaiable on VSSL, maybe we are not managing it or it has not be initialised yet"
             )
             return
 

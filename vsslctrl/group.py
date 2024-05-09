@@ -164,7 +164,17 @@ class ZoneGroup(ZoneDataClass):
             return True
 
     #
-    # Get zone members of this groups
+    # Get groups master zone
+    #
+    @property
+    def master(self):
+        if self.is_master:
+            return self
+        if self.source is not None:
+            return self._zone.vssl.get_zone(self.source)
+
+    #
+    # Get group member zones
     #
     @property
     def members(self):

@@ -291,7 +291,7 @@ class Vssl:
             zone._api_alpha.request_action_33_device()
 
     #
-    # Zones Groups. Build a dict of zone according to any group membership
+    # Zones Groups. Build a dict of zone according to group membership
     #
     @property
     def zone_groups(self):
