@@ -37,7 +37,7 @@ class ZoneGroup(ZoneDataClass):
     def __init__(self, zone: "zone.Zone"):
         self._zone = zone
 
-        """ On a A3.x the group index are, Im not sure if this is consistant with A1.x or A6.x:
+        """ On a A.3x the group index are, Im not sure if this is consistant with A1.x or A6.x:
 
             Zone 1: 9
             Zone 2: 10

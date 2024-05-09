@@ -10,6 +10,7 @@ from .event_bus import EventBus
 from .settings import VsslSettings
 from .decorators import logging_helpers
 from .discovery import check_zeroconf_availability, fetch_zone_id_serial
+from .data_structure import DeviceModels
 
 
 @logging_helpers("VSSL:")
@@ -21,18 +22,27 @@ class Vssl:
     #
     class Events:
         PREFIX = "vssl."
+        MODEL_CHANGE = PREFIX + "model_changed"
         MODEL_ZONE_QTY_CHANGE = PREFIX + "model_zone_qty_changed"
         SW_VERSION_CHANGE = PREFIX + "sw_version_changed"
         SERIAL_CHANGE = PREFIX + "serial_changed"
         ALL = EventBus.WILDCARD
 
-    def __init__(self, zones: Union[str, List[str]] = None):
+    def __init__(
+        self,
+        model: DeviceModels = None,
+        zones: Union[str, List[str]] = None,
+    ):
         self.event_bus = EventBus()
         self._zones = {}
         self._sw_version = None  # e.g p15305.016.3701
         self._serial = (
             None  # We use this to check the zones belong to the same hardware
         )
+
+        self._model = None
+        self.model = model
+
         self._model_zone_qty = 0
         self.settings = VsslSettings(self)
 
@@ -55,19 +65,25 @@ class Vssl:
         try:
             key, first_zone = zones_to_init.popitem()
 
-            # We will get the devices supported zone count in the future
-            future_model_zone_qty = self.event_bus.future(
-                self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID
-            )
+            # If we pass a model to the zone, we will get the zone count from that,
+            # otherwise we will try and work it out once we receive some info about
+            # the device
+            if self.model_zone_qty is None:
+                future_model_zone_qty = self.event_bus.future(
+                    self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID
+                )
 
             # Lets make sure the zone is initialised, otherwsie we fail all
             await first_zone.initialise()
 
             # Only continue after we now how many zones the device supports
             try:
-                model_zone_qty = await asyncio.wait_for(
-                    future_model_zone_qty, timeout=init_timeout
-                )
+                if self.model_zone_qty is None:
+                    model_zone_qty = await asyncio.wait_for(
+                        future_model_zone_qty, timeout=init_timeout
+                    )
+                else:
+                    model_zone_qty = self.model_zone_qty
 
                 if len(self._zones) > model_zone_qty:
                     raise VsslCtrlException("")
@@ -79,7 +95,7 @@ class Vssl:
                 raise VsslCtrlException(message)
 
             except VsslCtrlException:
-                message = f"Device only has {model_zone_qty} zones instead of the {len(self._zones)} given"
+                message = f"Device model only has {model_zone_qty} zones instead of {len(self._zones)}"
                 self._log_critical(message)
                 await first_zone.disconnect()
                 raise VsslCtrlException(message)
@@ -167,15 +183,35 @@ class Vssl:
         pass  # read-only
 
     #
+    # Model of the device
+    #
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, model: str):
+        if self.model != model:
+            if DeviceModels.is_valid(model):
+                self._set_property("model", DeviceModels(model))
+            else:
+                message = f"DeviceModels {model} doesnt exist"
+                self._log_error(message)
+                raise VsslCtrlException(message)
+
+    #
     # The amount of zones this VSSL has. This is not how many zones have been initialised
     # but how many zones the model has in total. We can have 1, 3 or 6 zones.
     #
     @property
     def model_zone_qty(self):
+        if not self._model_zone_qty and self.model is not None:
+            self._model_zone_qty = DeviceModels.zone_count(self.model.value)
+
         return self._model_zone_qty
 
     @model_zone_qty.setter
-    def model_zone_qty(self, model_zone_qty: str):
+    def model_zone_qty(self, model_zone_qty: int):
         pass  # read-only
 
     #
@@ -183,9 +219,15 @@ class Vssl:
     #
     def _infer_model_zone_qty(self, data: Dict[str, int]):
         if not self.model_zone_qty:
-            self._model_zone_qty = sum(
+            zone_count = sum(
                 1 for key in data if key.startswith("B") and key.endswith("Src")
             )
+
+            if number in (1, 3, 6):
+                self._model_zone_qty = zone_count
+            else:
+                self._model_zone_qty = 1
+
             self.event_bus.publish(
                 self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID, self.model_zone_qty
             )
@@ -264,15 +306,6 @@ class Vssl:
                 zone = self._zones[zone_id]
                 if zone.connected:
                     return zone
-
-    #
-    # Get the status of all zones
-    #
-    def get_zones_state(self):
-        states = {}
-        for zone in self._zones.values():
-            states[zone.id] = zone.state_settings
-        return states
 
     #
     # Get the device name

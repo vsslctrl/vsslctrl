@@ -13,14 +13,14 @@ from . import core
 from .api_alpha import APIAlpha
 from .api_bravo import APIBravo
 from .utils import RepeatTimer, clamp_volume
-from .data_structure import VsslIntEnum
+from .data_structure import DeviceModels, VsslIntEnum
 from .track import TrackMetadata
 from .io import AnalogOutput, InputRouter
 from .settings import ZoneSettings
 from .transport import ZoneTransport
 from .group import ZoneGroup
 from .exceptions import ZoneError
-from .decorators import logging_helpers
+from .decorators import only_on_models, logging_helpers
 
 
 @logging_helpers()
@@ -29,11 +29,11 @@ class Zone:
     # Zones IDs
     #
     class IDs(VsslIntEnum):
-        ZONE_1 = (1,)
-        ZONE_2 = (2,)
-        ZONE_3 = (3,)
-        ZONE_4 = (4,)
-        ZONE_5 = (5,)
+        ZONE_1 = 1
+        ZONE_2 = 2
+        ZONE_3 = 3
+        ZONE_4 = 4
+        ZONE_5 = 5
         ZONE_6 = 6
 
     #

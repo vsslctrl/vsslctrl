@@ -1,6 +1,52 @@
-from enum import IntEnum
+import re
+from enum import Enum, IntEnum
 from abc import ABC, abstractmethod
 from .decorators import sterilizable
+
+
+class VsslEnum(Enum):
+    @classmethod
+    def is_valid(cls, value):
+        try:
+            cls(value)
+            return True
+        except ValueError:
+            return False
+
+    @classmethod
+    def is_not_valid(cls, value):
+        return not cls.is_valid(value)
+
+    @classmethod
+    def get(cls, value, default=None):
+        try:
+            return cls(value)
+        except ValueError:
+            return default
+
+
+class VsslIntEnum(VsslEnum, IntEnum):
+    """IntEnum"""
+
+
+class DeviceModels(VsslEnum):
+    A1 = "a1"
+    A3 = "a3"
+    A6 = "a6"
+    A1X = "a1x"
+    A3X = "a3x"
+    A6X = "a6x"
+
+    @staticmethod
+    # Get the amount of zones the model has by pulling out the number in the model
+    def zone_count(model: str):
+        if DeviceModels.is_valid(model.lower()):
+            pattern = r"\d+"
+            match = re.search(pattern, model)
+            if match:
+                number = int(match.group())
+                return number
+        return 1
 
 
 """ JSON Structure
@@ -128,27 +174,6 @@ class TrackMetadataExtKeys:
     SOURCE = "Current Source"
     GENRE = "Genre"
     URL = "PlayUrl"
-
-
-class VsslIntEnum(IntEnum):
-    @classmethod
-    def is_valid(cls, value):
-        try:
-            cls(value)
-            return True
-        except ValueError:
-            return False
-
-    @classmethod
-    def is_not_valid(cls, value):
-        return not cls.is_valid(value)
-
-    @classmethod
-    def get(cls, value, default=None):
-        try:
-            return cls(value)
-        except ValueError:
-            return default
 
 
 @sterilizable
