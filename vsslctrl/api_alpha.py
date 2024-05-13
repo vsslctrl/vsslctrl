@@ -199,12 +199,12 @@ class APIAlpha(APIBase):
     # EQ
     #
     def request_action_0D(self, freq: "EQSettings.Freqs", value: int = 0):
-        clampped = max(90, min(value, 110))
+        clamped = max(90, min(value, 110))
         self._log_debug(
-            f"Requesting to set EQ: {freq.name[1:]} ({freq.value}) to {clampped}"
+            f"Requesting to set EQ: {freq.name[1:]} ({freq.value}) to {clamped}"
         )
         command = self._add_zone_id_to_request(
-            bytearray([16, 13, 3, 0, freq.value, clampped])
+            bytearray([16, 13, 3, 0, freq.value, clamped])
         )
         self.send(command)
 
@@ -882,11 +882,9 @@ class APIAlpha(APIBase):
     def response_action_0E(self, hexl: list, response: bytes):
         if hex_to_int(hexl[2]) == 3:
             freq = hex_to_int(hexl[4])
-            if EQSettings.Freqs.is_valid(freq):
-                freq = EQSettings.Freqs(freq)
-                value = hex_to_int(hexl[5])
-                self._log_debug(f"Received EQ requency:{freq.name} value: {value}")
-                self.zone.settings.eq._set_eq_freq(freq, value)
+            value = hex_to_int(hexl[5])
+            self._log_debug(f"Received EQ requency:{freq} value: {value}")
+            self.zone.settings.eq._set_eq_freq(freq, value)
 
     #
     # 10 [16]

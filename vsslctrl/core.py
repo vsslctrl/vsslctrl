@@ -34,7 +34,7 @@ class Vssl:
         zones: Union[str, List[str]] = None,
     ):
         self.event_bus = EventBus()
-        self._zones = {}
+        self.zones = {}
         self._sw_version = None
         self._serial = None
         self._model = None
@@ -54,10 +54,10 @@ class Vssl:
     # and fail if any of the zones are in error
     #
     async def initialise(self, init_timeout: int = 10):
-        if len(self._zones) < 1:
+        if len(self.zones) < 1:
             raise VsslCtrlException("No zones were added to VSSL before calling run()")
 
-        zones_to_init = self._zones.copy()
+        zones_to_init = self.zones.copy()
 
         try:
             key, first_zone = zones_to_init.popitem()
@@ -82,7 +82,7 @@ class Vssl:
                 else:
                     model_zone_qty = self.model_zone_qty
 
-                if len(self._zones) > model_zone_qty:
+                if len(self.zones) > model_zone_qty:
                     raise VsslCtrlException("")
 
             except asyncio.TimeoutError:
@@ -92,7 +92,7 @@ class Vssl:
                 raise VsslCtrlException(message)
 
             except VsslCtrlException:
-                message = f"Device model only has {model_zone_qty} zones instead of {len(self._zones)}"
+                message = f"Device model only has {model_zone_qty} zones instead of {len(self.zones)}"
                 self._log_critical(message)
                 await first_zone.disconnect()
                 raise VsslCtrlException(message)
@@ -149,13 +149,6 @@ class Vssl:
                 getattr(self, property_name),
             )
             self._log_debug(f"Set {property_name}: {getattr(self, property_name)}")
-
-    #
-    # Zones
-    #
-    @property
-    def zones(self):
-        return self._zones
 
     #
     # Software Version
@@ -233,7 +226,7 @@ class Vssl:
     # Disconnect / Shutdown
     #
     async def disconnect(self):
-        for zone in self._zones.values():
+        for zone in self.zones.values():
             await zone.disconnect()
 
     #
@@ -255,7 +248,7 @@ class Vssl:
             raise ZoneError(error)
             return None
 
-        if zone_index in self._zones:
+        if zone_index in self.zones:
             error = f"Zone {zone_index} already exists"
             self._log_error(error)
             raise ZoneError(error)
@@ -263,22 +256,22 @@ class Vssl:
 
         # Check if any object in the dictionary has the specified value for the
         # property
-        if any(zone.host == host for zone in self._zones.values()):
+        if any(zone.host == host for zone in self.zones.values()):
             error = f"Zone with IP {host} already exists"
             self._log_error(error)
             raise ZoneError(error)
             return None
 
-        self._zones[zone_index] = Zone(self, zone_index, host)
+        self.zones[zone_index] = Zone(self, zone_index, host)
 
-        return self._zones[zone_index]
+        return self.zones[zone_index]
 
     #
     # Get a Zone by ID
     #
     def get_zone(self, zone_index: "Zone.IDs"):
-        if zone_index in self._zones:
-            return self._zones[zone_index]
+        if zone_index in self.zones:
+            return self.zones[zone_index]
         else:
             return None
 
@@ -287,9 +280,9 @@ class Vssl:
     #
     def get_zones_by_group_index(self, group_index: int):
         zones = {}
-        if self._zones:
-            for zone_id in self._zones:
-                zone = self._zones[zone_id]
+        if self.zones:
+            for zone_id in self.zones:
+                zone = self.zones[zone_id]
                 if zone.group.index == group_index:
                     zones[zone_id] = zone
         return zones
@@ -298,9 +291,9 @@ class Vssl:
     # Get a Zone that is connected to its APIs
     #
     def get_connected_zone(self):
-        if self._zones:
-            for zone_id in self._zones:
-                zone = self._zones[zone_id]
+        if self.zones:
+            for zone_id in self.zones:
+                zone = self.zones[zone_id]
                 if zone.connected:
                     return zone
 
@@ -310,7 +303,7 @@ class Vssl:
     def _request_name(self):
         zone = self.get_connected_zone()
         if zone:
-            zone._api_alpha.request_action_19()
+            zone.api_alpha.request_action_19()
 
     #
     # Reboot Device (All Zones)
@@ -318,7 +311,7 @@ class Vssl:
     def reboot(self):
         zone = self.get_connected_zone()
         if zone:
-            zone._api_alpha.request_action_33_device()
+            zone.api_alpha.request_action_33_device()
 
     #
     # Zones Groups. Build a dict of zone according to group membership

@@ -35,7 +35,7 @@ class ZoneGroup(ZoneDataClass):
     DEFAULTS = {"index": 0, "source": None, "is_master": False}
 
     def __init__(self, zone: "zone.Zone"):
-        self._zone = zone
+        self.zone = zone
 
         """ On a A.3x the group index are, Im not sure if this is consistant with A1.x or A6.x:
 
@@ -59,45 +59,45 @@ class ZoneGroup(ZoneDataClass):
     # Group Add Zone
     #
     def add_member(self, zone_id: "zone.Zone.IDs"):
-        if self._zone.id == zone_id:
-            self._zone._log_error(f"Zone {zone_id} cant be parent and member")
+        if self.zone.id == zone_id:
+            self.zone._log_error(f"Zone {zone_id} cant be parent and member")
             return False
 
         if zone.Zone.IDs.is_not_valid(zone_id):
-            self._zone._log_error(f"Zone {zone_id} doesnt exist")
+            self.zone._log_error(f"Zone {zone_id} doesnt exist")
             return False
 
         if self.is_member:
-            self._zone._log_error(
-                f"Zone {self._zone.id} already a member of Zone {self.source} group"
+            self.zone._log_error(
+                f"Zone {self.zone.id} already a member of Zone {self.source} group"
             )
             return False
 
-        if self._zone.transport.is_stopped:
-            self._zone._log_error(
-                f"Zone {self._zone.id} cant be a group master when not playing a source"
+        if self.zone.transport.is_stopped:
+            self.zone._log_error(
+                f"Zone {self.zone.id} cant be a group master when not playing a source"
             )
             return False
 
-        self._zone._api_alpha.request_action_4B_add(zone_id)
+        self.zone.api_alpha.request_action_4B_add(zone_id)
 
     #
     # Group Remove Child
     #
     def remove_member(self, zone_id: "zone.Zone.IDs"):
-        self._zone._api_alpha.request_action_4B_remove(zone_id)
+        self.zone.api_alpha.request_action_4B_remove(zone_id)
 
     #
     # Group Dissolve
     #
     def dissolve(self):
-        self._zone._api_alpha.request_action_4B_dissolve()
+        self.zone.api_alpha.request_action_4B_dissolve()
 
     #
     # Leave any groups if is a member
     #
     def leave(self) -> None:
-        self._zone._api_alpha.request_action_4B_remove(self._zone.id)
+        self.zone.api_alpha.request_action_4B_remove(self.zone.id)
 
     @property
     def index_id(self):
@@ -171,7 +171,7 @@ class ZoneGroup(ZoneDataClass):
         if self.is_master:
             return self
         if self.source is not None:
-            return self._zone.vssl.get_zone(self.source)
+            return self.zone.vssl.get_zone(self.source)
 
     #
     # Get group member zones
@@ -182,6 +182,6 @@ class ZoneGroup(ZoneDataClass):
             return []
         return [
             zone
-            for zone in self._zone.vssl.zones.values()
+            for zone in self.zone.vssl.zones.values()
             if zone.group.index == self.index and zone.group.is_member
         ]

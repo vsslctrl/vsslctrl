@@ -20,7 +20,7 @@ from .settings import ZoneSettings
 from .transport import ZoneTransport
 from .group import ZoneGroup
 from .exceptions import ZoneError
-from .decorators import only_on_models, logging_helpers
+from .decorators import logging_helpers
 
 
 @logging_helpers()
@@ -71,8 +71,8 @@ class Zone:
         self.settings = ZoneSettings(self)
 
         # Communication interfaces
-        self._api_alpha = APIAlpha(self.vssl, self)
-        self._api_bravo = APIBravo(self.vssl, self)
+        self.api_alpha = APIAlpha(self.vssl, self)
+        self.api_bravo = APIBravo(self.vssl, self)
 
         # Requests to poll
         self._poller = ZonePoller(
@@ -110,8 +110,8 @@ class Zone:
 
         # Connect the APIs
         # Wait until the zone is connected then continue
-        await self._api_alpha.connect()
-        await self._api_bravo.connect()
+        await self.api_alpha.connect()
+        await self.api_bravo.connect()
 
         # Start polling zone
         self._poller.start()
@@ -141,57 +141,47 @@ class Zone:
 
         return self
 
-    #
-    # Initialised Event
-    #
     @property
     def initialised(self):
+        """Initialised Event"""
         return self.initialisation.is_set()
 
-    #
-    # Is the zone connected to both APIs?
-    #
     @property
     def connected(self):
-        return self._api_alpha.connected and self._api_bravo.connected
+        """Check that the zone is connected to both APIs"""
+        return self.api_alpha.connected and self.api_bravo.connected
 
-    #
-    # Disconnect / Shutdown
-    #
     async def disconnect(self):
+        """Disconnect / Shutdown"""
         self._poller.cancel()
 
-        await self._api_alpha.disconnect()
-        await self._api_bravo.disconnect()
+        await self.api_alpha.disconnect()
+        await self.api_bravo.disconnect()
 
-    #
-    # Event Publish Wrapper
-    #
     def _event_publish(self, event_type, data=None):
+        """Event Publish Wrapper"""
         self.vssl.event_bus.publish(event_type, self.id, data)
 
-    #
-    # Request track info on transport state change unless stopped
-    #
-    #
-    # VSSL doenst clear some vars on stopping of the stream, so we will do it
-    #
-    # Doing this will fire the change events on the bus. Instead of conditionally
-    # using the getter functions since we want the changes to be propogated
-    #
-    # VSSL has a happit of caching the last songs metadata
-    #
     async def _event_transport_state_change(self, *args):
+        """Request track info on transport state change unless stopped
+
+
+        VSSL doenst clear some vars on stopping of the stream, so we will do it
+
+        Doing this will fire the change events on the bus. Instead of conditionally
+        using the getter functions since we want the changes to be propogated
+
+        VSSL has a happit of caching the last songs metadata
+
+        """
         if not self.transport.is_stopped:
             self._request_track()
         else:
             self.track.set_defaults()
             self.transport.set_defaults()
 
-    #
-    # Propgate the track metadata from a group master to its members
-    #
     async def _event_group_source_change(self, source: int, *args):
+        """Propgate the track metadata from a group master to its members"""
         if source == None:
             self._log_debug(f"unsubscribe to group master {source} track updates")
             self.vssl.event_bus.unsubscribe(
@@ -209,11 +199,8 @@ class Zone:
             # Populate group member from master
             self.track._pull_from_zone(source)
 
-    #
-    # TODO, use the ZoneDataClass here too? Needs some reconfig
-    #
-
     def _set_property(self, property_name: str, new_value):
+        """TODO, use the ZoneDataClass here too? Needs some reconfig"""
         log = False
         direct_setter = f"_set_{property_name}"
 
@@ -273,16 +260,15 @@ class Zone:
             # We wait for this in the initialise function
             self._event_publish(self.Events.SERIAL_RECEIVED, serial)
 
-    #
-    # MAC Address
-    #
-    # Note: This command wont work if there is a VSSL agent running on the network
-    #
-    # Known issue: zone 1 sometimes stops repsonding to the _request_mac_addr request.
-    # rebooting all zones seems to fix it.
-    #
     @property
     def mac_addr(self):
+        """MAC Address
+
+        Note: This command wont work if there is another VSSL agent running on the network
+
+        Known issue: zone 1 sometimes stops repsonding to the _request_mac_addr request.
+        rebooting all zones seems to fix it.
+        """
         return self._mac_addr
 
     @mac_addr.setter
@@ -306,21 +292,27 @@ class Zone:
     # Transport Helper Commands
     #
     def play(self):
+        """Play"""
         self.transport.play()
 
     def stop(self):
+        """Stop"""
         self.transport.stop()
 
     def pause(self):
+        """Pause"""
         self.transport.pause()
 
     def next(self):
+        """Next Track"""
         self.transport.next()
 
     def prev(self):
+        """Previous track"""
         self.transport.prev()
 
     def back(self):
+        """Back"""
         self.transport.back()
 
     #
@@ -341,7 +333,7 @@ class Zone:
 
     @volume.setter
     def volume(self, vol: int):
-        self._api_alpha.request_action_05(vol)
+        self.api_alpha.request_action_05(vol)
 
     def _set_volume(self, vol: int):
         vol = clamp_volume(vol)
@@ -349,22 +341,21 @@ class Zone:
             self._volume = vol
             return True
 
-    #
-    # Volume Commands
-    #
     def volume_raise(self, step: int = 1):
+        """Volume Up"""
         step = max(min(step, 100), 1)
         if step > 1:
             self.volume = self.volume + step
         else:
-            self._api_alpha.request_action_05_raise()
+            self.api_alpha.request_action_05_raise()
 
     def volume_lower(self, step: int = 1):
+        """Volume Down"""
         step = max(min(step, 100), 1)
         if step > 1:
             self.volume = self.volume - step
         else:
-            self._api_alpha.request_action_05_lower()
+            self.api_alpha.request_action_05_lower()
 
     #
     # Mute
@@ -375,7 +366,7 @@ class Zone:
 
     @mute.setter
     def mute(self, muted: Union[bool, int]):
-        self._api_alpha.request_action_11(not not muted)
+        self.api_alpha.request_action_11(not not muted)
 
     def mute_toggle(self):
         self.mute = False if self.mute else True
@@ -384,62 +375,62 @@ class Zone:
     # Play a URL
     #
     def play_url(self, url: str, all_zones: bool = False):
-        self._api_alpha.request_action_55(url, all_zones)
+        self.api_alpha.request_action_55(url, all_zones)
         return self
 
     #
     # Reboot this zone
     #
     def reboot(self):
-        self._api_alpha.request_action_33()
+        self.api_alpha.request_action_33()
         return self
 
     #
     # Requests
     #
     def _request_name(self):
-        self._api_bravo.request_action_5A()
+        self.api_bravo.request_action_5A()
         return self
 
     def _request_mac_addr(self):
-        self._api_bravo.request_action_5B()
+        self.api_bravo.request_action_5B()
         return self
 
     def _request_status_bus(self):
-        self._api_alpha.request_action_00_00()
+        self.api_alpha.request_action_00_00()
         return self
 
     def _request_status(self):
-        self._api_alpha.request_action_00_08()
+        self.api_alpha.request_action_00_08()
         return self
 
     def _request_eq_status(self):
-        self._api_alpha.request_action_00_09()
+        self.api_alpha.request_action_00_09()
         return self
 
     def _request_output_status(self):
-        self._api_alpha.request_action_00_0A()
+        self.api_alpha.request_action_00_0A()
         return self
 
     def _request_bt_status(self):
-        self._api_alpha.request_action_00_0B()
+        self.api_alpha.request_action_00_0B()
         return self
 
     def _request_track(self):
-        self._api_bravo.request_action_2A()
+        self.api_bravo.request_action_2A()
         return self
 
 
 class ZonePoller:
     def __init__(self, zone, requests=[], interval=30):
-        self._zone = zone
+        self.zone = zone
         self._requests = requests
         self._interval = interval
         self._timer = RepeatTimer(self._interval, self._poll_state)
 
     def _poll_state(self):
-        if self._zone.connected:
-            self._zone._log_debug("Polling state")
+        if self.zone.connected:
+            self.zone._log_debug("Polling state")
             for request in self._requests:
                 request()
 

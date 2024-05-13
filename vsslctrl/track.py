@@ -75,7 +75,7 @@ class TrackMetadata(ZoneDataClass):
     }
 
     def __init__(self, zone: "zone.Zone"):
-        self._zone = zone
+        self.zone = zone
 
         self._title: str = None
         self._album: str = None
@@ -111,17 +111,17 @@ class TrackMetadata(ZoneDataClass):
     #
     def _update_property(self, key: str, new_value, ignore_transport_state=False):
         # Default if stopped
-        if self._zone.transport.is_stopped and not ignore_transport_state:
+        if self.zone.transport.is_stopped and not ignore_transport_state:
             new_value = self.DEFAULTS[key]
 
         if getattr(self, key) != new_value:
             setattr(self, f"_{key}", new_value)  # set private var
             new_set_value = getattr(self, key)
 
-            self._zone._event_publish(
+            self.zone._event_publish(
                 getattr(self.Events, f"{key.upper()}_CHANGE"), new_set_value
             )
-            self._zone._event_publish(self.Events.CHANGE, (key, new_set_value))
+            self.zone._event_publish(self.Events.CHANGE, (key, new_set_value))
 
     #
     # Update the track properties from a group master when part of a group.
@@ -142,7 +142,7 @@ class TrackMetadata(ZoneDataClass):
         VSSL has a happit of caching old track meta when part of a group
 
         """
-        if not self._zone.group.is_member:
+        if not self.zone.group.is_member:
             for track_data_key, metadata_key in self.KEY_MAP.items():
                 if track_data_key in track_data:
                     setattr(self, metadata_key, track_data[track_data_key])
@@ -165,10 +165,10 @@ class TrackMetadata(ZoneDataClass):
     """
 
     def _pull_from_zone(self, zone: int) -> None:
-        master = self._zone.vssl.get_zone(zone)
+        master = self.zone.vssl.get_zone(zone)
 
         if not master:
-            self._zone._log_error(
+            self.zone._log_error(
                 f"Zone {zone} was not avaiable on VSSL, maybe we are not managing it or it has not be initialised yet"
             )
             return
@@ -287,7 +287,7 @@ class TrackMetadata(ZoneDataClass):
         if self.Sources.is_valid(src):
             self._update_property(self.Keys.SOURCE, self.Sources(src))
         else:
-            self._zone._log_error(f"TrackMetadata.Sources {src} doesnt exist")
+            self.zone._log_error(f"TrackMetadata.Sources {src} doesnt exist")
 
     #
     # Track URL

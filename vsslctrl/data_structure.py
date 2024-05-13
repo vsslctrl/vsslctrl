@@ -235,8 +235,8 @@ class ZoneDataClass(ABC):
                     f"{self.__class__.__name__} set {property_name}: {updated_value}"
                 )
 
-            self._zone._log_debug(message)
+            self.zone._log_debug(message)
 
-            self._zone._event_publish(
+            self.zone._event_publish(
                 getattr(self.Events, property_name.upper() + "_CHANGE"), updated_value
             )
