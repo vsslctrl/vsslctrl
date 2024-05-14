@@ -42,7 +42,26 @@ async def vssl(zone):
     return zone.vssl
 
 
+def check_keys_have_events(keys_obj, events_obj):
+    # check keys have events
+    for attr_name in dir(keys_obj):
+        if not attr_name.startswith("__") and not attr_name.endswith("__"):
+            assert hasattr(events_obj, f"{attr_name}_CHANGE")
+
+
+class TestVsslSettings:
+    @pytest.mark.asyncio(scope="session")
+    async def test_keys_exist(self, zone, eb):
+        # check keys have events
+        check_keys_have_events(VsslSettings.Keys, VsslSettings.Events)
+
+
 class TestVolumeSettings:
+    @pytest.mark.asyncio(scope="session")
+    async def test_keys_exist(self, zone, eb):
+        # check keys have events
+        check_keys_have_events(VolumeSettings.Keys, VolumeSettings.Events)
+
     @pytest.mark.asyncio(scope="session")
     async def test_clamp(self, zone, eb):
         assert clamp_volume(110) == 100
@@ -51,6 +70,15 @@ class TestVolumeSettings:
 
 
 class TestEQSettings:
+    @pytest.mark.asyncio(scope="session")
+    async def test_keys_exist(self, zone, eb):
+        # Check freq have keys
+        for key, freq in enumerate(EQSettings.Freqs):
+            assert hasattr(EQSettings.Keys, freq.name)
+
+        # check keys have events
+        check_keys_have_events(EQSettings.Keys, EQSettings.Events)
+
     @pytest.mark.asyncio(scope="session")
     async def test_clamp(self, zone, eb):
         eq = zone.settings.eq

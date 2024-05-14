@@ -213,7 +213,7 @@ class Vssl:
                 1 for key in data if key.startswith("B") and key.endswith("Src")
             )
 
-            if number in (1, 3, 6):
+            if zone_count in (1, 3, 6):
                 self._model_zone_qty = zone_count
             else:
                 self._model_zone_qty = 1

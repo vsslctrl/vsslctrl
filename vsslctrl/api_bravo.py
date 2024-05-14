@@ -353,7 +353,7 @@ class APIBravo(APIBase):
     # Unknown | Speaker active / inactive
     #
     def response_action_46(self, hexl: list, response: bytes):
-        self._log_debug(f"Received Unknown46: {self._extract_response_data(response)}")
+        self._log_debug(f"Received Unknown 46: {self._extract_response_data(response)}")
 
         """
             This looks to be a stream update, Speaker active and stream input. 
@@ -371,11 +371,12 @@ class APIBravo(APIBase):
     # Unknown | Looks to be like a comfirmation feedback
     #
     def response_action_4E(self, hexl: list, response: bytes):
-        self._log_debug(f"Received Unknown4E: {self._extract_response_data(response)}")
+        self._log_debug(f"Received Unknown 4E: {self._extract_response_data(response)}")
 
         """
 
             self._log_debug(f"Looks to be the play & volume feedback, possibly end of stream / stop feedback?")
+            Feecback when rebooting zone
 
         """
 
@@ -384,7 +385,7 @@ class APIBravo(APIBase):
     # Unknown | Status Change?!
     #
     def response_action_4F(self, hexl: list, response: bytes):
-        self._log_debug(f"Received Unknown4F {self._extract_response_data(response)}")
+        self._log_debug(f"Received Unknown 4F {self._extract_response_data(response)}")
 
     #
     # 5B [91]
