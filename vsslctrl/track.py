@@ -1,4 +1,5 @@
 import logging
+import base64
 from . import zone
 from typing import Dict, Union
 from urllib.parse import urlparse, urlunparse
@@ -6,6 +7,8 @@ from .data_structure import VsslIntEnum, ZoneDataClass, TrackMetadataExtKeys
 
 
 class TrackMetadata(ZoneDataClass):
+    AIRPLAY_COVER_ART = "coverart.jpg"
+
     class Keys:
         TITLE = "title"
         ALBUM = "album"
@@ -277,14 +280,16 @@ class TrackMetadata(ZoneDataClass):
         self._update_property(self.Keys.COVER_ART_URL, self.add_host_if_not_url(value))
 
     def add_host_if_not_url(self, url):
-        """Using airplay, the cover_art will return a relatice url of "coverart.jpg", so we will
-        need to add the host
+        """Using airplay, the cover_art will return a relative url of "coverart.jpg", so we will
+        need to add the host.
+
         """
         if not url:
             return None
         # Parse the URL
         parsed_url = urlparse(url)
         default_host = f"http://{self.zone.host}"
+        query = ""
 
         # Check if the scheme and netloc are missing
         if not parsed_url.scheme or not parsed_url.netloc:
@@ -292,7 +297,16 @@ class TrackMetadata(ZoneDataClass):
             # Join the default host with the original URL path
             if not default_host.endswith("/") and not url.startswith("/"):
                 default_host += "/"
-            return default_host + url
+
+            # Lets add a query string to the coverart.jpg URL so the latest coverart
+            # will always be downloaded if the album changes
+            if url == self.AIRPLAY_COVER_ART and self.album:
+                encoded_album = (
+                    base64.urlsafe_b64encode(self.album.encode()).decode().rstrip("=")
+                )
+                query = f"?album={encoded_album}"
+
+            return default_host + url + query
 
         # Return the original URL if it is already a valid URL
         return url
