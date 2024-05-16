@@ -1,6 +1,7 @@
 import logging
 from . import zone
 from typing import Dict, Union
+from urllib.parse import urlparse, urlunparse
 from .data_structure import VsslIntEnum, ZoneDataClass, TrackMetadataExtKeys
 
 
@@ -273,7 +274,26 @@ class TrackMetadata(ZoneDataClass):
 
     @cover_art_url.setter
     def cover_art_url(self, value: str) -> None:
-        self._update_property(self.Keys.COVER_ART_URL, value)
+        self._update_property(self.Keys.COVER_ART_URL, self.add_host_if_not_url(value))
+
+    def add_host_if_not_url(self, url):
+        """Using airplay, the cover_art will return a relatice url of "coverart.jpg", so we will
+        need to add the host
+        """
+        # Parse the URL
+        parsed_url = urlparse(url)
+        default_host = f"http://{self.zone.host}"
+
+        # Check if the scheme and netloc are missing
+        if not parsed_url.scheme or not parsed_url.netloc:
+            # Add the default host if it's not a URL
+            # Join the default host with the original URL path
+            if not default_host.endswith("/") and not url.startswith("/"):
+                default_host += "/"
+            return default_host + url
+
+        # Return the original URL if it is already a valid URL
+        return url
 
     #
     # Track Source

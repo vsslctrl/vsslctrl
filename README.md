@@ -195,7 +195,7 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 
 ## `Zone.track`
 
-* Not all sources have complete metadata - missing value will be set to defaults
+* Not all sources have complete metadata - missing value will be set to defaults.
 * VSSLs default cover art URL link `[zone.host]/img/default_cover_art.png` is broken on the A.3x
 
 | Property      	| Description | Type		| Values 		| 
@@ -363,4 +363,5 @@ The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS a
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
 * `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source
 * Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects
+* Airplay track position infomation is sometimes not sent. If you use Spotify connect then back to Airplay, then postion infomation is updated
 
