@@ -252,7 +252,7 @@ class VolumeSettings(ZoneDataClass):
     # Defaults
     #
     DEFAULTS = {
-        Keys.DEFAULT_ON: 75,
+        Keys.DEFAULT_ON: 0,
         Keys.MAX_LEFT: 75,
         Keys.MAX_RIGHT: 75,
     }

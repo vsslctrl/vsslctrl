@@ -543,16 +543,16 @@ class APIAlpha(APIBase):
             # Call a sub action
             sub_action = f"response_action_00_{hexl[3].upper()}"
 
+            if hasattr(self, sub_action):
+                method = getattr(self, sub_action)
+                if callable(method):
+                    self._log_debug(f"Calling status sub action: {sub_action}")
+                    return method(metadata)
+
+            self._log_debug(f"Unknown status sub action {sub_action}")
+
         except Exception as error:
             self._log_error(f"Couldnt parse JSON: {error} | {hexl}")
-
-        if hasattr(self, sub_action):
-            method = getattr(self, sub_action)
-            if callable(method):
-                self._log_debug(f"Calling status sub action: {sub_action}")
-                return method(metadata)
-
-        self._log_debug(f"Unknown status sub action {sub_action}")
 
     #
     # 00_00

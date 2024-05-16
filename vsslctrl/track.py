@@ -280,6 +280,8 @@ class TrackMetadata(ZoneDataClass):
         """Using airplay, the cover_art will return a relatice url of "coverart.jpg", so we will
         need to add the host
         """
+        if not url:
+            return None
         # Parse the URL
         parsed_url = urlparse(url)
         default_host = f"http://{self.zone.host}"

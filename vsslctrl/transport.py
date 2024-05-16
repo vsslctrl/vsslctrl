@@ -35,8 +35,8 @@ class ZoneTransport(ZoneDataClass):
         STATE_CHANGE_PLAY = PREFIX + "state_change.play"
         STATE_CHANGE_PAUSE = PREFIX + "state_change.pause"
 
-        REPEAT_CHANGE = PREFIX + "is_repeat_change"
-        SHUFFLE_CHANGE = PREFIX + "is_shuffle_change"
+        IS_REPEAT_CHANGE = PREFIX + "is_repeat_change"
+        IS_SHUFFLE_CHANGE = PREFIX + "is_shuffle_change"
         HAS_NEXT_CHANGE = PREFIX + "has_next_change"
         HAS_PREV_CHANGE = PREFIX + "has_prev_change"
 
@@ -219,7 +219,7 @@ class ZoneTransport(ZoneDataClass):
         pass  # read-only
 
     def _set_is_shuffle(self, val: int):
-        return self._set_bool_property("is_shuffle", val, self.Events.SHUFFLE_CHANGE)
+        return self._set_bool_property("is_shuffle", val, self.Events.IS_SHUFFLE_CHANGE)
 
     #
     # Track Repeat
