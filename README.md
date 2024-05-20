@@ -3,11 +3,11 @@
 
  **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
- Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and not soley rely on mDNS for discovery. 
+ Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and not soley rely on mDNS for control (as per the offical VSSL app) 
 
  I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping.
 
- Tested on VSSL **A.3x** software version **p15305.016.3701**.
+ Only tested on VSSL **A.3x** software version **p15305.016.3701**.
 
 ## TODOs
 
@@ -15,8 +15,6 @@
 * Home Assistant integration (in progress)
 * Function scoping to supported feature / models
 * Better test coverage
-* Web app
-* EQ Presets, saving, recalling
 
 Basic Usage
 -----------

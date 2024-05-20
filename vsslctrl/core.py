@@ -62,9 +62,8 @@ class Vssl:
         try:
             key, first_zone = zones_to_init.popitem()
 
-            # If we pass a model to the zone, we will get the zone count from that,
-            # otherwise we will try and work it out once we receive some info about
-            # the device
+            # If we pass a model to the zone, the zone count will be worked out from that,
+            # otherwise we will try and work it out once we receive some info about he device
             if self.model_zone_qty is None:
                 future_model_zone_qty = self.event_bus.future(
                     self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID
@@ -76,13 +75,9 @@ class Vssl:
             # Only continue after we now how many zones the device supports
             try:
                 if self.model_zone_qty is None:
-                    model_zone_qty = await asyncio.wait_for(
-                        future_model_zone_qty, timeout=init_timeout
-                    )
-                else:
-                    model_zone_qty = self.model_zone_qty
+                    await asyncio.wait_for(future_model_zone_qty, timeout=init_timeout)
 
-                if len(self.zones) > model_zone_qty:
+                if len(self.zones) > self.model_zone_qty:
                     raise VsslCtrlException("")
 
             except asyncio.TimeoutError:
@@ -92,7 +87,7 @@ class Vssl:
                 raise VsslCtrlException(message)
 
             except VsslCtrlException:
-                message = f"Device model only has {model_zone_qty} zones instead of {len(self.zones)}"
+                message = f"Device model only has {self.model_zone_qty} zones instead of {len(self.zones)}"
                 self._log_critical(message)
                 await first_zone.disconnect()
                 raise VsslCtrlException(message)
@@ -134,11 +129,9 @@ class Vssl:
     #
     # Update a property and fire the event
     #
-
     #
     # TODO, use the ZoneDataClass here too? Needs some reconfig
     #
-
     def _set_property(self, property_name: str, new_value):
         current_value = getattr(self, property_name)
         if current_value != new_value:
