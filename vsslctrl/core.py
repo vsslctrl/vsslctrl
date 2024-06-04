@@ -64,7 +64,7 @@ class Vssl:
 
             # If we pass a model to the zone, the zone count will be worked out from that,
             # otherwise we will try and work it out once we receive some info about he device
-            if self.model_zone_qty is None:
+            if not self.model_zone_qty:
                 future_model_zone_qty = self.event_bus.future(
                     self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID
                 )
@@ -74,7 +74,7 @@ class Vssl:
 
             # Only continue after we now how many zones the device supports
             try:
-                if self.model_zone_qty is None:
+                if not self.model_zone_qty:
                     await asyncio.wait_for(future_model_zone_qty, timeout=init_timeout)
 
                 if len(self.zones) > self.model_zone_qty:
