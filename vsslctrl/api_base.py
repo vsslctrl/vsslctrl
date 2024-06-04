@@ -1,39 +1,77 @@
 from abc import ABC, abstractmethod
 import asyncio
+from random import randrange
 from asyncio.exceptions import IncompleteReadError
 import logging
 from typing import Callable, final
 
-from .utils import add_logging_helpers, cancel_task_if_exists
+from .utils import cancel_task
+from .exceptions import ZoneConnectionError
+from .decorators import logging_helpers
 
+
+class APITaskGroup:
+    def __init__(self):
+        self._tasks = []
+
+    @property
+    def tasks(self):
+        return self._tasks
+
+    def add(self, task_cr):
+        task = asyncio.create_task(task_cr)
+        self._tasks.append(task)
+
+    def extend(self, tasks: list):
+        for task in tasks:
+            self.add(task)
+
+    async def cancel(self):
+        # Cancel all tasks in the group
+        for task in self._tasks:
+            cancel_task(task)
+        self._tasks = []
+
+    async def wait():
+        return await asyncio.gather(*self._tasks)
+
+
+@logging_helpers("Base API:")
 class APIBase(ABC):
-    
+    TIMEOUT = 5  # seconds
+    KEEP_ALIVE = 10  # seconds
+    BACKOFF_MIN = 15  # seconds
+    BACKOFF_MAX = 300  # 5 minutes
+
+    FRIST_BYTE = 1
+
     def __init__(self, host, port):
-
-        add_logging_helpers(self, 'Base API:')
-
         self.host = host
         self.port = port
-        self._timeout = 5
-        self.connection_event = None
-        self.keep_alive_received = False
-        
-        self._keep_alive = 10
+
         self._reader = None
         self._writer = None
-        self._writer_queue: asyncio.Queue = None
-        self._disconnecting = False
-        
-        self._task_receive_first_byte: asyncio.Task = None
-        self._task_send_bytes: asyncio.Task = None
-        self._task_keepalive: asyncio.Task = None
+        self._writer_queue: asyncio.Queue = asyncio.Queue()
 
+        self._disconnecting = False
+        self._connecting = False
+        self.connection_event = asyncio.Event()
+
+        self._keep_alive_received = False
+        self._keep_connected_task = None
+        self._reconnection_attempts = 0
+
+        self._task_group = APITaskGroup()
 
     @property
     def connected(self):
-        if self.connection_event == None:
+        if self.connection_event is None:
             return False
         return self.connection_event.is_set()
+
+    @property
+    def _reconnecting(self):
+        return self._disconnecting or self._connecting
 
     #
     # Send a request
@@ -45,104 +83,151 @@ class APIBase(ABC):
     #
     # Connect
     #
-    def connect(self):
-        self.connection_event = asyncio.Event() #Need event loop
-        return asyncio.create_task(self._establish_connection())
+    @final
+    async def connect(self):
+        if self.connected:
+            return self.connected
 
-    #
-    # Disconnect
-    #
-    async def disconnect(self):
-        return await self._disconnect()
+        self._connecting = True
+
+        try:
+            self._log_debug(f"Attemping connection to {self.host}:{self.port}")
+            self._reader, self._writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, self.port), self.TIMEOUT
+            )
+
+            # Connected
+            self.connection_event.set()
+
+            # cancel any reconnecting loops
+            self._cancel_keep_connected()
+
+            # Groups tasks for easy handling
+            self._task_group.extend(
+                [
+                    self._receive_first_byte(),
+                    self._send_bytes(),
+                    self._send_keepalive_base(),
+                ]
+            )
+
+            self._log_info(f"Connected to {self.host}:{self.port}")
+
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            message = f"Connection to {self.host}:{self.port} timed out"
+            self._log_error(message)
+            self.connection_event.clear()
+            raise ZoneConnectionError(message)
+        except ConnectionRefusedError:
+            message = f"Connection to {self.host}:{self.port} refused"
+            self._log_error(message)
+            self.connection_event.clear()
+            raise ZoneConnectionError(message)
+        except Exception as e:
+            self._log_error(
+                f"Connection to {self.host}:{self.port} failed with exception {e}"
+            )
+            self.connection_event.clear()
+            raise
+        finally:
+            self._connecting = False
+
+        return self.connected
+
     #
     # Disconnect
     #
     @final
-    async def _disconnect(self):
-
+    async def disconnect(self):
         self._disconnecting = True
-        #Break Loops
-        self.connection_event.clear()
-        
-        await cancel_task_if_exists(self._task_receive_first_byte)
-        await cancel_task_if_exists(self._task_send_bytes)
-        await cancel_task_if_exists(self._task_keepalive)
+
+        # cancel any reconnecting loops
+        self._cancel_keep_connected()
+
+        # Break Loops
+        if self.connection_event:
+            self.connection_event.clear()
+
+        await self._task_group.cancel()
 
         if self._writer:
             try:
+                # Writer hangs on disconnect sometimes
                 self._writer.close()
-                #Writer hangs on disconnect
-                await asyncio.wait_for(
-                    self._writer.wait_closed(), self._timeout
-                )
-            except Exception:
-                pass
+                await asyncio.wait_for(self._writer.wait_closed(), self.TIMEOUT)
 
-        self._log_info(f'{self.host}:{self.port}: disconnected')
+            except asyncio.CancelledError:
+                self._log_debug(f"writer close timeout")
+
+        self._log_info(f"{self.host}:{self.port}: disconnected")
+
         self._disconnecting = False
 
+        return not self.connected
 
     #
     # Reconnect
     #
     @final
-    async def _reconnect(self):
-        if not self._disconnecting:
-            await self._disconnect()
-            self._log_debug(f'{self.host}:{self.port}: reconnecting')
-            return self.connect()
+    async def reconnect(self):
+        if not self._reconnecting and not self._is_keep_connected_running():
+            await self.disconnect()
+            self._keep_connected()
 
     #
-    # Open Connection
+    # Is keep connected task running
     #
     @final
-    async def _establish_connection(self):
-        # Keep trying to connect until stopped
-        while not self.connected and not self._disconnecting:   
+    def _is_keep_connected_running(self):
+        return (
+            isinstance(self._keep_connected_task, asyncio.Task)
+            and not self._keep_connected_task.done()
+        )
+
+    #
+    # Keep connected
+    #
+    @final
+    def _keep_connected(self):
+        if not self._is_keep_connected_running():
+            self._log_debug(f"{self.host}:{self.port}: creating keep_connected task")
+            self._keep_connected_task = asyncio.create_task(self._keep_connected_loop())
+            return self._keep_connected_task
+
+    #
+    # Keep connected loop
+    #
+    @final
+    async def _keep_connected_loop(self):
+        # break if we try to disconnect
+        while not self.connected:
             try:
-                
-                self._log_debug(f"Attemping connection to {self.host}:{self.port}")
-                self._reader, self._writer = await asyncio.wait_for(
-                    asyncio.open_connection(self.host, self.port), self._timeout
+                await self.connect()
+                self._cancel_keep_connected()
+            except ZoneConnectionError as e:
+                self._reconnection_attempts += 1
+
+                backoff = min(
+                    max(
+                        self.BACKOFF_MIN,
+                        self.BACKOFF_MIN * self._reconnection_attempts,
+                    ),
+                    self.BACKOFF_MAX,
                 )
 
-                # Connected
-                self.connection_event.set()
-
-                # Create queue in event loop
-                self._writer_queue = asyncio.Queue()
-
-                # Start workers
-                self._task_receive_first_byte = asyncio.create_task(self._receive_first_byte())
-                self._task_send_bytes = asyncio.create_task(self._send_bytes())
-                self._task_keepalive = asyncio.create_task(self._send_keepalive_base())
-
-                # Allow a init of the zone
-                await asyncio.wait_for(self._initialise_connection(), timeout=self._timeout)
-
-                self._log_info(f"Connected to {self.host}:{self.port}")
-
-            except asyncio.TimeoutError:
-                # Handle timeout
-                self._log_error(f"Connection to {self.host}:{self.port} timed out")
-                self.connection_event.clear()
-            except ConnectionRefusedError:
-                # Handle timeout
-                self._log_error(f"Connection to {self.host}:{self.port} refused")
-                self.connection_event.clear()
-            except Exception as e:
-                self._log_error(f"Connection to {self.host}:{self.port} failed with exception {e}")
-                self.connection_event.clear()
-        
-        return self.connected
+                self._log_info(
+                    f"{self.host}:{self.port}: reconnecting in {backoff} seconds"
+                )
+                await asyncio.sleep(backoff)
 
     #
-    # Initalize the connection
+    # Cancel keep connected tasks
     #
-    # For extending classes
-    #
-    async def _initialise_connection(self) -> bool:
-        return self.connected
+    @final
+    def _cancel_keep_connected(self):
+        self._log_debug(f"{self.host}:{self.port}: canceling keep_connected task")
+        cancel_task(self._keep_connected_task)
+        self._reconnection_attempts = 0
 
     #
     # Send Bytes
@@ -156,25 +241,22 @@ class APIBase(ABC):
                 data = await self._writer_queue.get()
 
                 if not isinstance(data, bytearray):
-                    Exception('Currently only accept Bytearray!')
+                    Exception("Currently only accept Bytearray!")
 
                 # Send the data
                 self._writer.write(data)
                 await self._writer.drain()
-                
-                self._log_debug(f'Sent to {self.host}:{self.port}: {data.hex()}')
 
-                # VSSL cant handle too many requests. 
+                self._log_debug(f"Sent to {self.host}:{self.port}: {data.hex()}")
+
+                # VSSL cant handle too many requests.
                 await asyncio.sleep(0.2)
 
-        except (
-            BrokenPipeError,
-            ConnectionError,
-            TimeoutError,
-            OSError
-        ) as e:
-            self._log_error(f"Send Error {self.host}:{self.port}. Exception: {e}")
-            await self._reconnect()
+        except asyncio.CancelledError:
+            self._log_debug(f"Cancelled send task for {self.host}:{self.port}")
+        except (BrokenPipeError, ConnectionError, TimeoutError, OSError) as e:
+            self._log_error(f"Lost connection to host {self.host}:{self.port}")
+            await self.reconnect()
 
     #
     # Response Task Loop
@@ -184,31 +266,25 @@ class APIBase(ABC):
         try:
             self._log_debug(f"Receive task started for {self.host}:{self.port}")
             while self.connected:
-
-                inital_length = 1
-                data = await asyncio.wait_for(
-                    self._reader.readexactly(inital_length), 
-                    self._keep_alive + self._timeout
-                )
+                data = await self._reader.readexactly(self.FRIST_BYTE)
 
                 if not data:
                     continue
 
-                self.keep_alive_received = True
+                self._keep_alive_received = True
 
-                await self._read_byte_stream(self._reader, data, inital_length)
+                await self._read_byte_stream(self._reader, data)
 
-        except asyncio.TimeoutError:
-                pass
+        except asyncio.CancelledError:
+            self._log_debug(f"Cancelled receive task for {self.host}:{self.port}")
         except (
             IncompleteReadError,
             TimeoutError,
             ConnectionResetError,
             OSError,
         ) as e:
-            self._log_error(f"Lost connection to host {self.host}:{self.port}. Exception: {e}")
-            await self._reconnect()
-            
+            self._log_error(f"Lost connection to host {self.host}:{self.port}")
+            await self.reconnect()
 
     #
     # Read the byte stream
@@ -223,17 +299,16 @@ class APIBase(ABC):
     async def _send_keepalive_base(self):
         try:
             while self.connected:
+                self._keep_alive_received = False
 
-                self.keep_alive_received = False
-
-                #Send first then sleep
+                # Send first then sleep
                 self._send_keepalive()
 
-                await asyncio.sleep(self._keep_alive)
+                await asyncio.sleep(self.KEEP_ALIVE)
 
-                if not self.keep_alive_received:
-                    self._log_info("Keep-alive not received. Reconnecting...")
-                    await self._reconnect()
+                if not self._keep_alive_received:
+                    self._log_error("Keep-alive not received")
+                    await self.reconnect()
 
         except asyncio.CancelledError:
             self._log_debug(f"Cancelled the keepalive task for {self.host}:{self.port}")
@@ -244,6 +319,3 @@ class APIBase(ABC):
     @abstractmethod
     def _send_keepalive(self):
         pass
-
-
-        

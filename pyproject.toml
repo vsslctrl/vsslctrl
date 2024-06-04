@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vsslctrl"
+version = "0.1.0.dev1"
+description = "Package for controlling VSSL amplifiers"
+authors = [
+  { name="vsslctrl", email="vsslcontrolled@proton.me" },
+]
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Home Automation",
+    "Topic :: Software Development :: Libraries"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest==8.1.1", "pytest_asyncio==0.23.6"]
+optional = ["zeroconf==0.132.2"]

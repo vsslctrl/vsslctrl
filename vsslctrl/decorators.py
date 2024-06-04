@@ -1,33 +1,61 @@
-from .utils import IntEnum
+import json
+import logging
 
-def zone_data_class(cls):
-    def default_set_property(self, property_name: str, new_value):
-        log = False
-        direct_setter = f'_set_{property_name}'
 
-        if hasattr(self, direct_setter):
-            log = getattr(self, direct_setter)(new_value)
+def sterilizable(cls):
+    # Define __iter__ method
+    def __iter__(self):
+        if hasattr(self.__class__, "DEFAULTS"):
+            for key in getattr(self.__class__, "DEFAULTS"):
+                yield key, getattr(self, key)
         else:
-            current_value = getattr(self, property_name)
-            if current_value != new_value:
-                setattr(self, f'_{property_name}', new_value)
-                log = True
-                
-        if log:
-            updated_value = getattr(self, property_name)
+            for attr_name in dir(self):
+                if not attr_name.startswith("_"):  # Exclude private attributes
+                    yield attr_name, getattr(self, attr_name)
 
-            message = ''
-            if isinstance(updated_value, IntEnum):
-                message = f'{self.__class__.__name__} set {property_name}: {updated_value.name} ({updated_value.value})'
-            else:
-                message = f'{self.__class__.__name__} set {property_name}: {updated_value}'
+    cls.__iter__ = __iter__
 
-            self._zone._log_debug(message) 
+    def _as_dict(self):
+        return dict(self)
 
-            self._zone._event_publish(
-                getattr(getattr(self.__class__, 'Events'), property_name.upper() + '_CHANGE'), 
-                updated_value
-            )
+    cls.as_dict = _as_dict
 
-    cls._set_property = default_set_property
+    def _as_json(self):
+        return json.dumps(self.as_dict())
+
+    cls.as_json = _as_json
+
     return cls
+
+
+def logging_helpers(prefix=""):
+    def decorator(cls):
+        logger = logging.getLogger(__name__)
+
+        def _is_log_level(self, level: str):
+            level = level.upper()
+            if hasattr(logging, level):
+                return getattr(logging, level) == logger.getEffectiveLevel()
+            else:
+                return False
+
+        setattr(cls, "_is_log_level", _is_log_level)
+
+        LOG_LEVELS = {"debug", "info", "warning", "error", "critical"}
+
+        def create_log_function(log_level, prefix=prefix):  # Pass prefix here
+            def log_function(self, message):  # Rename prefix to custom_prefix
+                final_prefix = getattr(self, "_log_prefix", prefix)
+                log_level(f"{final_prefix} {message}")
+
+            return log_function
+
+        for level in LOG_LEVELS:
+            log_func = getattr(logger, level)
+            setattr(
+                cls, f"_log_{level}", create_log_function(log_func)
+            )  # Pass prefix here
+
+        return cls
+
+    return decorator

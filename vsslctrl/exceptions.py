@@ -1,10 +1,21 @@
+import traceback
 
 
-class VsslException(Exception):
-    """VSSL Exception
-    """
+class VsslCtrlException(Exception):
+    """VSSL Exception"""
 
-class ZoneError(VsslException):
-    """Zone Exception
-    """
-    
+    def __init__(self, message):
+        super().__init__(message)
+        self.traceback = traceback.format_exc()
+
+
+class ZoneError(VsslCtrlException):
+    """Zone Exception"""
+
+
+class ZoneConnectionError(ZoneError):
+    """Zone Connection Exception Exception"""
+
+
+class ZeroConfNotInstalled(VsslCtrlException):
+    """Zone Exception"""

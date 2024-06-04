@@ -10,11 +10,11 @@ from vsslctrl.zone import Zone
 from vsslctrl.transport import ZoneTransport
 from vsslctrl.group import ZoneGroup
 from vsslctrl.io import AnalogOutput, InputRouter, AnalogInput
-from vsslctrl.settings import ZoneSettings, VolumeSettings, EQSettings, VsslPowerSettings
+from vsslctrl.settings import ZoneSettings, VolumeSettings, EQSettings, VsslSettings, VsslPowerSettings
 
 
 
-FUTURE_TIMEOUT = 2
+FUTURE_TIMEOUT = 5
 
 # Mark all tests in this module with the pytest custom "integration" marker so
 # they can be selected or deselected as a whole, eg:
@@ -39,15 +39,13 @@ async def zone(request):
     vssl_instance = vssl_module.Vssl()
     zone_instance = vssl_instance.add_zone(zone, ip)
 
-    asyncio.create_task(vssl_instance.run())
+    asyncio.create_task(vssl_instance.initialise())
 
     try:
-        await zone_instance.await_initialisation(3)
+        await asyncio.wait_for(zone_instance.initialisation.wait(), 3)
     except asyncio.TimeoutError:
         pytest.fail(f"Couldnt connect to Zone at {ip}, not initialised")
-
-    #TODO, maybe add a function to get a value once zone is fully inialized
-    await zone_instance.initialisation.wait()
+        
 
     if not zone_instance.transport.is_playing or zone_instance.input.source != InputRouter.Sources.STREAM:
         pytest.fail(
@@ -86,64 +84,64 @@ class TestVssl:
     @pytest.mark.asyncio(scope="session")
     async def test_name_change(self, zone, eb, vssl):
 
-        original_name = vssl.name
+        original_name = vssl.settings.name
         test_name = str(int(time.time()))
         
-        future_name = eb.future(Vssl.Events.NAME_CHANGE, 0)
+        future_name = eb.future(VsslSettings.Events.NAME_CHANGE, 0)
 
-        vssl.name = test_name
+        vssl.settings.name = test_name
         assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == test_name
-        assert vssl.name == test_name
+        assert vssl.settings.name == test_name
 
-        future_name = eb.future(Vssl.Events.NAME_CHANGE, 0)
+        future_name = eb.future(VsslSettings.Events.NAME_CHANGE, 0)
 
-        vssl.name = original_name
+        vssl.settings.name = original_name
         assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == original_name
-        assert vssl.name == original_name
+        assert vssl.settings.name == original_name
 
 
     @pytest.mark.asyncio(scope="session")
     async def test_optical_input_name_change(self, zone, eb, vssl):
 
-        original_name = vssl.optical_input_name
+        original_name = vssl.settings.optical_input_name
         test_name = str(int(time.time()))
 
-        future_name = eb.future(Vssl.Events.OPTICAL_INPUT_NAME_CHANGE, 0)
+        future_name = eb.future(VsslSettings.Events.OPTICAL_INPUT_NAME_CHANGE, 0)
 
-        vssl.optical_input_name = test_name
+        vssl.settings.optical_input_name = test_name
         assert await  eb.wait_future(future_name, FUTURE_TIMEOUT) == test_name
-        assert vssl.optical_input_name == test_name
+        assert vssl.settings.optical_input_name == test_name
 
-        future_name = eb.future(Vssl.Events.OPTICAL_INPUT_NAME_CHANGE, 0)
+        future_name = eb.future(VsslSettings.Events.OPTICAL_INPUT_NAME_CHANGE, 0)
 
-        vssl.optical_input_name = original_name
+        vssl.settings.optical_input_name = original_name
         assert await  eb.wait_future(future_name, FUTURE_TIMEOUT) == original_name
-        assert vssl.optical_input_name == original_name
+        assert vssl.settings.optical_input_name == original_name
 
 
     @pytest.mark.asyncio(scope="session")
     async def test_power_adaptive_change(self, zone, eb, vssl):
 
-        original_state = vssl.power.adaptive
+        original_state = vssl.settings.power.adaptive
 
         if original_state != True:
             future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0)
-            vssl.power.adaptive = True
+            vssl.settings.power.adaptive = True
             await eb.wait_future(future_state, FUTURE_TIMEOUT)
-            assert vssl.power.adaptive == True
+            assert vssl.settings.power.adaptive == True
 
         future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0)
-        vssl.power.adaptive_toggle()
+        vssl.settings.power.adaptive_toggle()
         assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == False
-        assert vssl.power.adaptive == False
+        assert vssl.settings.power.adaptive == False
 
         if original_state != False:
             future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0)
-            vssl.power.adaptive = True
+            vssl.settings.power.adaptive = True
             await eb.wait_future(future_state, FUTURE_TIMEOUT)
-            assert vssl.power.adaptive == True
+            assert vssl.settings.power.adaptive == True
 
-        assert vssl.power.adaptive == original_state
+        assert vssl.settings.power.adaptive == original_state
 
  
 

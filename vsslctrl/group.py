@@ -1,7 +1,7 @@
 import logging
 from . import zone
 from typing import Dict, Union
-from .decorators import zone_data_class
+from .data_structure import ZoneDataClass
 
 
 """
@@ -21,30 +21,23 @@ from .decorators import zone_data_class
 
 """
 
-@zone_data_class
-class ZoneGroup:
 
+class ZoneGroup(ZoneDataClass):
     #
     # Group Events
     #
-    class Events():
-        PREFIX              = 'zone.group.'
-        INDEX_CHANGE        = PREFIX+'index_change'
-        SOURCE_CHANGE       = PREFIX+'source_change'
-        IS_MASTER_CHANGE    = PREFIX+'is_master_change'
+    class Events:
+        PREFIX = "zone.group."
+        INDEX_CHANGE = PREFIX + "index_change"
+        SOURCE_CHANGE = PREFIX + "source_change"
+        IS_MASTER_CHANGE = PREFIX + "is_master_change"
 
+    DEFAULTS = {"index": 0, "source": None, "is_master": False}
 
-    DEFAULTS = {
-        'index': 0,
-        'source': None,
-        'is_master': False
-    }
+    def __init__(self, zone: "zone.Zone"):
+        self.zone = zone
 
-    def __init__(self, zone: 'zone.Zone'):
-
-        self._zone = zone
-
-        """ On a A3.x the group index are, Im not sure if this is consistant with A1.x or A6.x:
+        """ On a A.3x the group index are, Im not sure if this is consistant with A1.x or A6.x:
 
             Zone 1: 9
             Zone 2: 10
@@ -57,60 +50,54 @@ class ZoneGroup:
         """
         self._index_id = zone.id + 8
 
-        #index is assigned when a stream is started (see action_32)
-        self._index = 0 
+        # index is assigned when a stream is started (see action_32)
+        self._index = 0
         self._source = None
         self._is_master = False
-
-    def __iter__(self):
-        for key in ZoneGroup.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
 
     #
     # Group Add Zone
     #
-    def add_member(self, zone_id: 'zone.Zone.IDs'):
-        if self._zone.id == zone_id:
-            self._zone._log_error(f"Zone {zone_id} cant be parent and member")
+    def add_member(self, zone_id: "zone.Zone.IDs"):
+        if self.zone.id == zone_id:
+            self.zone._log_error(f"Zone {zone_id} cant be parent and member")
             return False
 
         if zone.Zone.IDs.is_not_valid(zone_id):
-            self._zone._log_error(f"Zone {zone_id} doesnt exist")
+            self.zone._log_error(f"Zone {zone_id} doesnt exist")
             return False
 
         if self.is_member:
-            self._zone._log_error(f"Zone {self._zone.id} already a member of Zone {self.source} group")
+            self.zone._log_error(
+                f"Zone {self.zone.id} already a member of Zone {self.source} group"
+            )
             return False
 
-        if self._zone.transport.is_stopped:
-            self._zone._log_error(f"Zone {self._zone.id} cant be a group master when not playing a source")
+        if self.zone.transport.is_stopped:
+            self.zone._log_error(
+                f"Zone {self.zone.id} cant be a group master when not playing a source"
+            )
             return False
 
-
-        self._zone._api_alpha.request_action_4B_add(zone_id)
-
+        self.zone.api_alpha.request_action_4B_add(zone_id)
 
     #
     # Group Remove Child
     #
-    def remove_member(self, zone_id: 'zone.Zone.IDs'):
-        self._zone._api_alpha.request_action_4B_remove(zone_id)
+    def remove_member(self, zone_id: "zone.Zone.IDs"):
+        self.zone.api_alpha.request_action_4B_remove(zone_id)
 
     #
     # Group Dissolve
     #
     def dissolve(self):
-        self._zone._api_alpha.request_action_4B_dissolve()
+        self.zone.api_alpha.request_action_4B_dissolve()
 
     #
     # Leave any groups if is a member
     #
     def leave(self) -> None:
-        self._zone._api_alpha.request_action_4B_remove(self._zone.id)
-
+        self.zone.api_alpha.request_action_4B_remove(self.zone.id)
 
     @property
     def index_id(self):
@@ -118,8 +105,7 @@ class ZoneGroup:
 
     @index_id.setter
     def index_id(self, index_id: int):
-        pass #read-only
-
+        pass  # read-only
 
     #
     # Group Index
@@ -132,7 +118,7 @@ class ZoneGroup:
 
     @index.setter
     def index(self, index: int):
-        pass #read-only
+        pass  # read-only
 
     #
     # Group Source
@@ -143,11 +129,12 @@ class ZoneGroup:
 
     @source.setter
     def source(self, grs: int):
-        pass #read-only
+        pass  # read-only
 
     def _set_source(self, grs: int):
-
-        new_source = zone.Zone.IDs(grs) if grs != 255 and zone.Zone.IDs.is_valid(grs) else None
+        new_source = (
+            zone.Zone.IDs(grs) if grs != 255 and zone.Zone.IDs.is_valid(grs) else None
+        )
 
         if self.source != new_source:
             self._source = new_source
@@ -160,7 +147,7 @@ class ZoneGroup:
     #
     # Group: This zone is a master for a group
     #
-    # TODO: propogate track meta to member zones. 
+    # TODO: propogate track meta to member zones.
     # Only play state is propgated by the VSSL device
     #
     @property
@@ -169,9 +156,32 @@ class ZoneGroup:
 
     @is_master.setter
     def is_master(self, grm: int):
-        pass #read-only
+        pass  # read-only
 
     def _set_is_master(self, grm: int):
         if self.is_master != bool(grm):
             self._is_master = grm != 0
             return True
+
+    #
+    # Get groups master zone
+    #
+    @property
+    def master(self):
+        if self.is_master:
+            return self
+        if self.source is not None:
+            return self.zone.vssl.get_zone(self.source)
+
+    #
+    # Get group member zones
+    #
+    @property
+    def members(self):
+        if not self.is_master:
+            return []
+        return [
+            zone
+            for zone in self.zone.vssl.zones.values()
+            if zone.group.index == self.index and zone.group.is_member
+        ]

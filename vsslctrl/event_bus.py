@@ -1,64 +1,71 @@
 import asyncio
+import traceback
 from enum import IntEnum
 from typing import Callable
-from .utils import add_logging_helpers
+from .exceptions import VsslCtrlException
+from .decorators import logging_helpers
 
 #
 # Event Bus
 #
-class EventBus:
 
+
+@logging_helpers("EventBus:")
+class EventBus:
+    WILDCARD = "*"
     FUTURE_TIMEOUT = 5
 
     def __init__(self):
-
-        add_logging_helpers(self, 'EventBus:')
-
         self.subscribers = {}
         self.event_queue = asyncio.Queue()
 
         self.running = False
 
-        asyncio.create_task(self.process_events())
+        self.process = asyncio.create_task(self.process_events())
 
     #
-    # Stop 
+    # Stop
     #
     def stop(self):
         self.running = False
+        self.process.cancel()
+        self._log_debug(f"stopped event processing")
 
     #
-    # Subscribe 
+    # Subscribe
     #
-    def subscribe(self, event_type, callback: Callable, entity=None, once=False):
-        #Make sure we are using async callbacks
+    def subscribe(self, event_type, callback: Callable, entity="*", once=False):
+        # Make sure we are using async callbacks
         if callback is not None and asyncio.iscoroutinefunction(callback):
             event_type = event_type.lower()
             if event_type not in self.subscribers:
                 self.subscribers[event_type] = []
-            self._log_debug(f"subscription for event: {event_type} | entity: {entity} | cb: {callback.__name__}")
+            self._log_debug(
+                f"subscription for event: {event_type} | entity: {entity} | cb: {callback.__name__}"
+            )
             self.subscribers[event_type].append((callback, entity, once))
         else:
-            message = f"EventBus: {callback.__name__} must be a coroutine. Event: {event_type} | Entity: {entity}"
+            message = f"{callback.__name__} must be a coroutine. Event: {event_type} | Entity: {entity}"
             self._log_error(message)
-            raise VsslException(message)
-        
+            raise VsslCtrlException(message)
+
     #
-    # Unsubscribe 
+    # Unsubscribe
     #
     def unsubscribe(self, event_type, callback):
         event_type = event_type.lower()
         if event_type in self.subscribers:
-            self.subscribers[event_type] = [cb for cb in self.subscribers[event_type] if cb[0] != callback]
+            self.subscribers[event_type] = [
+                cb for cb in self.subscribers[event_type] if cb[0] != callback
+            ]
 
     #
     # Get a future value from the event bus
     #
     def future(self, event_type, entity=None) -> asyncio.Future:
-        
         future = asyncio.Future()
 
-        async def future_callback(data, *args, **kwargs):
+        async def future_callback(data, *args):
             nonlocal future
             future.set_result(data)
 
@@ -67,7 +74,7 @@ class EventBus:
         return future
 
     #
-    # Helper to await a future with a timeout and timeout result
+    # Helper to await a future with a timeout
     #
     async def wait_future(self, future, timeout: int = FUTURE_TIMEOUT):
         if timeout != 0:
@@ -78,60 +85,75 @@ class EventBus:
                 raise error
         else:
             return await future
+
     #
     # wait_for, will wait for an event to be fired and return the result
     #
-    async def wait_for(self, event_type, entity=None, timeout: int = FUTURE_TIMEOUT, timeout_result=None):
+    async def wait_for(
+        self,
+        event_type,
+        entity=None,
+        timeout: int = FUTURE_TIMEOUT,
+        timeout_result=None,
+    ):
         future = self.future(event_type, entity)
         try:
             return await self.wait_future(future, timeout=timeout)
         except asyncio.TimeoutError as error:
             return timeout_result
-        
 
     #
-    # Publish 
+    # Publish
     #
-    def publish(self, event_type, entity=None, data=None, *args, **kwargs):
-        asyncio.create_task(self.publish_async(event_type, entity, data, args, kwargs))
+    def publish(self, event_type, entity=None, data=None):
+        asyncio.create_task(self.publish_async(event_type, entity, data))
 
     #
     # Publish Async (Use when inside events loop)
     #
-    async def publish_async(self, event_type, entity=None, data=None, *args, **kwargs):
+    async def publish_async(self, event_type, entity=None, data=None):
         event_type = event_type.lower()
-        await self.event_queue.put((event_type, entity, data, args, kwargs))
+        await self.event_queue.put((event_type, entity, data))
 
     #
     # Process Events
     #
     async def process_events(self):
-        
+        self._log_debug(f"starting event processing")
+
         self.running = True
-        
-        self._log_debug(f"Started")
-
         while self.running:
-            
             try:
-                event_type, entity, data, args, kwargs = await self.event_queue.get()
+                event_type, entity, data = await self.event_queue.get()
 
-                message = f'processing event: {event_type} | entity: {entity} | data: '
-                if isinstance(data, IntEnum):
-                    message += f'{data.name} ({data.value})'
-                else:
-                    message += f"{data}"
+                if self._is_log_level("debug"):
+                    message = (
+                        f"processing event: {event_type} | entity: {entity} | data: "
+                    )
+                    if isinstance(data, IntEnum):
+                        message += f"{data.name} ({data.value})"
+                    else:
+                        message += str(data)
+                    self._log_debug(message)
 
-                self._log_debug(message)
-
-                if event_type in self.subscribers:
-                    for callback, subscribed_entity, once in self.subscribers[event_type]:
-                        if entity is None or subscribed_entity == entity or subscribed_entity == '*':
-                            await callback(data, *args, **kwargs)
-                            if once:
-                                self.unsubscribe(event_type, callback)
+                for event in [event_type, self.WILDCARD]:
+                    if event in self.subscribers:
+                        for callback, subscribed_entity, once in self.subscribers[
+                            event
+                        ]:
+                            if entity is None or subscribed_entity in {
+                                entity,
+                                self.WILDCARD,
+                            }:
+                                await callback(data, entity, event_type)
+                                if once:
+                                    self.unsubscribe(event, callback)
 
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self._log_error(f"error processing event: {event_type} | exception: {e}")
+                # Capture the traceback as a string
+                traceback_str = traceback.format_exc()
+                self._log_error(
+                    f"exception occurred processing event: {e}\n{traceback_str}"
+                )

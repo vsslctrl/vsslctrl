@@ -1,12 +1,70 @@
 import logging
 from typing import Dict, Union
-from .utils import VsslIntEnum, clamp_volume
+from .utils import clamp_volume
 from .io import AnalogInput
-from .decorators import zone_data_class
+from .data_structure import (
+    VsslIntEnum,
+    VsslDataClass,
+    ZoneDataClass,
+    ZoneEQStatusExtKeys,
+)
+
+VSSL_SETTINGS_EVENT_PREFIX = "vssl.settings."
 
 
-class VsslPowerSettings:
+class VsslSettings(VsslDataClass):
+    class Keys:
+        NAME = "name"
+        OPTICAL_INPUT_NAME = "optical_input_name"
 
+    #
+    # VSSL Events
+    #
+    class Events:
+        PREFIX = VSSL_SETTINGS_EVENT_PREFIX
+        NAME_CHANGE = PREFIX + "name_changed"
+        OPTICAL_INPUT_NAME_CHANGE = PREFIX + "optical_input_name_changed"
+
+    #
+    # Defaults
+    #
+    DEFAULTS = {Keys.NAME: None, Keys.OPTICAL_INPUT_NAME: "Optical In"}
+
+    def __init__(self, vssl: "vsslctrl.Vssl"):
+        self._vssl = vssl
+
+        self._name = None  # device name
+        self._optical_input_name = self.DEFAULTS[self.Keys.OPTICAL_INPUT_NAME]
+        self.power = VsslPowerSettings(vssl)
+
+    #
+    # Name
+    #
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        zone = self._vssl.get_connected_zone()
+        if zone and name:
+            zone.api_alpha.request_action_18(name)
+
+    #
+    # Optical Input Name
+    #
+    @property
+    def optical_input_name(self):
+        return self._optical_input_name
+
+    @optical_input_name.setter
+    def optical_input_name(self, name: str):
+        zone = self._vssl.get_connected_zone()
+        if zone:
+            zone.api_alpha.request_action_15_12(name)
+
+
+class VsslPowerSettings(VsslDataClass):
     #
     # Transport States
     #
@@ -20,31 +78,21 @@ class VsslPowerSettings:
     #
     # Volume Setting Events
     #
-    class Events():
-        PREFIX            = 'vssl.power.'
-        STATE_CHANGE      = PREFIX+'state_changed'
-        ADAPTIVE_CHANGE   = PREFIX+'adaptive_changed'
+    class Events:
+        PREFIX = VSSL_SETTINGS_EVENT_PREFIX + "power."
+        STATE_CHANGE = PREFIX + "state_changed"
+        ADAPTIVE_CHANGE = PREFIX + "adaptive_changed"
 
     #
     # Defaults
     #
-    DEFAULTS = {
-        'state': States.ON,
-        'adaptive': False
-    }
+    DEFAULTS = {"state": States.ON, "adaptive": False}
 
-    def __init__(self, vssl: 'vsslctrl.Vssl'):
+    def __init__(self, vssl: "vsslctrl.Vssl"):
         self._vssl = vssl
 
-        self._state = VsslPowerSettings.States.ON
-        self._adaptive = True #1 = auto, 0 = always on
-
-    def __iter__(self):
-        for key in VsslPowerSettings.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
+        self._state = self.States.ON
+        self._adaptive = True  # 1 = auto, 0 = always on
 
     #
     # Power State
@@ -60,12 +108,13 @@ class VsslPowerSettings:
 
     def _set_state(self, state: int):
         if self.state != state:
-            if VsslPowerSettings.States.is_valid(state):
-                self._state = VsslPowerSettings.States(state)
-                self._vssl.event_bus.publish(VsslPowerSettings.Events.STATE_CHANGE, 0, self.state)
+            if self.States.is_valid(state):
+                self._state = self.States(state)
+                return True
             else:
-                self._vssl._log_warning(f"VsslPowerSettings.States {state} doesnt exist")
-
+                self._vssl._log_warning(
+                    f"VsslPowerSettings.States {state} doesnt exist"
+                )
 
     #
     # Adaptive Power (always on or auto)
@@ -81,55 +130,43 @@ class VsslPowerSettings:
     def adaptive(self, enabled: bool):
         zone = self._vssl.get_connected_zone()
         if zone:
-            zone._api_alpha.request_action_4F(not not enabled)
-
-    def _set_adaptive(self, adaptive: bool):
-        if self.adaptive != adaptive:
-            self._adaptive = adaptive
-            self._vssl.event_bus.publish(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0, self.adaptive)
+            zone.api_alpha.request_action_4F(not not enabled)
 
     def adaptive_toggle(self):
         self.adaptive = False if self.adaptive else True
 
 
-@zone_data_class
-class ZoneSettings:
-
-    #
-    # StereoMono
-    #
-    # 0: Stereo
-    # 1: Mono
-    #
-    # DO NOT CHANGE - VSSL Defined
-    #
+class ZoneSettings(ZoneDataClass):
     class StereoMono(VsslIntEnum):
-        Stereo = 0 
+        """StereoMono
+
+        0: Stereo
+        1: Mono
+
+        DO NOT CHANGE - VSSL Defined
+        """
+
+        Stereo = 0
         Mono = 1
 
-    #
-    # Setting Events
-    #
-    class Events():
-        PREFIX          = 'zone.settings.'
-        DISABLED_CHANGE = PREFIX+'disabled_changed'
-        NAME_CHANGE     = PREFIX+'name_changed'
-        MONO_CHANGE     = PREFIX+'mono_changed'
+    class Events:
+        """Setting Events"""
 
+        PREFIX = "zone.settings."
+        DISABLED_CHANGE = PREFIX + "disabled_changed"
+        NAME_CHANGE = PREFIX + "name_changed"
+        MONO_CHANGE = PREFIX + "mono_changed"
 
-    def __init__(self, zone: 'zone.Zone'):
-        self._zone = zone
+    def __init__(self, zone: "zone.Zone"):
+        self.zone = zone
 
         self._disabled = False
-        self._name = f'Zone {zone.id}'
-
-        # False = Stereo, True = Mono
-        self._mono = False 
+        self._name = f"Zone {zone.id}"
+        self._mono = False
 
         self.eq = EQSettings(zone)
         self.volume = VolumeSettings(zone)
         self.analog_input = AnalogInput(zone)
-
 
     #
     # Disable the zone
@@ -140,7 +177,7 @@ class ZoneSettings:
 
     @disabled.setter
     def disabled(self, disabled: Union[bool, int]):
-        self._zone._api_alpha.request_action_25(not not disabled)
+        self.zone.api_alpha.request_action_25(not not disabled)
 
     def disabled_toggle(self):
         self.disabled = False if self.disabled else True
@@ -154,16 +191,16 @@ class ZoneSettings:
 
     @name.setter
     def name(self, name: str):
-        self._zone._api_bravo.request_action_5A_set(str(name))
+        self.zone.api_bravo.request_action_5A_set(str(name))
         # Incase for some network reason _request_name arrives before the change
         # the setter will remove the request once set
-        self._zone._poller.append(self._zone._request_name)
-        self._zone._request_name()
+        self.zone._poller.append(self.zone._request_name)
+        self.zone._request_name()
 
     def _set_name(self, name: str):
         if name != self._name:
             self._name = name
-            self._zone._poller.remove(self._zone._request_name)
+            self.zone._poller.remove(self.zone._request_name)
             return True
 
     #
@@ -175,75 +212,74 @@ class ZoneSettings:
         return self._mono
 
     @mono.setter
-    def mono(self, mono: 'ZoneSettings.StereoMono'):
-        if ZoneSettings.StereoMono.is_valid(mono):
-            self._zone._api_alpha.request_action_mono_set(mono)
+    def mono(self, mono: "ZoneSettings.StereoMono"):
+        if self.StereoMono.is_valid(mono):
+            self.zone.api_alpha.request_action_mono_set(mono)
         else:
-            self._zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
+            self.zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
 
     def _set_mono(self, mono: int):
         if self.mono != mono:
-            if ZoneSettings.StereoMono.is_valid(mono):
-                self._mono = ZoneSettings.StereoMono(mono)
+            if self.StereoMono.is_valid(mono):
+                self._mono = self.StereoMono(mono)
                 return True
             else:
-                self._zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
-    
+                self.zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
+
     def mono_toggle(self):
-        self.mono = ZoneSettings.StereoMono.Stereo if self.mono == ZoneSettings.StereoMono.Mono else ZoneSettings.StereoMono.Mono
+        self.mono = (
+            self.StereoMono.Stereo
+            if self.mono == self.StereoMono.Mono
+            else self.StereoMono.Mono
+        )
 
 
-@zone_data_class
-class VolumeSettings:
+class VolumeSettings(ZoneDataClass):
+    class Keys:
+        DEFAULT_ON = "default_on"
+        MAX_LEFT = "max_left"
+        MAX_RIGHT = "max_right"
 
-    #
-    # Volume Setting Events
-    #
-    class Events():
-        PREFIX              = 'zone.settings.volume.'
-        DEFAULT_ON_CHANGE   = PREFIX+'default_on_changed'
-        MAX_LEFT_CHANGE     = PREFIX+'max_left_changed'
-        MAX_RIGHT_CHANGE    = PREFIX+'max_right_changed'
+    class Events:
+        """Volume Setting Events"""
+
+        PREFIX = "zone.settings.volume."
+        DEFAULT_ON_CHANGE = PREFIX + "default_on_changed"
+        MAX_LEFT_CHANGE = PREFIX + "max_left_changed"
+        MAX_RIGHT_CHANGE = PREFIX + "max_right_changed"
 
     #
     # Defaults
     #
     DEFAULTS = {
-        'default_on': 75,
-        'max_left': 75,
-        'max_right': 75,
+        Keys.DEFAULT_ON: 0,
+        Keys.MAX_LEFT: 75,
+        Keys.MAX_RIGHT: 75,
     }
 
     #
-    # Key Map
+    # Key Map for the reponse JSON to our internal structure
     #
     KEY_MAP = {
-        'vold': 'default_on',
-        'voll': 'max_left',
-        'volr': 'max_right'
+        ZoneEQStatusExtKeys.VOL_DEFAULT_ON: Keys.DEFAULT_ON,
+        ZoneEQStatusExtKeys.VOL_MAX_LEFT: Keys.MAX_LEFT,
+        ZoneEQStatusExtKeys.VOL_MAX_RIGHT: Keys.MAX_RIGHT,
     }
 
-    def __init__(self, zone: 'zone.Zone'):
-        self._zone = zone
+    def __init__(self, zone: "zone.Zone"):
+        self.zone = zone
 
-        self._default_on = 75
-        self._max_left = 75
-        self._max_right = 75
-
-    def __iter__(self):
-        for key in VolumeSettings.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self):
-        return dict(self)
+        self._default_on = self.DEFAULTS[self.Keys.DEFAULT_ON]
+        self._max_left = self.DEFAULTS[self.Keys.MAX_LEFT]
+        self._max_right = self.DEFAULTS[self.Keys.MAX_RIGHT]
 
     #
     # Update from a JSON dict passed
     #
     def _map_response_dict(self, volume_data: Dict[str, int]) -> None:
-        for volume_data_key, settings_prop in VolumeSettings.KEY_MAP.items():
+        for volume_data_key, settings_prop in self.KEY_MAP.items():
             if volume_data_key in volume_data:
-                set_func = f'_set_{settings_prop}'
+                set_func = f"_set_{settings_prop}"
                 if hasattr(self, set_func):
                     getattr(self, set_func)(volume_data[volume_data_key])
 
@@ -261,7 +297,7 @@ class VolumeSettings:
 
     @default_on.setter
     def default_on(self, vol: int):
-        self._zone._api_alpha.request_action_05_08(vol)
+        self.zone.api_alpha.request_action_05_08(vol)
 
     def _set_default_on(self, vol: int):
         vol = clamp_volume(vol)
@@ -270,7 +306,7 @@ class VolumeSettings:
             return True
 
     #
-    # Max Left Volume 
+    # Max Left Volume
     #
     @property
     def max_left(self):
@@ -278,7 +314,7 @@ class VolumeSettings:
 
     @max_left.setter
     def max_left(self, vol: int):
-        self._zone._api_alpha.request_action_05_01(vol)
+        self.zone.api_alpha.request_action_05_01(vol)
 
     def _set_max_left(self, vol: int):
         vol = clamp_volume(vol)
@@ -287,7 +323,7 @@ class VolumeSettings:
             return True
 
     #
-    # Max Right Volume 
+    # Max Right Volume
     #
     @property
     def max_right(self):
@@ -295,7 +331,7 @@ class VolumeSettings:
 
     @max_right.setter
     def max_right(self, vol: int):
-        self._zone._api_alpha.request_action_05_02(vol)
+        self.zone.api_alpha.request_action_05_02(vol)
 
     def _set_max_right(self, vol: int):
         vol = clamp_volume(vol)
@@ -304,8 +340,21 @@ class VolumeSettings:
             return True
 
 
-@zone_data_class
-class EQSettings:
+class EQSettings(ZoneDataClass):
+    MIN_VALUE = 90
+    MAX_VALUE = 110
+    MIN_VALUE_DB = -10
+    MAX_VALUE_DB = 10
+
+    class Keys:
+        ENABLED = "enabled"
+        HZ60 = "hz60"  # 60Hz
+        HZ200 = "hz200"  # 200Hz
+        HZ500 = "hz500"  # 500Hz
+        KHZ1 = "khz1"  # 1kHz
+        KHZ4 = "khz4"  # 4kHz
+        KHZ8 = "khz8"  # 8kHz
+        KHZ15 = "khz15"  # 15kHz
 
     #
     # EQ Frequencies
@@ -313,89 +362,82 @@ class EQSettings:
     # DO NOT CHANGE - VSSL Defined
     #
     class Freqs(VsslIntEnum):
-        HZ60 = 1 # 60Hz
-        HZ200 = 2 # 200Hz
-        HZ500 = 3 # 500Hz
-        KHZ1 = 4 # 1kHz
-        KHZ4 = 5 # 4kHz
-        KHZ8 = 6 # 8kHz
-        KHZ15 = 7 # 16kHz
+        HZ60 = 1  # 60Hz
+        HZ200 = 2  # 200Hz
+        HZ500 = 3  # 500Hz
+        KHZ1 = 4  # 1kHz
+        KHZ4 = 5  # 4kHz
+        KHZ8 = 6  # 8kHz
+        KHZ15 = 7  # 15kHz
 
     #
     # Volume Setting Events
     #
-    class Events():
-        PREFIX          = 'zone.settings.eq.'
-        ENABLED_CHANGE  = PREFIX+'enabled_change'
-        HZ60_CHANGE     = PREFIX+'hz60_change'
-        HZ200_CHANGE    = PREFIX+'hz200_change'
-        HZ500_CHANGE    = PREFIX+'hz500_change'
-        KHZ1_CHANGE     = PREFIX+'khz1_change'
-        KHZ4_CHANGE     = PREFIX+'khz4_change'
-        KHZ8_CHANGE     = PREFIX+'khz8_change'
-        KHZ15_CHANGE    = PREFIX+'khz15_change'
+    class Events:
+        PREFIX = "zone.settings.eq."
+        ENABLED_CHANGE = PREFIX + "enabled_change"
+        HZ60_CHANGE = PREFIX + "hz60_change"
+        HZ200_CHANGE = PREFIX + "hz200_change"
+        HZ500_CHANGE = PREFIX + "hz500_change"
+        KHZ1_CHANGE = PREFIX + "khz1_change"
+        KHZ4_CHANGE = PREFIX + "khz4_change"
+        KHZ8_CHANGE = PREFIX + "khz8_change"
+        KHZ15_CHANGE = PREFIX + "khz15_change"
 
     #
     # Defaults
     #
     DEFAULTS = {
-        'enabled': False,
-        'hz60': 100,
-        'hz200': 100,
-        'hz500': 100,
-        'khz1': 100,
-        'khz4': 100,
-        'khz8': 100,
-        'khz15': 100
+        Keys.ENABLED: False,
+        Keys.HZ60: 100,
+        Keys.HZ200: 100,
+        Keys.HZ500: 100,
+        Keys.KHZ1: 100,
+        Keys.KHZ4: 100,
+        Keys.KHZ8: 100,
+        Keys.KHZ15: 100,
     }
 
     #
     # Key Map
     #
     KEY_MAP = {
-        'eq1': Freqs.HZ60,
-        'eq2': Freqs.HZ200,
-        'eq3': Freqs.HZ500,
-        'eq4': Freqs.KHZ1,
-        'eq5': Freqs.KHZ4,
-        'eq6': Freqs.KHZ8,
-        'eq7': Freqs.KHZ15
+        ZoneEQStatusExtKeys.HZ60: Keys.HZ60,
+        ZoneEQStatusExtKeys.HZ200: Keys.HZ200,
+        ZoneEQStatusExtKeys.HZ500: Keys.HZ500,
+        ZoneEQStatusExtKeys.KHZ1: Keys.KHZ1,
+        ZoneEQStatusExtKeys.KHZ4: Keys.KHZ4,
+        ZoneEQStatusExtKeys.KHZ8: Keys.KHZ8,
+        ZoneEQStatusExtKeys.KHZ15: Keys.KHZ15,
     }
 
-    def __init__(self, zone: 'zone.Zone'):
-        self._zone = zone
+    def __init__(self, zone: "zone.Zone"):
+        self.zone = zone
 
-        self._enabled = False
-        self._hz60 = 100
-        self._hz200 = 100
-        self._hz500 = 100
-        self._khz1 = 100
-        self._khz4 = 100
-        self._khz8 = 100
-        self._khz15 = 100
+        self._enabled = self.DEFAULTS[self.Keys.ENABLED]
+        self._hz60 = self.DEFAULTS[self.Keys.HZ60]
+        self._hz200 = self.DEFAULTS[self.Keys.HZ200]
+        self._hz500 = self.DEFAULTS[self.Keys.HZ500]
+        self._khz1 = self.DEFAULTS[self.Keys.KHZ1]
+        self._khz4 = self.DEFAULTS[self.Keys.KHZ4]
+        self._khz8 = self.DEFAULTS[self.Keys.KHZ8]
+        self._khz15 = self.DEFAULTS[self.Keys.KHZ15]
 
-
-    def __iter__(self):
-        for key in EQSettings.DEFAULTS:
-            yield key, getattr(self, key)
-
-    def as_dict(self, with_db = True):
+    def as_dict(self, with_db=True):
         settings = dict(self)
 
         if with_db:
-            for eq_data_key, freq_key in EQSettings.KEY_MAP.items():
-                key = f'{freq_key.name.lower()}_db'
+            for json_data_key, setting_key in self.KEY_MAP.items():
+                key = setting_key + "_db"
                 settings[key] = getattr(self, key)
 
         return settings
-        
 
     #
     # Clamp betwwen 90 and 110
     #
-    def _clamp(self, value: int = 0):
-        return int(max(90, min(value, 110)))
-            
+    def _clamp(self, value: int = 100):
+        return int(max(self.MIN_VALUE, min(value, self.MAX_VALUE)))
 
     #
     # Map between -10 and +10
@@ -405,19 +447,23 @@ class EQSettings:
     # 110 = +10db
     #
     def _map_clamp(self, input_value: int = 0, to_db: bool = True):
-        """
-            Convert / Map values between 90 & 110 to their -10db & +10db equilivents
-        """
+        """Convert / Map values between 90 & 110 to their -10db & +10db equilivents"""
 
         if to_db:
             # Ensure the mapped value is clamped between 90 and 110
             clamped_value = self._clamp(input_value)
 
             # Map the clamped value to the range -10 to 10
-            return int(((clamped_value - 90) / (110 - 90)) * 20 - 10)
+            return int(
+                ((clamped_value - self.MIN_VALUE) / (self.MAX_VALUE - self.MIN_VALUE))
+                * 20
+                - self.MAX_VALUE_DB
+            )
         else:
             # Map the input value from the range -10 to 10 to the range 90 to 110
-            mapped_value = ((input_value + 10) / 20) * (110 - 90) + 90
+            mapped_value = ((input_value + self.MAX_VALUE_DB) / 20) * (
+                self.MAX_VALUE - self.MIN_VALUE
+            ) + self.MIN_VALUE
 
             # Ensure the result is clamped between 90 and 110
             return self._clamp(mapped_value)
@@ -427,12 +473,11 @@ class EQSettings:
     #
     # Expects a value between: 90 to 110
     #
-    def _set_frequency_on_device(self, freq: 'EQSettings.Freqs', value: int):
-        if EQSettings.Freqs.is_valid(freq):
-            self._zone._api_alpha.request_action_0D(freq, self._clamp(value))
+    def _set_frequency_on_device(self, freq: "EQSettings.Freqs", value: int):
+        if self.Freqs.is_valid(freq):
+            self.zone.api_alpha.request_action_0D(freq, self._clamp(value))
         else:
-            self._zone._log_error(f"EQSettings.Freqs {freq} doesnt exist")
-       
+            self.zone._log_error(f"EQSettings.Freqs {freq} doesnt exist")
 
     #
     # Set EQ Value, using dB as an input
@@ -445,24 +490,22 @@ class EQSettings:
     #
     # Updade a property and emit and event if changed
     #
-    def _set_eq_freq(self, freq: 'EQSettings.Freqs', new_value: int):
-        if EQSettings.Freqs.is_valid(freq):
-            
-            freq = EQSettings.Freqs(freq)
-            key = freq.name.lower()
-
-            self._set_property(key, self._clamp(new_value))
-
+    def _set_eq_freq(self, freq: int, new_value: int):
+        if self.Freqs.is_valid(freq):
+            freq = self.Freqs(freq)
+            self._set_property(getattr(self.Keys, freq.name), self._clamp(new_value))
         else:
-            self._zone._log_error(f"EQSettings.Freqs {freq} doesnt exist")
+            self.zone._log_error(f"EQSettings.Freqs {freq} doesnt exist")
 
     #
     # Update from a JSON dict passed
     #
-    def _map_response_dict(self, eq_data: Dict[str, int]) -> None:
-        for eq_data_key, freq_key in EQSettings.KEY_MAP.items():
-            if eq_data_key in eq_data:
-                self._set_eq_freq(freq_key, int(eq_data[eq_data_key]))
+    def _map_response_dict(self, json_data: Dict[str, int]) -> None:
+        for json_data_key, setting_key in self.KEY_MAP.items():
+            if json_data_key in json_data:
+                self._set_property(
+                    setting_key, self._clamp(int(json_data[json_data_key]))
+                )
 
     #
     # EQ Enabled
@@ -473,7 +516,7 @@ class EQSettings:
 
     @enabled.setter
     def enabled(self, enabled: Union[bool, int]):
-        self._zone._api_alpha.request_action_2D(enabled)
+        self.zone.api_alpha.request_action_2D(enabled)
 
     def enabled_toggle(self):
         self.enabled = False if self.enabled else True
@@ -487,7 +530,7 @@ class EQSettings:
 
     @hz60.setter
     def hz60(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.HZ60, val)
+        self._set_frequency_on_device(self.Freqs.HZ60, val)
 
     @property
     def hz60_db(self):
@@ -495,7 +538,7 @@ class EQSettings:
 
     @hz60_db.setter
     def hz60_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.HZ60, val)
+        self._set_frequency_on_device_db(self.Freqs.HZ60, val)
 
     #
     # EQ 200Hz
@@ -506,7 +549,7 @@ class EQSettings:
 
     @hz200.setter
     def hz200(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.HZ200, val)
+        self._set_frequency_on_device(self.Freqs.HZ200, val)
 
     @property
     def hz200_db(self):
@@ -514,7 +557,7 @@ class EQSettings:
 
     @hz200_db.setter
     def hz200_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.HZ200, val)
+        self._set_frequency_on_device_db(self.Freqs.HZ200, val)
 
     #
     # EQ 500Hz
@@ -525,7 +568,7 @@ class EQSettings:
 
     @hz500.setter
     def hz500(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.HZ500, val)
+        self._set_frequency_on_device(self.Freqs.HZ500, val)
 
     @property
     def hz500_db(self):
@@ -533,7 +576,7 @@ class EQSettings:
 
     @hz500_db.setter
     def hz500_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.HZ500, val)
+        self._set_frequency_on_device_db(self.Freqs.HZ500, val)
 
     #
     # EQ 1kHz
@@ -544,7 +587,7 @@ class EQSettings:
 
     @khz1.setter
     def khz1(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ1, val)
+        self._set_frequency_on_device(self.Freqs.KHZ1, val)
 
     @property
     def khz1_db(self):
@@ -552,7 +595,7 @@ class EQSettings:
 
     @khz1_db.setter
     def khz1_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ1, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ1, val)
 
     #
     # EQ 4kHz
@@ -563,7 +606,7 @@ class EQSettings:
 
     @khz4.setter
     def khz4(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ4, val)
+        self._set_frequency_on_device(self.Freqs.KHZ4, val)
 
     @property
     def khz4_db(self):
@@ -571,7 +614,7 @@ class EQSettings:
 
     @khz4_db.setter
     def khz4_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ4, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ4, val)
 
     #
     # EQ 8kHz
@@ -582,7 +625,7 @@ class EQSettings:
 
     @khz8.setter
     def khz8(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ8, val)
+        self._set_frequency_on_device(self.Freqs.KHZ8, val)
 
     @property
     def khz8_db(self):
@@ -590,7 +633,7 @@ class EQSettings:
 
     @khz8_db.setter
     def khz8_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ8, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ8, val)
 
     #
     # EQ 15kHz
@@ -601,7 +644,7 @@ class EQSettings:
 
     @khz15.setter
     def khz15(self, val: int):
-        self._set_frequency_on_device(EQSettings.Freqs.KHZ15, val)
+        self._set_frequency_on_device(self.Freqs.KHZ15, val)
 
     @property
     def khz15_db(self):
@@ -609,4 +652,4 @@ class EQSettings:
 
     @khz15_db.setter
     def khz15_db(self, val: int):
-        self._set_frequency_on_device_db(EQSettings.Freqs.KHZ15, val)
+        self._set_frequency_on_device_db(self.Freqs.KHZ15, val)
