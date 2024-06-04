@@ -438,11 +438,6 @@ class APIAlpha(APIBase):
     # volume and it them seems to behave ok
     #
     #
-    # There are some bugs in this, where sometimes the VSSL will send duration feedback to zone1 instead of
-    # the correct zone
-    #
-    # Volume can be controlled when playings?!
-    #
     """ note: the call will return immediately with either a failure message or an indication that the 
     playback has been requested. It is possible for the playback to fail (e.g. the network can't retrieve the file, 
     the file format is invalid, ...). Further status will be provided in the coming VSSL FW iterations.

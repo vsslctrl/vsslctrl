@@ -85,7 +85,7 @@ class Zone:
                 self._request_eq_status,
                 self._request_track,
                 self._request_name,
-                # self._request_bt_status
+                self._request_bt_status,
             ],
         )
 
