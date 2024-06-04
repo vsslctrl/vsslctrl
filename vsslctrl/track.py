@@ -303,7 +303,7 @@ class TrackMetadata(ZoneDataClass):
             if url == self.AIRPLAY_COVER_ART and self.album:
                 encoded_album = (
                     base64.urlsafe_b64encode(self.album.encode()).decode().rstrip("=")
-                )
+                )[:6]
                 query = f"?album={encoded_album}"
 
             return default_host + url + query
