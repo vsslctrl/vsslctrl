@@ -289,7 +289,7 @@ class TrackMetadata(ZoneDataClass):
         # Parse the URL
         parsed_url = urlparse(url)
         default_host = f"http://{self.zone.host}"
-        # query = ""
+        query = ""
 
         # Check if the scheme and netloc are missing
         if not parsed_url.scheme or not parsed_url.netloc:
@@ -298,17 +298,15 @@ class TrackMetadata(ZoneDataClass):
             if not default_host.endswith("/") and not url.startswith("/"):
                 default_host += "/"
 
-            # # Lets add a query string to the coverart.jpg URL so the latest coverart
-            # # will always be downloaded if the album changes
-            # if url == self.AIRPLAY_COVER_ART and self.album:
-            #     encoded_album = (
-            #         base64.urlsafe_b64encode(self.album.encode()).decode().rstrip("=")
-            #     )
-            #     query = f"?album={encoded_album}"
+            # Lets add a query string to the coverart.jpg URL so the latest coverart
+            # will always be downloaded if the album changes
+            if url == self.AIRPLAY_COVER_ART and self.album:
+                encoded_album = (
+                    base64.urlsafe_b64encode(self.album.encode()).decode().rstrip("=")
+                )
+                query = f"?album={encoded_album}"
 
-            # return default_host + url + query
-
-            return default_host + url
+            return default_host + url + query
 
         # Return the original URL if it is already a valid URL
         return url
