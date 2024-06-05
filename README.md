@@ -3,7 +3,7 @@
 
  **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
- Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and not soley rely on mDNS for control (as per the offical VSSL app) 
+ Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and have control over different subnets (not mDNS dependant)
 
  I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping.
 
@@ -12,13 +12,17 @@
 ## TODOs
 
 * Test on other models (hardware needed)
-* Home Assistant integration (in progress)
+* Home Assistant integration. In progress, [here](https://github.com/vsslctrl/integration.home-assistant)
 * Function scoping to supported feature / models
 * Better test coverage
 
+Important
+-----------
+**Warning:** no *[VSSL Agent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* should be running on the same network. If you dont know what this is, then you can probably ignore this notice.
+
+
 Basic Usage
 -----------
-
 `vsslctrl` needs to be running inside a **[asyncio](https://docs.python.org/3/library/asyncio.html)** event loop.
 
 ```python
@@ -328,7 +332,7 @@ zone1.settings.volume.default_on = 75
 | ---------------------- 	| ----------- | ----------- |----------- |
 | `enabled`     			 	| Enable / disable EQ        |	`bool` 
 
-EQ be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `-10`dB to `+10`dB
+EQ to be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `-10`dB to `+10`dB
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- | 
@@ -348,7 +352,7 @@ zone1.settings.eq.khz1_db = -2
 
 ## Credit
 
-The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start). VSSLs non-legacy iOS app version 1.1.3(1) is crashing my A.3x.
+The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
 
 ## Known Issues & Limitiations
 
@@ -361,4 +365,10 @@ The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS a
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
 * `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source
 * Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects
+
+## Future
+
+* REST API / Web App
+* Save and recall EQ
+* A.1(x) coverage i.e Bluetooth
 
