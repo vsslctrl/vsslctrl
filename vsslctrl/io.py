@@ -10,7 +10,7 @@ class InputRouter(ZoneDataClass):
     # Input Priority
     #
     # 0: Stream -> Analog Input
-    # 1: Analog Input -> Stream (Local first in App)
+    # 1: Analog Input -> Stream (Local first)
     #
     # DO NOT CHANGE - VSSL Defined
     #
