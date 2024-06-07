@@ -299,7 +299,7 @@ class TrackMetadata(ZoneDataClass):
                 default_host += "/"
 
             # Lets add a query string to the coverart.jpg URL so the latest coverart
-            # will always be downloaded if the album changes
+            # will always be downloaded if the album + artist changes
             if url == self.AIRPLAY_COVER_ART and self.artist and self.album:
                 aahash = (
                     base64.urlsafe_b64encode(self.artist.encode() + self.album.encode())
