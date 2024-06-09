@@ -350,6 +350,53 @@ EQ to be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `
 zone1.settings.eq.khz1_db = -2
 ```
 
+## Another (Lite) Way
+
+If you perfer to not run the complete intergration, you can send basic HEX commands to the VSSL device using [Netcat](https://nc110.sourceforge.io/) (or ant network tool) on port `50002`.
+
+| HEX      	| Description |
+| ---------------------- 	| ----------- |
+| `\x10\x05\x03\x0{Zone Number}\xff\x03`   			| Volume Up     
+| `\x10\x05\x03\x0{Zone Number}\xfe\x03`   			| Volume Down    
+| `\x10\x11\x02\x0{Zone Number}\x01`   			| Mute
+| All commands can be found by looking [here](https://github.com/vsslctrl/vsslctrl/blob/2c43c2f2393b94bc0e062d2ab90144343eca16ef/vsslctrl/api_alpha.py)   			| 
+
+
+The `volume up` HEX command for `Zone 2` would be `\x10\x05\x03\x02\xff\x03`
+
+Now send the raw HEX using Netcat to the device using this syntax:
+
+`echo -e "{HEX Command}" | nc {IP Address} 50002`
+
+For example to send `volume up` to `Zone 2`:
+
+`echo -e "\x10\x05\x03\x02\xff\x03" | nc 192.168.1.11 50002`
+
+Home Assistant `Configuration.yaml` example:
+
+```ymal
+...
+
+shell_command:
+  #Zone 1
+  vssl_zone_1_volume_up: 'echo -e "\x10\x05\x03\x01\xff\x03" | nc 192.168.1.10 50002'
+  vssl_zone_1_volume_down: 'echo -e "\x10\x05\x03\x01\xfe\x03" | nc 192.168.1.10 50002'
+  vssl_zone_1_mute: 'echo -e "\x10\x11\x02\x01\x01" | nc 192.168.1.10 50002'
+  vssl_zone_1_unmute: 'echo -e "\x10\x11\x02\x01\x00" | nc 192.168.1.10 50002'
+  #Zone 2
+  vssl_zone_2_volume_up: 'echo -e "\x10\x05\x03\x02\xff\x03" | nc 192.168.1.11 50002'
+  vssl_zone_2_volume_down: 'echo -e "\x10\x05\x03\x02\xfe\x03" | nc 192.168.1.11 50002'
+  vssl_zone_2_mute: 'echo -e "\x10\x11\x02\x02\x01" | nc 192.168.1.11 50002'
+  vssl_zone_2_unmute: 'echo -e "\x10\x11\x02\x02\x00" | nc 192.168.1.11 50002'
+  #Zone 3
+  vssl_zone_3_volume_up: 'echo -e "\x10\x05\x03\x03\xff\x03" | nc 192.168.1.12 50002'
+  vssl_zone_3_volume_down: 'echo -e "\x10\x05\x03\x03\xfe\x03" | nc 192.168.1.12 50002'
+  vssl_zone_3_mute: 'echo -e "\x10\x11\x02\x03\x01" | nc 192.168.1.12 50002'
+  vssl_zone_3_unmute: 'echo -e "\x10\x11\x02\x03\x00" | nc 192.168.1.12 50002'
+
+ ...
+```
+
 ## Credit
 
 The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
