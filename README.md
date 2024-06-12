@@ -27,17 +27,24 @@ Basic Usage
 
 ```python
 import asyncio
-from vsslctrl import Vssl, Zone
+from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
 
 async def main():
 	
 	# Represents a physical VSSL amplifier
 	vssl = Vssl()
 
+  """Optional to init Vssl with a device model
+
+    vssl = Vssl(DeviceModels.A3X)
+
+    If no DeviceModels is passed, vsslctrl will default to the feature set of the X series amps
+  """
+
 	# Add each you wish to control
-	zone1 = vssl.add_zone(Zone.IDs.ZONE_1, '192.168.1.10')
-	zone2 = vssl.add_zone(Zone.IDs.ZONE_2, '192.168.1.11')
-	zone3 = vssl.add_zone(Zone.IDs.ZONE_3, '192.168.1.12')
+	zone1 = vssl.add_zone(ZoneIDs.ZONE_1, '192.168.1.10')
+	zone2 = vssl.add_zone(ZoneIDs.ZONE_2, '192.168.1.11')
+	zone3 = vssl.add_zone(ZoneIDs.ZONE_3, '192.168.1.12')
 	#... up to 6 zones
 
 	# Connect and initiate zones.
@@ -89,7 +96,7 @@ print(zone_name)
 | ---------------------- 	| ----------- | ----------- |
 | `sw_version`   			| Software version        |	`str` readonly
 | `serial`   			| Serial number        |	`str` readonly
-| `model_zone_qty`   			| Number of zones the device has        |	`int` readonly
+| `model`   			| Device Model        |	`int` readonly
 | `reboot()`   			| Reboot all zones        |	`func`  |
 
 ```python
@@ -131,7 +138,7 @@ vssl.settings.power.adaptive = True
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `id`     			 	| Zone number / ID |	`int` readonly	| `Zone.IDs`
+| `id`     			 	| Zone number / ID |	`int` readonly	| `ZoneIDs`
 | `host`   			| IP address        |	`str` readonly
 | `volume`   			| Volume        |	`int`  | `0...100`
 | `volume_raise([step=1])`   			| Raise volume by `step`       |	`func`  | step: `int` `1...100`
@@ -235,20 +242,20 @@ Working on A.3x but offically unsupported in x series amplifiers.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `source`     			 	| Zone ID of group master / source |	`int` readonly	| `Zone.IDs`
+| `source`     			 	| Zone ID of group master / source |	`int` readonly	| `ZoneIDs`
 | `is_master`   			| This zone is the group master        |	`bool` readonly
-| `add_member()`   			| Add zone to group / create group |	`func`  | `Zone.IDs`
-| `remove_member()`   		| Remove zone from group      |	`func`  | `Zone.IDs`
+| `add_member()`   			| Add zone to group / create group |	`func`  | `ZoneIDs`
+| `remove_member()`   		| Remove zone from group      |	`func`  | `ZoneIDs`
 | `dissolve()`   			| Dissolve group / remove all members       |	`func`  |
 | `leave()`   				| Leave the group if a member       |	`func`  |
 
 ```python
 """Examples"""
 # Add group 2 to a group with zone 1 as master
-zone1.group.add_member(Zone.IDs.ZONE_2)
-# Remove zone 2 from group.
+zone1.group.add_member(ZoneIDs.ZONE_2)
+# Remove zone 2 from group
 zone2.group.leave() # or
-zone1.group.remove_member(Zone.IDs.ZONE_2)
+zone1.group.remove_member(ZoneIDs.ZONE_2)
 # If zone 1 is a master, remove all members
 zone1.group.dissolve()
 ```
@@ -418,4 +425,5 @@ The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS a
 * REST API / Web App
 * Save and recall EQ
 * A.1(x) coverage i.e Bluetooth
+* IR Control
 

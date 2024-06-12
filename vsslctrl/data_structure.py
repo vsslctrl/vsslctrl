@@ -29,24 +29,18 @@ class VsslIntEnum(VsslEnum, IntEnum):
     """IntEnum"""
 
 
-class DeviceModels(VsslEnum):
-    A1 = "a1"
-    A3 = "a3"
-    A6 = "a6"
-    A1X = "a1x"
-    A3X = "a3x"
-    A6X = "a6x"
-
-    @staticmethod
-    # Get the amount of zones the model has by pulling out the number in the model
-    def zone_count(model: str):
-        if DeviceModels.is_valid(model.lower()):
-            pattern = r"\d+"
-            match = re.search(pattern, model)
-            if match:
-                number = int(match.group())
-                return number
-        return 1
+#
+# Zones IDs
+#
+# Moved here to help with circular imports
+#
+class ZoneIDs(VsslIntEnum):
+    ZONE_1 = 1
+    ZONE_2 = 2
+    ZONE_3 = 3
+    ZONE_4 = 4
+    ZONE_5 = 5
+    ZONE_6 = 6
 
 
 """ JSON Structure

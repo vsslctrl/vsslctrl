@@ -10,7 +10,8 @@ from .event_bus import EventBus
 from .settings import VsslSettings
 from .decorators import logging_helpers
 from .discovery import check_zeroconf_availability, fetch_zone_id_serial
-from .data_structure import DeviceModels
+from .device import Models
+from .data_structure import ZoneIDs
 
 
 @logging_helpers("VSSL:")
@@ -23,14 +24,13 @@ class Vssl:
     class Events:
         PREFIX = "vssl."
         MODEL_CHANGE = PREFIX + "model_changed"
-        MODEL_ZONE_QTY_CHANGE = PREFIX + "model_zone_qty_changed"
         SW_VERSION_CHANGE = PREFIX + "sw_version_changed"
         SERIAL_CHANGE = PREFIX + "serial_changed"
         ALL = EventBus.WILDCARD
 
     def __init__(
         self,
-        model: DeviceModels = None,
+        model: Models = None,
         zones: Union[str, List[str]] = None,
     ):
         self.event_bus = EventBus()
@@ -38,10 +38,10 @@ class Vssl:
         self._sw_version = None
         self._serial = None
         self._model = None
-        self._model_zone_qty = 0
         self.settings = VsslSettings(self)
 
-        self.model = model
+        if model is not None:
+            self.model = model
 
         # Add zones if any are passed
         if zones:
@@ -64,20 +64,20 @@ class Vssl:
 
             # If we pass a model to the zone, the zone count will be worked out from that,
             # otherwise we will try and work it out once we receive some info about he device
-            if not self.model_zone_qty:
-                future_model_zone_qty = self.event_bus.future(
-                    self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID
+            if not self.model:
+                future_model = self.event_bus.future(
+                    self.Events.MODEL_CHANGE, self.ENTITY_ID
                 )
 
             # Lets make sure the zone is initialised, otherwsie we fail all
             await first_zone.initialise()
 
-            # Only continue after we now how many zones the device supports
+            # Only continue after we have a model
             try:
-                if not self.model_zone_qty:
-                    await asyncio.wait_for(future_model_zone_qty, timeout=init_timeout)
+                if not self.model:
+                    await asyncio.wait_for(future_model, timeout=init_timeout)
 
-                if len(self.zones) > self.model_zone_qty:
+                if len(self.zones) > self.model.zone_count:
                     raise VsslCtrlException("")
 
             except asyncio.TimeoutError:
@@ -87,7 +87,8 @@ class Vssl:
                 raise VsslCtrlException(message)
 
             except VsslCtrlException:
-                message = f"Device model only has {self.model_zone_qty} zones instead of {len(self.zones)}"
+                zone_count = self.model.zone_count
+                message = f"Device model only has {zone_count} zones instead of {len(self.zones)}"
                 self._log_critical(message)
                 await first_zone.disconnect()
                 raise VsslCtrlException(message)
@@ -173,47 +174,32 @@ class Vssl:
         return self._model
 
     @model.setter
-    def model(self, model: str):
-        if self.model != model:
-            if DeviceModels.is_valid(model):
-                self._set_property("model", DeviceModels(model))
-            else:
-                message = f"DeviceModels {model} doesnt exist"
-                self._log_error(message)
-                raise VsslCtrlException(message)
+    def model(self, model):
+        if Models.is_valid(model):
+            self._set_property("model", Models(model).value)
+        elif isinstance(model, str):
+            model = model.upper()
+            if hasattr(Models, model):
+                self._set_property("model", getattr(Models, model).value)
+        else:
+            message = f"Model {model} doesnt exist"
+            self._log_error(message)
+            raise VsslCtrlException(message)
 
     #
-    # The amount of zones this VSSL has. This is not how many zones have been initialised
-    # but how many zones the model has in total. We can have 1, 3 or 6 zones.
+    # Work out the a model given some device info
     #
-    @property
-    def model_zone_qty(self):
-        if not self._model_zone_qty and self.model is not None:
-            self._model_zone_qty = DeviceModels.zone_count(self.model.value)
-
-        return self._model_zone_qty
-
-    @model_zone_qty.setter
-    def model_zone_qty(self, model_zone_qty: int):
-        pass  # read-only
-
-    #
-    # Work out the model_zone_qty given device info
-    #
-    def _infer_model_zone_qty(self, data: Dict[str, int]):
-        if not self.model_zone_qty:
+    def _infer_device_model(self, data: Dict[str, int]):
+        # if we dont have a model, default to x series
+        if not self.model:
             zone_count = sum(
                 1 for key in data if key.startswith("B") and key.endswith("Src")
             )
 
             if zone_count in (1, 3, 6):
-                self._model_zone_qty = zone_count
+                self.model = f"A{zone_count}X"
             else:
-                self._model_zone_qty = 1
-
-            self.event_bus.publish(
-                self.Events.MODEL_ZONE_QTY_CHANGE, self.ENTITY_ID, self.model_zone_qty
-            )
+                self.model = Models.A1X
 
     #
     # Disconnect / Shutdown
@@ -234,9 +220,9 @@ class Vssl:
     #
     # Add a Zone
     #
-    def add_zone(self, zone_index: "Zone.IDs", host: str):
-        if Zone.IDs.is_not_valid(zone_index):
-            error = f"Zone.IDs {zone_index} doesnt exist"
+    def add_zone(self, zone_index: ZoneIDs, host: str):
+        if ZoneIDs.is_not_valid(zone_index):
+            error = f"ZoneIDs {zone_index} doesnt exist"
             self._log_error(error)
             raise ZoneError(error)
             return None
@@ -262,7 +248,7 @@ class Vssl:
     #
     # Get a Zone by ID
     #
-    def get_zone(self, zone_index: "Zone.IDs"):
+    def get_zone(self, zone_index: ZoneIDs):
         if zone_index in self.zones:
             return self.zones[zone_index]
         else:

@@ -162,7 +162,7 @@ class ZoneSettings(ZoneDataClass):
 
         self._disabled = False
         self._name = f"Zone {zone.id}"
-        self._mono = False
+        self._mono = self.StereoMono.Stereo
 
         self.eq = EQSettings(zone)
         self.volume = VolumeSettings(zone)

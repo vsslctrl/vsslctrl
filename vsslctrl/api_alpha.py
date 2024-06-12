@@ -558,8 +558,8 @@ class APIAlpha(APIBase):
     def response_action_00_00(self, metadata: list):
         self._log_debug(f"Received 00 Status: {metadata}")
 
-        # Workout how many zones we have
-        self.vssl._infer_model_zone_qty(metadata)
+        # Guess device model
+        self.vssl._infer_device_model(metadata)
 
         # Analog output source
         key = DeviceStatusExtKeys.add_zone_to_bus_key(self.zone.id)

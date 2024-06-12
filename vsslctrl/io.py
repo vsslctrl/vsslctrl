@@ -83,10 +83,14 @@ class InputRouter(ZoneDataClass):
 
     @source.setter
     def source(self, src: "InputRouter.Sources"):
-        if self.Sources.is_valid(src):
+        # if self.Sources.is_valid():
+        if src in self.zone.vssl.model.input_sources:
+            # check source is avaialbe on this device
             self.zone.api_alpha.request_action_03(src)
         else:
-            self.zone._log_error(f"InputRouter.Sources {src} doesnt exist")
+            self.zone._log_error(
+                f"InputRouter.Sources {src} doesnt exist in {list(self.zone.vssl.model.input_sources)}"
+            )
 
     def _set_source(self, src: int):
         if self.source != src:
@@ -160,10 +164,13 @@ class AnalogOutput(ZoneDataClass):
 
     @source.setter
     def source(self, src: "AnalogOutput.Sources"):
-        if self.Sources.is_valid(src):
+        # if self.Sources.is_valid(src):
+        if src in self.zone.vssl.model.analog_output_sources:
             self.zone.api_alpha.request_action_1D(src)
         else:
-            self.zone._log_error(f"AnalogOutput.Sources {src} doesnt exist")
+            self.zone._log_error(
+                f"AnalogOutput.Sources {src} doesnt exist in {list(self.zone.vssl.model.analog_output_sources)}"
+            )
 
     def _set_source(self, src: int):
         if self.source != src:

@@ -13,7 +13,7 @@ from . import core
 from .api_alpha import APIAlpha
 from .api_bravo import APIBravo
 from .utils import RepeatTimer, clamp_volume
-from .data_structure import DeviceModels, VsslIntEnum
+from .data_structure import VsslIntEnum, ZoneIDs
 from .track import TrackMetadata
 from .io import AnalogOutput, InputRouter
 from .settings import ZoneSettings
@@ -25,17 +25,6 @@ from .decorators import logging_helpers
 
 @logging_helpers()
 class Zone:
-    #
-    # Zones IDs
-    #
-    class IDs(VsslIntEnum):
-        ZONE_1 = 1
-        ZONE_2 = 2
-        ZONE_3 = 3
-        ZONE_4 = 4
-        ZONE_5 = 5
-        ZONE_6 = 6
-
     #
     # Zone Events
     #
@@ -49,7 +38,7 @@ class Zone:
         VOLUME_CHANGE = PREFIX + "volume_change"
         MUTE_CHANGE = PREFIX + "mute_change"
 
-    def __init__(self, vssl_host: "core.Vssl", zone_id: "Zone.IDs", host: str):
+    def __init__(self, vssl_host: "core.Vssl", zone_id: ZoneIDs, host: str):
         self._log_prefix = f"Zone {zone_id}:"
 
         self.vssl = vssl_host
@@ -57,7 +46,7 @@ class Zone:
 
         # Data / Cache
         self._host = host
-        self._id = self.IDs(zone_id)
+        self._id = ZoneIDs(zone_id)
         self._mac_addr = None
         self._serial = None
         self._volume = 0

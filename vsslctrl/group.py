@@ -1,7 +1,8 @@
 import logging
 from . import zone
 from typing import Dict, Union
-from .data_structure import ZoneDataClass
+from .data_structure import ZoneDataClass, ZoneIDs
+from .device import Features as DeviceFeatures
 
 
 """
@@ -58,12 +59,19 @@ class ZoneGroup(ZoneDataClass):
     #
     # Group Add Zone
     #
-    def add_member(self, zone_id: "zone.Zone.IDs"):
+    def add_member(self, zone_id: ZoneIDs):
+        # Check this device is a multizone device
+        if not self.zone.vssl.model.supports_feature(DeviceFeatures.GROUPING):
+            self.zone._log_error(
+                f"VSSL {self.zone.vssl.model.name} doesnt support grouping"
+            )
+            return False
+
         if self.zone.id == zone_id:
             self.zone._log_error(f"Zone {zone_id} cant be parent and member")
             return False
 
-        if zone.Zone.IDs.is_not_valid(zone_id):
+        if ZoneIDs.is_not_valid(zone_id):
             self.zone._log_error(f"Zone {zone_id} doesnt exist")
             return False
 
@@ -84,7 +92,7 @@ class ZoneGroup(ZoneDataClass):
     #
     # Group Remove Child
     #
-    def remove_member(self, zone_id: "zone.Zone.IDs"):
+    def remove_member(self, zone_id: ZoneIDs):
         self.zone.api_alpha.request_action_4B_remove(zone_id)
 
     #
@@ -132,9 +140,7 @@ class ZoneGroup(ZoneDataClass):
         pass  # read-only
 
     def _set_source(self, grs: int):
-        new_source = (
-            zone.Zone.IDs(grs) if grs != 255 and zone.Zone.IDs.is_valid(grs) else None
-        )
+        new_source = ZoneIDs(grs) if grs != 255 and ZoneIDs.is_valid(grs) else None
 
         if self.source != new_source:
             self._source = new_source

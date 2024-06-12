@@ -6,11 +6,9 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 
-from vsslctrl import Vssl, Zone
+from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
 
 from logging.handlers import RotatingFileHandler
-from vsslctrl.exceptions import VsslCtrlException
-from vsslctrl.data_structure import DeviceModels
 
 rfh = RotatingFileHandler(
     filename="vssl.log",
@@ -29,12 +27,13 @@ logging.basicConfig(
 
 async def main():
     vssl = Vssl(DeviceModels.A3X)
-    zone1 = vssl.add_zone(Zone.IDs.ZONE_1, "10.10.30.10")
-    zone2 = vssl.add_zone(Zone.IDs.ZONE_2, "10.10.30.11")
-    zone3 = vssl.add_zone(Zone.IDs.ZONE_3, "10.10.30.12")
+    # vssl = Vssl('a3x')
+    zone1 = vssl.add_zone(ZoneIDs.ZONE_1, "192.168.1.10")
+    zone2 = vssl.add_zone(ZoneIDs.ZONE_2, "192.168.1.11")
+    zone3 = vssl.add_zone(ZoneIDs.ZONE_3, "192.168.1.12")
 
     try:
-        # # print(await vssl.discover())
+        # print(await vssl.discover())
 
         await vssl.initialise()
 
@@ -62,6 +61,8 @@ async def main():
             except EOFError:
                 break  # Handle EOFError (e.g., Ctrl+D) to exit the loop
 
+    # except Exception as e:
+    #     raise
     except Exception as e:
         print(e)
     finally:
