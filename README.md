@@ -7,19 +7,18 @@
 
  I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping.
 
- Only tested on VSSL **A.3x** software version **p15305.016.3701**.
+Important
+-----------
+Only tested on a VSSL **A.3x** software version **p15305.016.3701**.
+
+**Warning:** no *[VSSL Agent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* should be running on the same network. If you dont know what this is, then you can probably ignore this notice.
 
 ## TODOs
 
 * Test on other models (hardware needed)
 * Home Assistant integration. In progress, [here](https://github.com/vsslctrl/integration.home-assistant)
-* Function scoping to supported feature / models
+* ~~Function scoping to supported feature / models~~ (needs tests)
 * Better test coverage
-
-Important
------------
-**Warning:** no *[VSSL Agent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* should be running on the same network. If you dont know what this is, then you can probably ignore this notice.
-
 
 Basic Usage
 -----------

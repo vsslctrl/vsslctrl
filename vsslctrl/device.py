@@ -33,9 +33,9 @@ ANALOG_OUTPUT_SOURCES_FOR_6_ZONE_DEVICE = list(AnalogOutput.Sources)
 
 
 class Features(VsslIntEnum):
-    GROUPING = 100
-    BLUETOOTH = 101
-    PARTY_MODE = 102
+    GROUPING = 1000
+    BLUETOOTH = 1001
+    PARTY_MODE = 1002
 
 
 class Model:

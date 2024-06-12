@@ -62,8 +62,8 @@ class Vssl:
         try:
             key, first_zone = zones_to_init.popitem()
 
-            # If we pass a model to the zone, the zone count will be worked out from that,
-            # otherwise we will try and work it out once we receive some info about he device
+            # If we dont pass a model we will default to the zone count of the X series amps once we
+            # know some info about the device
             if not self.model:
                 future_model = self.event_bus.future(
                     self.Events.MODEL_CHANGE, self.ENTITY_ID
