@@ -11,6 +11,8 @@ Important
 -----------
 Only tested on a VSSL **A.3x** software version **p15305.016.3701**.
 
+**Notice:** VSSLs new iOS app titled `VSSL`can cause connection refused issues if running at the same time as `vsslctrl`. Best to not use the iOS app togeather. The `VSSL Legacy` app works fine
+
 **Warning:** no *[VSSL Agent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* should be running on the same network. If you dont know what this is, then you can probably ignore this notice.
 
 ## TODOs
@@ -358,7 +360,7 @@ zone1.settings.eq.khz1_db = -2
 
 ## Another (Lite) Way
 
-If you perfer to not run the complete intergration, you can send basic HEX commands to the VSSL device using [Netcat](https://nc110.sourceforge.io/) (or ant network tool) on port `50002`.
+If you perfer to not run the complete intergration, you can send basic HEX commands to the VSSL device using [Netcat](https://nc110.sourceforge.io/) (or any network tool) on port `50002`.
 
 | HEX      	| Description |
 | ---------------------- 	| ----------- |
