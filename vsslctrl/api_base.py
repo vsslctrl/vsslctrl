@@ -158,6 +158,19 @@ class APIBase(ABC):
 
             except asyncio.CancelledError:
                 self._log_debug(f"writer close timeout")
+            except asyncio.TimeoutError as e:
+                self._log_error(f"Timeout while closing connection: {e}")
+                # Handle the timeout: log, retry, or take other actions
+            except ConnectionResetError as e:
+                self._log_error(f"Connection reset by peer: {e}")
+                # Handle the error: log, retry, or take other actions
+            except Exception as e:
+                self._log_error(f"Unexpected error occurred while disconnecting: {e}")
+                # Handle unexpected errors
+            finally:
+                self._writer = None
+
+        self._reader = None
 
         self._log_info(f"{self.host}:{self.port}: disconnected")
 

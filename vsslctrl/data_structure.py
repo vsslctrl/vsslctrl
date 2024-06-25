@@ -47,7 +47,11 @@ class ZoneIDs(VsslIntEnum):
 
  DO NOT CHANGE - VSSL Defined
 
+ A3.x
  {'B1Src': '3', 'B2Src': '4', 'B3Src': '5', 'B1Nm': '', 'B2Nm': 'Optical In', 'dev': 'Device Name', 'ver': 'p15305.016.3701'}
+
+ A6.x
+ {"B1Src":"3","B2Src":"4","B3Src":"5","B4Src":"6","B5Src":"7","B6Src":"8","B1Nm":"","B2Nm":"","dev":"VSSL A.6x","ver":"p15305.017.3701"}
 
 """
 
@@ -72,10 +76,14 @@ class DeviceStatusExtKeys:
 """ JSON Structure
 
  DO NOT CHANGE - VSSL Defined
-
+    
+ A3.x
  {'id': '1', 'ac': '0', 'mc': 'XXXXXXXXXXXX', 'vol': '20', 'mt': '0', 'pa': '0', 'rm': '0', 'ts': '14',
      'alex': '14', 'nmd': '0', 'ird': '14', 'lb': '24', 'tp': '13', 'wr': '0', 'as': '0', 'rg': '0'}
 
+ A6.x
+ {"id":"1","ac":"0","mc":"XXXXXXXXXXXX","vol":"50","mt":"0","pa":"0","rm":"0","ts":"0",
+    "alex":"126","nmd":"0","ird":"255","lb":"17","tp":"16","wr":"0","as":"0","rg":"0"}'
 """
 
 
@@ -94,10 +102,14 @@ class ZoneStatusExtKeys:
 """ JSON Structure
 
  DO NOT CHANGE - VSSL Defined
-
+    
+ A3.x
  {'mono': '0', 'AiNm': 'Analog In 1', 'eq1': '100', 'eq2': '100', 'eq3': '100', 'eq4': '100',
      'eq5': '100', 'eq6': '100', 'eq7': '100', 'voll': '75', 'volr': '75', 'vold': '0'}
 
+ A6.x
+ {"mono":"0","AiNm":"","eq1":"100","eq2":"100","eq3":"100","eq4":"100",
+    "eq5":"100","eq6":"100","eq7":"100","voll":"75","volr":"75","vold":"0"}'
 """
 
 
@@ -119,9 +131,14 @@ class ZoneEQStatusExtKeys:
 """ JSON Structure
 
  DO NOT CHANGE - VSSL Defined
-
+ 
+ A3.x
  {'ECO': '0', 'eqsw': '1', 'inSrc': '0', 'SP': '0', 'BF1': '0', 'BF2': '0', 'BF3': '0',
     'GRM': '0', 'GRS': '255', 'Pwr': '0', 'Bvr': '1', 'fxv': '24', 'AtPwr': '1'}
+    
+ A6.x
+ {"ECO":"0","eqsw":"1","inSrc":"0","SP":"0","BF1":"0","BF2":"0","BF3":"0",
+    "BF4":"0","BF5":"0","BF6":"0","GRM":"0","GRS":"255","Pwr":"0","Bvr":"2","fxv":"25","AtPwr":"1"}'
 
 """
 

@@ -206,7 +206,7 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 ## `Zone.track`
 
 * Not all sources have complete metadata - missing value will be set to defaults.
-* Airplay track position is not avaiable.
+* Airplay track `progress` is not avaiable.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- | ----------- | ----------- |----------- |
@@ -416,6 +416,7 @@ The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS a
 * VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 * Not all sources set the volume to 0 when the zone is muted
 * Grouping feedback is flaky on the X series amplifiers
+* Airplay `Zone.track.progress` is not avaiable.
 * Cant stop a URL playback, feedback is worng at least
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
 * `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source

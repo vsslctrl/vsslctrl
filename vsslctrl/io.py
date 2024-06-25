@@ -139,7 +139,7 @@ class AnalogOutput(ZoneDataClass):
         self.zone = zone
 
         self._is_fixed_volume = False
-        self._source = self.Sources(zone.id + 3)
+        self._source = self.Sources(zone.id + 2)
 
     #
     # Analog Output Fix Volume. Output wont respond to volume control
