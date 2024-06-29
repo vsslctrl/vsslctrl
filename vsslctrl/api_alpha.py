@@ -9,7 +9,7 @@ from .api_base import APIBase
 from .transport import ZoneTransport
 from .settings import EQSettings
 
-from .utils import hex_to_int, clamp_volume
+from .utils import hex_to_int, clamp_volume, hex_to_bytearray_string
 from .decorators import logging_helpers
 from .data_structure import (
     ZoneStatusExtKeys,
@@ -199,7 +199,7 @@ class APIAlpha(APIBase):
     # EQ
     #
     def request_action_0D(self, freq: "EQSettings.Freqs", value: int = 0):
-        clamped = max(90, min(value, 110))
+        clamped = max(EQSettings.MIN_VALUE, min(value, EQSettings.MAX_VALUE))
         self._log_debug(
             f"Requesting to set EQ: {freq.name[1:]} ({freq.value}) to {clamped}"
         )
@@ -1026,8 +1026,9 @@ class APIAlpha(APIBase):
     # Command confimation
     #
     def response_action_confimation(self, response: bytes):
+        cmd = response.hex()
         self._log_debug(
-            f"Received command confimation: {response[1]}. Hex: {response.hex()}"
+            f"Received command confimation: {hex_to_bytearray_string(cmd)} Hex: {cmd}"
         )
 
     #
@@ -1035,6 +1036,7 @@ class APIAlpha(APIBase):
     # Default Action
     #
     def response_action_default(self, hexl: list, response: bytes):
+        cmd = response.hex()
         self._log_debug(
-            f"Received unknown command {hexl[1].upper()}. Hex: {response.hex()}"
+            f"Received unknown command: {hex_to_bytearray_string(cmd)} Hex: {cmd}"
         )

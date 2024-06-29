@@ -5,7 +5,7 @@ import struct
 import logging
 
 from .api_base import APIBase
-from .utils import hex_to_int
+from .utils import hex_to_int, hex_to_bytearray_string
 from .decorators import logging_helpers
 from .data_structure import TrackMetadataExtKeys
 
@@ -407,8 +407,10 @@ class APIBravo(APIBase):
     #
     def response_action_70(self, hexl: list, response: bytes):
         length = 4 if hexl[0] == 16 else 10
-        cmd = hexl[length:]
-        self._log_debug(f"Command confirmation: {response[length:]}")
+        cmd = response[length:].hex()
+        self._log_debug(
+            f"Received command confimation: {hex_to_bytearray_string(cmd)} Hex: {cmd}"
+        )
 
     #
     # Default

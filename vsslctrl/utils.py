@@ -39,6 +39,19 @@ def group_list_by_property(input_list, property_key):
 
 
 #
+# Logging Helper to show a command in bytearray([]) syntax
+#
+def hex_to_bytearray_string(hex_string):
+    # Convert the hex string to a bytearray
+    byte_array = bytearray.fromhex(hex_string)
+
+    # Create the bytearray string representation
+    bytearray_str = f'bytearray([{", ".join(map(str, byte_array))}])'
+
+    return bytearray_str
+
+
+#
 # Repeat Timer
 #
 class RepeatTimer:

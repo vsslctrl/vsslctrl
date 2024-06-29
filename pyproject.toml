@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vsslctrl"
 version = "0.1.5.dev1"
-description = "Package for controlling VSSL amplifiers"
+description = "Package for controlling VSSL's range of streaming amplifiers"
 authors = [
   { name="vsslctrl", email="vsslcontrolled@proton.me" },
 ]

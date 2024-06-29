@@ -1,29 +1,29 @@
 # vsslctrl
- Package for controlling [VSSL](https://www.vssl.com/) range of streaming amplifiers.
+
+ Package for controlling [VSSL's](https://www.vssl.com/) range of streaming amplifiers.
 
  **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
- Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and have control over different subnets (not mDNS dependant)
+## Help
 
- I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping.
+I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping. <vsslcontrolled@proton.me>
 
-Important
------------
-Only tested on a VSSL **A.3x** software version **p15305.016.3701**.
+Tested on:
+- Test suite run on a VSSL **A.3x** software version **p15305.016.3701**
+- The [Home Assistant](https://www.home-assistant.io/) integration is reported working on a **A.6x** software version **p15305.017.3701**
 
-**Notice:** VSSLs new iOS app titled `VSSL`can cause connection refused issues if running at the same time as `vsslctrl`. Best to not use the iOS app togeather. The `VSSL Legacy` app works fine
+## Important
 
-**Warning:** no *[VSSL Agent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* should be running on the same network. If you dont know what this is, then you can probably ignore this notice.
+There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* running on the same network. If you dont know what this is, then you can ignore this notice.
 
 ## TODOs
 
-* Test on other models (hardware needed)
+* **A1(.x)** specific control e.g sub crossover, bluetooth
 * Home Assistant integration. In progress, [here](https://github.com/vsslctrl/integration.home-assistant)
-* ~~Function scoping to supported feature / models~~ (needs tests)
 * Better test coverage
 
-Basic Usage
------------
+## Basic Usage
+
 `vsslctrl` needs to be running inside a **[asyncio](https://docs.python.org/3/library/asyncio.html)** event loop.
 
 ```python
@@ -70,8 +70,7 @@ async def main():
 asyncio.run(main())
 ```
 
-API
------------
+# API
 
 Most functionality is achived via `getters` and `setters` of the two main classes `Vssl`, `Zone`. 
 
@@ -409,10 +408,11 @@ shell_command:
 
 The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
 
+Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and have control over different subnets (not mDNS dependant)
+
 ## Known Issues & Limitiations
 
-* Tested on VSSL **A.3x** software version **p15305.016.3701**
-* Not tested on A.1x, A.6.x or original A series range of amplifiers (testers welcome)
+* Not tested on A.1x or original A series range of amplifiers (testers welcome)
 * VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 * Not all sources set the volume to 0 when the zone is muted
 * Grouping feedback is flaky on the X series amplifiers
@@ -424,8 +424,8 @@ The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS a
 
 ## Future
 
+* A.1(x) coverage i.e Bluetooth and subwoofer control
 * REST API / Web App
 * Save and recall EQ
-* A.1(x) coverage i.e Bluetooth
 * IR Control
 
