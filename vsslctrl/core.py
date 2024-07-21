@@ -69,7 +69,7 @@ class Vssl:
                     self.Events.MODEL_CHANGE, self.ENTITY_ID
                 )
 
-            # Lets make sure the zone is initialised, otherwsie we fail all
+            # Lets make sure the zone is initialised, otherwsie we fail for all zones
             await first_zone.initialise()
 
             # Only continue after we have a model

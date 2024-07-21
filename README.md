@@ -10,7 +10,7 @@ I am looking for testers with any VSSL amplifier models, please get in touch if 
 
 Tested on:
 - Test suite run on a VSSL **A.3x** software version **p15305.016.3701**
-- The [Home Assistant](https://www.home-assistant.io/) integration is reported working on a **A.6x** software version **p15305.017.3701**
+- The Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) is reported working on a **A.6x** software version **p15305.017.3701**
 
 ## Important
 
@@ -19,7 +19,6 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 ## TODOs
 
 * **A1(.x)** specific control e.g sub crossover, bluetooth
-* Home Assistant integration. In progress, [here](https://github.com/vsslctrl/integration.home-assistant)
 * Better test coverage
 
 ## Basic Usage
@@ -262,10 +261,10 @@ zone1.group.dissolve()
 
 ## `Zone.analog_output`
 
-| Property      	| Description | Type		| Values 		| 
-| ---------------------- 	| ----------- | ----------- |----------- |
-| `source`     			 	| Where the AO is routed from. i.e a zone, optical input or off |	`int`	| `AnalogOutput.Sources`
-| `is_fixed_volume`   			| Fix the output volume. Output wont respond to volume control        |	`bool` readonly
+| Property      	| Description | Type		| Values 		| Default |
+| ---------------------- 	| ----------- | ----------- |----------- |----------- |
+| `source`     			 	| Where the AO is routed from. i.e a zone, optical input or off |	`int`	| `AnalogOutput.Sources` | `Off`
+| `is_fixed_volume`   			| Fix the output volume. Output wont respond to volume control        |	`bool` | |`False`
 | `is_fixed_volume_toggle()`   			| Toggle fixed volume      |	`func`  |
 
 ```python
@@ -282,12 +281,12 @@ zone1.analog_output.is_fixed_volume = True
 
 ## `Zone.settings`
 
-| Property      	| Description | Type		| Values 		| 
-| ---------------------- 	| ----------- | ----------- |----------- |
+| Property      	| Description | Type		| Values 		| Default |
+| ---------------------- 	| ----------- | ----------- |----------- |----------- |
 | `name`     			 	| Name |	`str`	| 
-| `disabled`   			| Disable the zone        |	`bool`
+| `disabled`   			| Disable the zone        |	`bool` || `False`
 | `disabled_toggle()`   			| disable / enable        |	`func`  |
-| `mono`   			| Set output to mono or stereo        |	`int`  | `ZoneSettings.StereoMono`
+| `mono`   			| Set output to mono or stereo        |	`int`  | `ZoneSettings.StereoMono` | `Stereo`
 | `mono_toggle()`   			| Toggle mono or stereo        |	`func`  |
 
 ```python
@@ -302,10 +301,10 @@ zone1.mono_toggle()
 
 ## `Zone.settings.analog_input`
 
-| Property      	| Description | Type		| Values 		| 
-| ---------------------- 	| ----------- | ----------- |----------- |
+| Property      	| Description | Type		| Values 		| Default |
+| ---------------------- 	| ----------- | ----------- |----------- |----------- |
 | `name`     			 	| Name |	`str`	| 
-| `fixed_gain`   		| Fix the input gain to a specific value       |`int` | `0...100`
+| `fixed_gain`   		| Fix the input gain to a specific value       |`int` | `0...100` | `0` is disabled or variable gain
 
 ```python
 """Examples"""
@@ -319,11 +318,11 @@ zone1.settings.analog_input.fixed_gain = 50
 
 ## `Zone.settings.volume`
 
-| Property      	| Description | Type		| Values 		| 
-| ---------------------- 	| ----------- | ----------- |----------- |
-| `default_on`     			 	| Default on volume  |	`int`  | `0...100` 
-| `max_left`     			 	| Max volume left channel  |	`int`  | `0...100` 
-| `max_right`     			 	| Max volume right channel  |	`int`  | `0...100` 
+| Property      	| Description | Type		| Values 		| Default |
+| ---------------------- 	| ----------- | ----------- |----------- |----------- |
+| `default_on`     			 	| Default on volume  |	`int`  | `0...100` | `0` is disabled
+| `max_left`     			 	| Max volume left channel  |	`int`  | `0...100` | `75`
+| `max_right`     			 	| Max volume right channel  |	`int`  | `0...100` | `75`
 
 ```python
 """Examples"""
@@ -335,21 +334,21 @@ zone1.settings.volume.default_on = 75
 
 ## `Zone.settings.eq`
 
-| Property      	| Description | Type		| Values 		| 
-| ---------------------- 	| ----------- | ----------- |----------- |
-| `enabled`     			 	| Enable / disable EQ        |	`bool` 
+| Property      	| Description | Type		| Values 		| Default |
+| ---------------------- 	| ----------- | ----------- |----------- |----------- |
+| `enabled`     			 	| Enable / disable EQ        |	`bool` | | `False`
 
 EQ to be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `-10`dB to `+10`dB
 
-| Property      	| Description | Type		| Values 		| 
-| ---------------------- 	| ----------- | ----------- |----------- | 
-| `hz60_db`     			 	| 60Hz |	`int`  | `-10...10`
-| `hz200_db`     			 	| 200Hz |	`int`  | `-10...10`
-| `hz500_db`     			 	| 500Hz |	`int`  | `-10...10`
-| `khz1_db`     			 	| 1kHz |	`int`  | `-10...10`
-| `khz4_db`     			 	| 4kHz |	`int`  | `-10...10`
-| `khz8_db`     			 	| 8kHz |	`int`  | `-10...10`
-| `khz15_db`     			 	| 15kHz |	`int`  | `-10...10`
+| Property      	| Description | Type		| Values 		| Default |
+| ---------------------- 	| ----------- | ----------- |----------- | ----------- |
+| `hz60_db`     			 	| 60Hz |	`int`  | `-10...10` | `0`
+| `hz200_db`     			 	| 200Hz |	`int`  | `-10...10` | `0`
+| `hz500_db`     			 	| 500Hz |	`int`  | `-10...10` | `0`
+| `khz1_db`     			 	| 1kHz |	`int`  | `-10...10` | `0`
+| `khz4_db`     			 	| 4kHz |	`int`  | `-10...10` | `0`
+| `khz8_db`     			 	| 8kHz |	`int`  | `-10...10` | `0`
+| `khz15_db`     			 	| 15kHz |	`int`  | `-10...10` | `0`
 
 ```python
 """Examples"""
