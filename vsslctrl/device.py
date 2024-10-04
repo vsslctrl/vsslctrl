@@ -36,6 +36,7 @@ class Features(VsslIntEnum):
     GROUPING = 1000
     BLUETOOTH = 1001
     PARTY_MODE = 1002
+    SUBWOOFER_CROSSOVER = 1003
 
 
 class Model:
@@ -65,7 +66,7 @@ class Models(VsslEnum):
             "zones": SINGLE_ZONE,
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
-            "features": [Features.BLUETOOTH],
+            "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
         }
     )
     A3 = Model(
@@ -92,7 +93,7 @@ class Models(VsslEnum):
             "zones": SINGLE_ZONE,
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
-            "features": [Features.GROUPING, Features.BLUETOOTH],
+            "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
         }
     )
     A3X = Model(

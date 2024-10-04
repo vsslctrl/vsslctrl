@@ -49,8 +49,8 @@ class InputRouter(ZoneDataClass):
     def __init__(self, zone: "zone.Zone"):
         self.zone = zone
 
-        self._priority = self.Priorities.STREAM
-        self._source = self.Sources.STREAM
+        self._priority = self.DEFAULTS["priority"]
+        self._source = self.DEFAULTS["source"]
 
     #
     # Input Priority
@@ -138,7 +138,7 @@ class AnalogOutput(ZoneDataClass):
     def __init__(self, zone: "zone.Zone"):
         self.zone = zone
 
-        self._is_fixed_volume = False
+        self._is_fixed_volume = self.DEFAULTS["is_fixed_volume"]
         self._source = self.Sources(zone.id + 2)
 
     #
@@ -199,7 +199,7 @@ class AnalogInput(ZoneDataClass):
         self.zone = zone
 
         self._name = f"Analog In {self.zone.id}"
-        self._fixed_gain = 0
+        self._fixed_gain = self.DEFAULTS["fixed_gain"]
 
     #
     # Analog Input Name

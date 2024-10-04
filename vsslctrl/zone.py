@@ -74,7 +74,7 @@ class Zone:
                 self._request_eq_status,
                 self._request_track,
                 self._request_name,
-                self._request_bt_status,
+                self._request_status_extended,
             ],
         )
 
@@ -127,6 +127,8 @@ class Zone:
         # Initialised
         self.initialisation.set()
         self.vssl.event_bus.publish(self.Events.INITIALISED, self.id, self)
+
+        self._log_info(f"Zone {self.id} initialised")
 
         return self
 
@@ -406,7 +408,7 @@ class Zone:
         self.api_alpha.request_action_00_0A()
         return self
 
-    def _request_bt_status(self):
+    def _request_status_extended(self):
         self.api_alpha.request_action_00_0B()
         return self
 

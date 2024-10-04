@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Union
 from .utils import clamp_volume
 from .io import AnalogInput
+from .device import Features as DeviceFeatures
 from .data_structure import (
     VsslIntEnum,
     VsslDataClass,
@@ -16,6 +17,7 @@ class VsslSettings(VsslDataClass):
     class Keys:
         NAME = "name"
         OPTICAL_INPUT_NAME = "optical_input_name"
+        BLUETOOTH = "bluetooth"
 
     #
     # VSSL Events
@@ -24,17 +26,23 @@ class VsslSettings(VsslDataClass):
         PREFIX = VSSL_SETTINGS_EVENT_PREFIX
         NAME_CHANGE = PREFIX + "name_changed"
         OPTICAL_INPUT_NAME_CHANGE = PREFIX + "optical_input_name_changed"
+        BLUETOOTH_CHANGE = PREFIX + "bluetooth_changed"
 
     #
     # Defaults
     #
-    DEFAULTS = {Keys.NAME: None, Keys.OPTICAL_INPUT_NAME: "Optical In"}
+    DEFAULTS = {
+        Keys.NAME: None,
+        Keys.OPTICAL_INPUT_NAME: "Optical In",
+        Keys.BLUETOOTH: 0,
+    }
 
     def __init__(self, vssl: "vsslctrl.Vssl"):
         self._vssl = vssl
 
         self._name = None  # device name
         self._optical_input_name = self.DEFAULTS[self.Keys.OPTICAL_INPUT_NAME]
+        self._bluetooth = self.DEFAULTS[self.Keys.BLUETOOTH]
         self.power = VsslPowerSettings(vssl)
 
     #
@@ -62,6 +70,30 @@ class VsslSettings(VsslDataClass):
         zone = self._vssl.get_connected_zone()
         if zone:
             zone.api_alpha.request_action_15_12(name)
+
+    #
+    # Bluetooth
+    #
+    @property
+    def bluetooth(self):
+        return bool(self._bluetooth)
+
+    @bluetooth.setter
+    def bluetooth(self, enabled: bool):
+        if not self._vssl.model.supports_feature(DeviceFeatures.BLUETOOTH):
+            self._vssl._log_error(
+                f"VSSL {self._vssl.model.name} does not support Bluetooth"
+            )
+            return
+
+        zone = self._vssl.get_connected_zone()
+        if zone:
+            # TODO
+            # zone.api_alpha.request_action_bluetooth(not not enabled)
+            pass
+
+    def bluetooth_toggle(self):
+        self.bluetooth = False if self.bluetooth else True
 
 
 class VsslPowerSettings(VsslDataClass):
@@ -165,6 +197,7 @@ class ZoneSettings(ZoneDataClass):
         self._mono = self.StereoMono.Stereo
 
         self.eq = EQSettings(zone)
+        self.subwoofer = SubwooferSettings(zone)
         self.volume = VolumeSettings(zone)
         self.analog_input = AnalogInput(zone)
 
@@ -653,3 +686,59 @@ class EQSettings(ZoneDataClass):
     @khz15_db.setter
     def khz15_db(self, val: int):
         self._set_frequency_on_device_db(self.Freqs.KHZ15, val)
+
+
+# Not in io.py to prevent circ import in device.py
+class SubwooferSettings(ZoneDataClass):
+    MIN_VALUE = 0
+    MAX_VALUE = 1000
+
+    #
+    # Subwoofer events
+    #
+    class Events:
+        PREFIX = "zone.subwoofer."
+        CROSSOVER_CHANGE = PREFIX + "crossover_change"
+
+    #
+    # Defaults
+    #
+    DEFAULTS = {"crossover": 0}
+
+    def __init__(self, zone: "zone.Zone"):
+        self.zone = zone
+
+        self._crossover = self.DEFAULTS["crossover"]
+
+    #
+    # Clamp between min and max
+    #
+    def _clamp_crossover(self, value: int = 100):
+        return int(max(self.MIN_VALUE, min(value, self.MAX_VALUE)))
+
+    #
+    # Crossover freq
+    #
+    @property
+    def crossover(self):
+        return self._crossover
+
+    @crossover.setter
+    def crossover(self, freq: int):
+        if not self.zone.vssl.model.supports_feature(
+            DeviceFeatures.SUBWOOFER_CROSSOVER
+        ):
+            self.zone._log_error(
+                f"VSSL {self.zone.vssl.model.name} does not have a subwoofer output"
+            )
+            return
+        #
+        # TODO
+        #
+        # self.zone.api_alpha.request_action_crossover(freq)
+
+    def _set_crossover(self, freq: int):
+        freq = self._clamp_crossover(freq)
+        if self.crossover != freq:
+            self._crossover = freq
+            return True

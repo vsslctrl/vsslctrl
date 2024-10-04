@@ -97,6 +97,57 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
+
+ IRMskL / IRMskH:
+ These could potentially be related to Infrared (IR) remote control signals. "IRMskL" and "IRMskH" might represent the low and high values of the modulation frequency or pulse width for an infrared signal.
+
+ BTSta:
+ This might represent the Bluetooth status, with "0" indicating that Bluetooth is currently not active or disconnected.
+
+ Crs:
+ It could stand for "Crossfade" and may represent a setting related to crossfading between audio tracks.
+
+ Fes:
+ This might stand for "Frequency" or "Filter Effect Setting," representing a parameter related to frequency or filtering effects.
+
+ Drk: ?
+
+
+A3.x
+{
+    'IRMskL': '241', 
+    'IRMskH': '255', 
+    'BTSta': '0', 
+    'Crs': '0', 
+    'Fes': '0', 
+    'Drk': '0'
+}
+
+A6.x
+{
+    "IRMskL":"255",
+    "IRMskH":"255",
+    "BTSta":"0",
+    "Crs":"0",
+    "Fes":"0",
+    "Drk":"0"
+'
+
+"""
+
+
+class DeviceStatusExtendedExtKeys:
+    IR_HIGH = "IRMskH"  # Guess - To Confirm
+    IR_LOW = "IRMskL"  # Guess - To Confirm
+    BLUETOOTH_STATUS = "BTSta"  # Guess - To Confirm
+    SUBWOOFER_CROSSOVER = "Crs"  # Guess - To Confirm
+
+
+"""
+JSON Structure
+
+DO NOT CHANGE - VSSL Defined
+
 A3.x
 {
     "id": "1",

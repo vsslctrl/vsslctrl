@@ -16,6 +16,7 @@ from .data_structure import (
     ZoneEQStatusExtKeys,
     ZoneRouterStatusExtKeys,
     DeviceStatusExtKeys,
+    DeviceStatusExtendedExtKeys,
 )
 
 
@@ -94,10 +95,10 @@ class APIAlpha(APIBase):
 
     #
     # 00 [0] - 0B [11]
-    # Status BT (Bluetooth)
+    # Status device extended
     #
     def request_action_00_0B(self):
-        self._log_debug("Requesting status bluetooth")
+        self._log_debug("Requesting device status extended")
         self.send(bytearray([16, 0, 1, 11]))  # HEX: 1000010B
 
     #
@@ -746,28 +747,25 @@ class APIAlpha(APIBase):
 
     #
     # 00_0B
-    # System Status 0B (Not Sure)
+    # Device Status Extended 0B
     #
     # {'IRMskL': '241', 'IRMskH': '255', 'BTSta': '0', 'Crs': '0', 'Fes': '0', 'Drk': '0'}
     #
-    #
-    # IRMskL / IRMskH:
-    # These could potentially be related to Infrared (IR) remote control signals. "IRMskL" and "IRMskH" might represent the low and high values of the modulation frequency or pulse width for an infrared signal.
-    #
-    # BTSta:
-    # This might represent the Bluetooth status, with "0" indicating that Bluetooth is currently not active or disconnected.
-    #
-    # Crs:
-    # It could stand for "Crossfade" and may represent a setting related to crossfading between audio tracks.
-    #
-    # Fes:
-    # This might stand for "Frequency" or "Filter Effect Setting," representing a parameter related to frequency or filtering effects.
-    #
-    # Drk: ?
-    #
     def response_action_00_0B(self, metadata: list):
         self._log_debug(f"Received 0B Status: {metadata}")
-        pass
+
+        # Bluetooth
+        if DeviceStatusExtendedExtKeys.BLUETOOTH_STATUS in metadata:
+            self.vssl.settings._set_property(
+                "bluetooth", int(metadata[DeviceStatusExtendedExtKeys.BLUETOOTH_STATUS])
+            )
+
+        # Subwoofer Crossover
+        if DeviceStatusExtendedExtKeys.SUBWOOFER_CROSSOVER in metadata:
+            self.zone.settings.subwoofer._set_property(
+                "crossover",
+                int(metadata[DeviceStatusExtendedExtKeys.SUBWOOFER_CROSSOVER]),
+            )
 
     #
     # 2A [42]
