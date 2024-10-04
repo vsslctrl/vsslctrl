@@ -29,8 +29,8 @@ async def main():
     vssl = Vssl(DeviceModels.A3X)
     # vssl = Vssl('a3x')
     zone1 = vssl.add_zone(ZoneIDs.ZONE_1, "192.168.1.10")
-    zone2 = vssl.add_zone(ZoneIDs.ZONE_2, "192.168.1.11")
-    zone3 = vssl.add_zone(ZoneIDs.ZONE_3, "192.168.1.12")
+    # zone2 = vssl.add_zone(ZoneIDs.ZONE_2, "192.168.1.11")
+    # zone3 = vssl.add_zone(ZoneIDs.ZONE_3, "192.168.1.12")
 
     try:
         # print(await vssl.discover())
