@@ -7,8 +7,21 @@ Terminal will need to have access to Python.
 pip install prompt_toolkit
 ```
 
-2. Edit the device model passed to `Vssl` in `cli.py` (e.g `vssl = Vssl(DeviceModels.A3X)`). Models can be found [here](https://github.com/vsslctrl/vsslctrl/blob/fdaffdefa35cf4e11f05e8a7792584e597e20a04/vsslctrl/device.py#L61)
+2. Edit the device model passed to `Vssl` in `cli.py`. Device models can be found [here](https://github.com/vsslctrl/vsslctrl/blob/fdaffdefa35cf4e11f05e8a7792584e597e20a04/vsslctrl/device.py#L61).
+```python
+...
+ vssl = Vssl(DeviceModels.A1X)
+...
+```
+
 3. Edit zones IP addresses in `cli.py` 
+```python
+...
+ zone1 = vssl.add_zone(ZoneIDs.ZONE_1, "192.168.1.10")
+ # zone2 = vssl.add_zone(ZoneIDs.ZONE_2, "192.168.1.11")
+ # zone3 = vssl.add_zone(ZoneIDs.ZONE_3, "192.168.1.12")
+...
+```
 
 4. Run the program:
 ```bash
