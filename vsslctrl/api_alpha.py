@@ -924,9 +924,9 @@ class APIAlpha(APIBase):
 
     #
     # 17 [23]
-    # Received Keep Alive
+    # Keep Alive
     #
-    def response_action_17(self, response: bytes):
+    def response_action_17(self, hexl: list, response: bytes):
         self._log_debug(f"Z{self.zone.id} Alpha - Received keep alive: {response}")
         # TODO
         pass

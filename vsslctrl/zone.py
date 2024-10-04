@@ -267,6 +267,11 @@ class Zone:
     def _set_mac_addr(self, mac: str):
         mac = mac.strip()
         if mac != self.mac_addr:
+            # Strip Wlan0: from beginging of string
+            # Original A series amps had this prefix
+            if mac.startswith("Wlan0:"):
+                mac = mac[len("Wlan0:") :]
+
             # Define the regular expression pattern for a MAC address
             mac_pattern = re.compile(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
 
