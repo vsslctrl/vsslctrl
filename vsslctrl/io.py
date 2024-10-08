@@ -32,6 +32,7 @@ class InputRouter(ZoneDataClass):
         ANALOG_IN_5 = 7
         ANALOG_IN_6 = 8
         OPTICAL_IN = 16
+        # TODO Bluetooth for A.1(x)
 
     #
     # Router Events

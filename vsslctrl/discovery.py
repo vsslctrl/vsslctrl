@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" Scan for apple devices. """
+""" UNTESTED AND IN DEV """
 
 import json
 import asyncio

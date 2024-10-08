@@ -90,7 +90,7 @@ class VsslSettings(VsslDataClass):
         if zone:
             # TODO
             # zone.api_alpha.request_action_bluetooth(not not enabled)
-            pass
+            self._vssl._log_info(f"TODO - bluetooth set function")
 
     def bluetooth_toggle(self):
         self.bluetooth = False if self.bluetooth else True
@@ -118,13 +118,13 @@ class VsslPowerSettings(VsslDataClass):
     #
     # Defaults
     #
-    DEFAULTS = {"state": States.ON, "adaptive": False}
+    DEFAULTS = {"state": States.ON, "adaptive": True}
 
     def __init__(self, vssl: "vsslctrl.Vssl"):
         self._vssl = vssl
 
-        self._state = self.States.ON
-        self._adaptive = True  # 1 = auto, 0 = always on
+        self._state = self.DEFAULTS["state"]
+        self._adaptive = self.DEFAULTS["adaptive"]  # 1 = auto, 0 = always on
 
     #
     # Power State
@@ -735,6 +735,7 @@ class SubwooferSettings(ZoneDataClass):
         #
         # TODO
         #
+        self.zone._log_info(f"TODO - crossover set function")
         # self.zone.api_alpha.request_action_crossover(freq)
 
     def _set_crossover(self, freq: int):

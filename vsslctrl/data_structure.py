@@ -41,6 +41,7 @@ class ZoneIDs(VsslIntEnum):
     ZONE_4 = 4
     ZONE_5 = 5
     ZONE_6 = 6
+    A1 = 7  # A.1 unconfirmed for A1x
 
 
 """

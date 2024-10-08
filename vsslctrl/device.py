@@ -1,7 +1,7 @@
 from .data_structure import VsslEnum, VsslIntEnum, ZoneIDs
 from .io import AnalogOutput, InputRouter
 
-SINGLE_ZONE = [ZoneIDs.ZONE_1]
+SINGLE_ZONE = [ZoneIDs.A1]
 THREE_ZONES = [ZoneIDs.ZONE_1, ZoneIDs.ZONE_2, ZoneIDs.ZONE_3]
 SIX_ZONES = list(ZoneIDs)
 
