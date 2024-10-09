@@ -126,12 +126,12 @@ A3.x
 
 A6.x
 {
-    "IRMskL":"255",
-    "IRMskH":"255",
-    "BTSta":"0",
-    "Crs":"0",
-    "Fes":"0",
-    "Drk":"0"
+    "IRMskL": "255",
+    "IRMskH": "255",
+    "BTSta": "0",
+    "Crs": "0",
+    "Fes": "0",
+    "Drk": "0"
 '
 
 """

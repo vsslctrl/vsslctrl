@@ -93,6 +93,11 @@ class Vssl:
                 await first_zone.disconnect()
                 raise VsslCtrlException(message)
 
+            # Output a bit of helpful info
+            self._log_info(f"Device Model: {self.model.name}")
+            self._log_info(f"Device SW Version: {self.sw_version}")
+            self._log_info(f"Device Serial: {self.serial}")
+
             # Now we can init the rest of the zones
             initialisations = [zone.initialise() for zone in zones_to_init.values()]
             await asyncio.gather(*initialisations)

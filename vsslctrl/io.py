@@ -12,6 +12,10 @@ class InputRouter(ZoneDataClass):
     # 0: Stream -> Analog Input
     # 1: Analog Input -> Stream (Local first)
     #
+    #
+    # 0: Stream -> Party Zone -> Bus1In -> Bus2In -> Analog,
+    # 1: Bus1In -> Bus2In -> Analog -> Stream -> Party zone
+    #
     # DO NOT CHANGE - VSSL Defined
     #
     class Priorities(VsslIntEnum):
@@ -25,6 +29,8 @@ class InputRouter(ZoneDataClass):
     #
     class Sources(VsslIntEnum):
         STREAM = 0
+        BUS_IN_1 = 1  # TODO bus or party mode of original A series
+        BUS_IN_2 = 2  # TODO bus or party mode of original A series
         ANALOG_IN_1 = 3
         ANALOG_IN_2 = 4
         ANALOG_IN_3 = 5
@@ -32,7 +38,6 @@ class InputRouter(ZoneDataClass):
         ANALOG_IN_5 = 7
         ANALOG_IN_6 = 8
         OPTICAL_IN = 16
-        # TODO Bluetooth for A.1(x)
 
     #
     # Router Events
@@ -104,8 +109,14 @@ class InputRouter(ZoneDataClass):
 
 class AnalogOutput(ZoneDataClass):
     """
+
+    Analog output is the source which will play out the corrosponding analog output
+
+
     Should this be on the VSSL or Zone? For now its on the zone, because the zone will
     receive feedback for the corrosponding analog output id
+
+    Zones will be determined by source Input Priority
     """
 
     #
@@ -115,6 +126,8 @@ class AnalogOutput(ZoneDataClass):
     #
     class Sources(VsslIntEnum):
         OFF = 0  # Disconnected / Off / No Output
+        BUS_IN_1 = 1  # TODO bus or party mode of original A series
+        BUS_IN_2 = 2  # TODO bus or party mode of original A series
         ZONE_1 = 3
         ZONE_2 = 4
         ZONE_3 = 5
@@ -158,6 +171,8 @@ class AnalogOutput(ZoneDataClass):
 
     #
     # Analog Output Source
+    #
+    # As in what audio is going to be sent to the analog output.
     #
     @property
     def source(self):
