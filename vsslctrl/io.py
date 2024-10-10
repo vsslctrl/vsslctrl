@@ -9,12 +9,8 @@ class InputRouter(ZoneDataClass):
     #
     # Input Priority
     #
-    # 0: Stream -> Analog Input
-    # 1: Analog Input -> Stream (Local first)
-    #
-    #
-    # 0: Stream -> Party Zone -> Bus1In -> Bus2In -> Analog,
-    # 1: Bus1In -> Bus2In -> Analog -> Stream -> Party zone
+    # 0: Stream -> Party Zone -> Bus 1 In -> Bus 2 In -> Analog Input (Stream First)
+    # 1: Bus 1 In -> Bus 2 In -> Analog Input -> Stream -> Party Zone (Local First)
     #
     # DO NOT CHANGE - VSSL Defined
     #

@@ -49,7 +49,7 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
-A3.x
+A.3x
 {
     "B1Src": "3",
     "B2Src": "4",
@@ -60,7 +60,17 @@ A3.x
     "ver": "p15305.016.3701"
 }
 
-A6.x
+A.3
+{
+    'B1Src': '1', 
+    'B2Src': '2', 
+    'B1Nm': '', 
+    'B2Nm': '', 
+    'dev': 'VSSL A.3', 
+    'ver': '12013 .141.3703'
+}
+
+A.6x
 {
     "B1Src": "3",
     "B2Src": "4",
@@ -114,7 +124,7 @@ DO NOT CHANGE - VSSL Defined
  Drk: ?
 
 
-A3.x
+A.3x
 {
     'IRMskL': '241', 
     'IRMskH': '255', 
@@ -124,7 +134,17 @@ A3.x
     'Drk': '0'
 }
 
-A6.x
+A.3
+{
+    'IRMskL': '255', 
+    'IRMskH': '255', 
+    'BTSta': '0', 
+    'Crs': '0', 
+    'Fes': '0', 
+    'Drk': '0'
+}
+
+A.6x
 {
     "IRMskL": "255",
     "IRMskH": "255",
@@ -149,7 +169,7 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
-A3.x
+A.3x
 {
     "id": "1",
     "ac": "0",
@@ -169,7 +189,24 @@ A3.x
     "rg": "0"
 }
 
-A6.x
+A.3
+{
+    'id': '3', 
+    'ac': '0', 
+    'mc': 'XXXXXXXXXXXX', 
+    'vol': '27', 
+    'mt': '0', 
+    'pa': '1', 
+    'rm': '0', 
+    'ts': '0', 
+    'lb': '17', 
+    'tp': '3', 
+    'wr': '0', 
+    'as': '0', 
+    'rg': '0'
+}
+
+A.6x
 {
     "id": "1",
     "ac": "0",
@@ -208,7 +245,7 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
-A3.x
+A.3x
 {
     "mono": "0",
     "AiNm": "Analog In 1",
@@ -224,7 +261,23 @@ A3.x
     "vold": "0"
 }
 
-A6.x
+A.3
+{
+    'mono': '0', 
+    'AiNm': 'Backup', 
+    'eq1': '106', 
+    'eq2': '102', 
+    'eq3': '100', 
+    'eq4': '100', 
+    'eq5': '100', 
+    'eq6': '101', 
+    'eq7': '105', 
+    'voll': '75', 
+    'volr': '75', 
+    'vold': '27'
+}
+
+A.6x
 {
     "mono": "0",
     "AiNm": "",
@@ -262,7 +315,7 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
-A3.x
+A.3x
 {
     "ECO": "0",
     "eqsw": "1",
@@ -279,7 +332,23 @@ A3.x
     "AtPwr": "1"
 }
 
-A6.x
+A.3
+{
+    "ECO": "0", 
+    "eqsw": "1", 
+    "inSrc": "0", 
+    "SP": "0", 
+    "BF1": "0", 
+    "BF2": "0", 
+    "GRM": "0", 
+    "GRS": "255", 
+    "Pwr": "0", 
+    "Bvr": "15", 
+    "fxv": "25", 
+    "AtPwr": "1"
+}
+
+A.6x
 {
     "ECO": "0",
     "eqsw": "1",

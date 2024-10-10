@@ -226,6 +226,13 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 | `source`     			 	| Change input source |	`int`	| `InputRouter.Sources`
 | `priority`     			| Change input priority. Stream or analog in higher priority  |	`int`	| `InputRouter.Priorities`
 
+### Priority Order:
+
+| `InputRouter.Priorities`       | Priority Order |
+| ----------------------  | ----------- |
+| **`STREAM`**  | <ol><li>Stream</li><li>Party Zone</li><li>Bus 1 In</li><li>Bus 2 In</li><li>Analog Input</li></ol>
+|  **`LOCAL`**  | <ol><li>Bus 1 In</li><li>Bus 2 In</li><li>Analog Input</li><li>Stream</li><li>Party Zone</li></ol>
+
 ```python
 """Example"""
 # Change zone 1 to listen to analog input 4

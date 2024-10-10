@@ -550,12 +550,22 @@ class APIAlpha(APIBase):
         except Exception as error:
             self._log_error(f"Couldnt parse JSON: {error} | {hexl}")
 
-    #
-    # 00_00
-    # Device Status 00
-    #
-    # {'B1Src': '3', 'B2Src': '4', 'B3Src': '5', 'B1Nm': '', 'B2Nm': 'Optical In', 'dev': 'Device Name', 'ver': 'p15305.016.3701'}
-    #
+    """ 
+        00_00
+        Device Status 00
+
+        A.3x:
+        {
+            "B1Src": "3",
+            "B2Src": "4",
+            "B3Src": "5",
+            "B1Nm": "",
+            "B2Nm": "Optical In",
+            "dev": "Device Name",
+            "ver": "p15305.016.3701"
+        }
+    """
+
     def response_action_00_00(self, metadata: list):
         self._log_debug(f"Received 00 Status: {metadata}")
 
@@ -589,13 +599,32 @@ class APIAlpha(APIBase):
                 "sw_version", metadata[DeviceStatusExtKeys.SW_VERSION].strip()
             )
 
-    #
-    # 00_08
-    # Zone Status 08
-    #
-    # {'id': '1', 'ac': '0', 'mc': 'XXXXXXXXXXXX', 'vol': '20', 'mt': '0', 'pa': '0', 'rm': '0', 'ts': '14',
-    #  'alex': '14', 'nmd': '0', 'ird': '14', 'lb': '24', 'tp': '13', 'wr': '0', 'as': '0', 'rg': '0'}
-    #
+    """
+        00_08
+        Zone Status 08
+
+        A.3x:
+        {
+            "id": "1",
+            "ac": "0",
+            "mc": "XXXXXXXXXXXX",
+            "vol": "20",
+            "mt": "0",
+            "pa": "0",
+            "rm": "0",
+            "ts": "14",
+            "alex": "14",
+            "nmd": "0",
+            "ird": "14",
+            "lb": "24",
+            "tp": "13",
+            "wr": "0",
+            "as": "0",
+            "rg": "0"
+        }
+
+    """
+
     def response_action_00_08(self, metadata: list):
         self._log_debug(f"Received 08 Status: {metadata}")
 
@@ -653,13 +682,27 @@ class APIAlpha(APIBase):
                 "disabled", bool(int(metadata[ZoneStatusExtKeys.DISABLED]))
             )
 
-    #
-    # 00_09
-    # EQ Status
-    #
-    # {'mono': '0', 'AiNm': 'Analog In 1', 'eq1': '100', 'eq2': '100', 'eq3': '100', 'eq4': '100',
-    #  'eq5': '100', 'eq6': '100', 'eq7': '100', 'voll': '75', 'volr': '75', 'vold': '0'}
-    #
+    """
+        00_09
+        EQ Status
+
+        A.3x:
+        {
+            "mono": "0",
+            "AiNm": "Analog In 1",
+            "eq1": "100",
+            "eq2": "100",
+            "eq3": "100",
+            "eq4": "100",
+            "eq5": "100",
+            "eq6": "100",
+            "eq7": "100",
+            "voll": "75",
+            "volr": "75",
+            "vold": "0"
+        }
+    """
+
     def response_action_00_09(self, metadata: list):
         self._log_debug(f"Received 09 Status: {metadata}")
 
@@ -678,13 +721,28 @@ class APIAlpha(APIBase):
         self.zone.settings.eq._map_response_dict(metadata)
         self.zone.settings.volume._map_response_dict(metadata)
 
-    #
-    # 00_0A
-    # System Status 0A (Output / Amp)
-    #
-    # {'ECO': '0', 'eqsw': '1', 'inSrc': '0', 'SP': '0', 'BF1': '0', 'BF2': '0', 'BF3': '0',
-    #  'GRM': '0', 'GRS': '255', 'Pwr': '0', 'Bvr': '1', 'fxv': '24', 'AtPwr': '1'}
-    #
+    """
+        00_0A
+        System Status 0A (Output / Amp)
+
+        A.3x:
+        {
+            "ECO": "0",
+            "eqsw": "1",
+            "inSrc": "0",
+            "SP": "0",
+            "BF1": "0",
+            "BF2": "0",
+            "BF3": "0",
+            "GRM": "0",
+            "GRS": "255",
+            "Pwr": "0",
+            "Bvr": "1",
+            "fxv": "24",
+            "AtPwr": "1"
+        }
+    """
+
     def response_action_00_0A(self, metadata: list):
         self._log_debug(f"Received 0A Status: {metadata}")
 
@@ -745,12 +803,21 @@ class APIAlpha(APIBase):
                 "adaptive", bool(int(metadata[ZoneRouterStatusExtKeys.ADAPTIVE_POWER]))
             )
 
-    #
-    # 00_0B
-    # Device Status Extended 0B
-    #
-    # {'IRMskL': '241', 'IRMskH': '255', 'BTSta': '0', 'Crs': '0', 'Fes': '0', 'Drk': '0'}
-    #
+    """
+        00_0B
+        Device Status Extended 0B
+
+        A.3x:
+        {
+            'IRMskL': '241', 
+            'IRMskH': '255', 
+            'BTSta': '0', 
+            'Crs': '0', 
+            'Fes': '0', 
+            'Drk': '0'
+        }
+    """
+
     def response_action_00_0B(self, metadata: list):
         self._log_debug(f"Received 0B Status: {metadata}")
 
@@ -925,7 +992,7 @@ class APIAlpha(APIBase):
     # Keep Alive
     #
     def response_action_17(self, hexl: list, response: bytes):
-        self._log_debug(f"Z{self.zone.id} Alpha - Received keep alive: {response}")
+        self._log_debug(f"Received keep alive: {response}")
         # TODO
         pass
 
