@@ -87,8 +87,7 @@ class Vssl:
                 raise VsslCtrlException(message)
 
             except VsslCtrlException:
-                zone_count = self.model.zone_count
-                message = f"Device model only has {zone_count} zones instead of {len(self.zones)}"
+                message = f"Device model {self.model.name} only has {self.model.zone_count} zones not {len(self.zones)}."
                 self._log_critical(message)
                 await first_zone.disconnect()
                 raise VsslCtrlException(message)
@@ -193,6 +192,11 @@ class Vssl:
 
     #
     # Work out the a model given some device info
+    #
+    #
+    #
+    # THIS WONT WORK FOR ORIGINAL A SERIES! TODO!
+    #
     #
     def _infer_device_model(self, data: Dict[str, int]):
         # if we dont have a model, default to x series

@@ -18,7 +18,7 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 ## TODOs
 
-* **A1(.x)** specific control e.g sub crossover, bluetooth
+* **A.1(x)** specific control e.g sub crossover, bluetooth
 * Better test coverage
 
 ## Basic Usage

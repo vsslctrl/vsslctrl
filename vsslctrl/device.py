@@ -205,33 +205,6 @@ class Model:
 
 
 class Models(VsslEnum):
-    A1 = Model(
-        {
-            "name": "A.1",
-            "zones": SINGLE_ZONE,
-            "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
-            "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
-            "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
-        }
-    )
-    A3 = Model(
-        {
-            "name": "A.3",
-            "zones": THREE_ZONES,
-            "input_sources": INPUT_SOURCES_FOR_A3,
-            "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A3,
-            "features": [Features.GROUPING, Features.PARTY_MODE],
-        }
-    )
-    A6 = Model(
-        {
-            "name": "A.6",
-            "zones": SIX_ZONES,
-            "input_sources": INPUT_SOURCES_FOR_A6,
-            "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A6,
-            "features": [Features.GROUPING, Features.PARTY_MODE],
-        }
-    )
     A1X = Model(
         {
             "name": "A.1x",
@@ -259,3 +232,45 @@ class Models(VsslEnum):
             "features": [Features.GROUPING],
         }
     )
+    A1 = Model(
+        {
+            "name": "A.1",
+            "zones": SINGLE_ZONE,
+            "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
+            "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
+            "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
+        }
+    )
+    A3 = Model(
+        {
+            "name": "A.3",
+            "zones": THREE_ZONES,
+            "input_sources": INPUT_SOURCES_FOR_A3,
+            "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A3,
+            "features": [Features.GROUPING, Features.PARTY_MODE],
+        }
+    )
+    A6 = Model(
+        {
+            "name": "A.6",
+            "zones": SIX_ZONES,
+            "input_sources": INPUT_SOURCES_FOR_A6,
+            "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A6,
+            "features": [Features.GROUPING, Features.PARTY_MODE],
+        }
+    )
+
+    @classmethod
+    def get_model_names(cls):
+        return [model.value.name for model in cls]
+
+    @classmethod
+    def get_model_by_name(cls, name):
+        # Preprocess input name: convert to lowercase and remove dots
+        name_cleaned = name.lower().replace(".", "")
+
+        for model in cls:
+            # Preprocess model name: convert to lowercase and remove dots
+            if model.value.name.lower().replace(".", "") == name_cleaned:
+                return model.value
+        return None  # Return None if no match is found
