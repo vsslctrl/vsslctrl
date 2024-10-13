@@ -32,8 +32,14 @@ class ZoneGroup(ZoneDataClass):
         INDEX_CHANGE = PREFIX + "index_change"
         SOURCE_CHANGE = PREFIX + "source_change"
         IS_MASTER_CHANGE = PREFIX + "is_master_change"
+        IS_PARTY_ZONE_MEMBER_CHANGE = PREFIX + "is_party_zone_member_change"
 
-    DEFAULTS = {"index": 0, "source": None, "is_master": False}
+    DEFAULTS = {
+        "index": 0,
+        "source": None,
+        "is_master": False,
+        "is_party_zone_member": False,
+    }
 
     def __init__(self, zone: "zone.Zone"):
         self.zone = zone
@@ -52,9 +58,10 @@ class ZoneGroup(ZoneDataClass):
         self._index_id = zone.id + 8
 
         # index is assigned when a stream is started (see action_32)
-        self._index = 0
-        self._source = None
-        self._is_master = False
+        self._index = self.DEFAULTS["index"]
+        self._source = self.DEFAULTS["source"]
+        self._is_master = self.DEFAULTS["is_master"]
+        self._is_party_zone_member = self.DEFAULTS["is_party_zone_member"]
 
     #
     # Group Add Zone
@@ -191,3 +198,22 @@ class ZoneGroup(ZoneDataClass):
             for zone in self.zone.vssl.zones.values()
             if zone.group.index == self.index and zone.group.is_member
         ]
+
+    #
+    # Party Mode - Is this zone a party mode member
+    #
+    @property
+    def is_party_zone_member(self):
+        return bool(self._is_party_zone_member)
+
+    @is_party_zone_member.setter
+    def is_party_zone_member(self, state: int):
+        # Check this device supports party mode
+        if not self.zone.vssl.model.supports_feature(DeviceFeatures.PARTY_ZONE):
+            self.zone._log_error(f"VSSL {self.zone.vssl.model.name} doesnt party zone")
+            return
+
+        self.zone.api_alpha.request_action_0C(state)
+
+    def is_party_zone_member_toggle(self):
+        self.is_party_zone_member = False if self.is_party_zone_member else True

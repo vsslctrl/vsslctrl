@@ -196,6 +196,17 @@ class APIAlpha(APIBase):
         self.send(bytearray([16, 7, 1, 0]))
 
     #
+    # 0C [12]
+    # Party Mode
+    #
+    def request_action_0C(self, state: int):
+        self._log_debug(f"Requesting to set party memeber: {state}")
+        command = self._add_zone_id_to_request(
+            bytearray([16, 11, 2, 0, int(not not state)])
+        )
+        self.send(command)
+
+    #
     # 0D [13]
     # EQ
     #
@@ -662,9 +673,10 @@ class APIAlpha(APIBase):
             self.zone._set_property("mute", bool(int(metadata[ZoneStatusExtKeys.MUTE])))
 
         # Party Mode
-        # Not supported by X series?
-        if ZoneStatusExtKeys.PARTY_MODE in metadata:
-            pass
+        if ZoneStatusExtKeys.PARTY_ZONE in metadata:
+            self.zone.group._set_property(
+                "is_party_zone_member", int(metadata[ZoneStatusExtKeys.PARTY_ZONE])
+            )
 
         # Group Index see below
         if ZoneStatusExtKeys.GROUP_INDEX in metadata:
@@ -929,11 +941,15 @@ class APIAlpha(APIBase):
             self.zone.transport._set_property("state", state)
 
     #
-    # 0B [11]
-    # Party Mode not supported on X series (I think. TODO)
+    # 0C [12]
+    # Party Mode
     #
-    def response_action_0B(self, hexl: list, response: bytes):
-        pass
+    # Not supported on X series
+    #
+    def response_action_0C(self, hexl: list, response: bytes):
+        state = hex_to_int(hexl[4])
+        self._log_debug(f"Received party member state: {state}")
+        self.zone.group._set_property("is_party_zone_member", state)
 
     #
     # 0E [14]
@@ -943,7 +959,7 @@ class APIAlpha(APIBase):
         if hex_to_int(hexl[2]) == 3:
             freq = hex_to_int(hexl[4])
             value = hex_to_int(hexl[5])
-            self._log_debug(f"Received EQ requency:{freq} value: {value}")
+            self._log_debug(f"Received EQ frequency:{freq} value: {value}")
             self.zone.settings.eq._set_eq_freq(freq, value)
 
     #

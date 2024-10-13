@@ -180,7 +180,7 @@ ANALOG_OUTPUT_SOURCES_FOR_A6 = list(AnalogOutput.Sources)
 class Features(VsslIntEnum):
     GROUPING = 1000
     BLUETOOTH = 1001
-    PARTY_MODE = 1002
+    PARTY_ZONE = 1002
     SUBWOOFER_CROSSOVER = 1003
 
 
@@ -247,7 +247,7 @@ class Models(VsslEnum):
             "zones": THREE_ZONES,
             "input_sources": INPUT_SOURCES_FOR_A3,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A3,
-            "features": [Features.GROUPING, Features.PARTY_MODE],
+            "features": [Features.GROUPING, Features.PARTY_ZONE],
         }
     )
     A6 = Model(
@@ -256,7 +256,7 @@ class Models(VsslEnum):
             "zones": SIX_ZONES,
             "input_sources": INPUT_SOURCES_FOR_A6,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A6,
-            "features": [Features.GROUPING, Features.PARTY_MODE],
+            "features": [Features.GROUPING, Features.PARTY_ZONE],
         }
     )
 

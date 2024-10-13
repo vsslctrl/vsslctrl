@@ -25,8 +25,8 @@ class InputRouter(ZoneDataClass):
     #
     class Sources(VsslIntEnum):
         STREAM = 0
-        BUS_IN_1 = 1  # TODO bus or party mode of original A series
-        BUS_IN_2 = 2  # TODO bus or party mode of original A series
+        BUS_IN_1 = 1
+        BUS_IN_2 = 2
         ANALOG_IN_1 = 3
         ANALOG_IN_2 = 4
         ANALOG_IN_3 = 5
@@ -113,6 +113,10 @@ class AnalogOutput(ZoneDataClass):
     receive feedback for the corrosponding analog output id
 
     Zones will be determined by source Input Priority
+
+    TODO: Support for Bus 1 & 2 - Bus 1 and 2 outs can have fixed volume also.
+        Since the BUS zones wont have a dedicated zone, mayeb we should move these
+        commands to the VSSL instead of the zone
     """
 
     #

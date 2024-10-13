@@ -234,7 +234,7 @@ class ZoneStatusExtKeys:
     SERIAL_NUMBER = "mc"
     VOLUME = "vol"
     MUTE = "mt"
-    PARTY_MODE = "pa"
+    PARTY_ZONE = "pa"
     GROUP_INDEX = "rm"
     TRACK_SOURCE = "lb"
     DISABLED = "wr"
@@ -248,7 +248,7 @@ DO NOT CHANGE - VSSL Defined
 A.3x
 {
     "mono": "0",
-    "AiNm": "Analog In 1",
+    "AiNm": "Analog In",
     "eq1": "100",
     "eq2": "100",
     "eq3": "100",
@@ -264,7 +264,7 @@ A.3x
 A.3
 {
     'mono': '0', 
-    'AiNm': 'Backup', 
+    'AiNm': 'Analog In', 
     'eq1': '106', 
     'eq2': '102', 
     'eq3': '100', 
