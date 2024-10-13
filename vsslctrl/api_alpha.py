@@ -394,8 +394,16 @@ class APIAlpha(APIBase):
     # Reboot All Zones
     #
     def request_action_33_device(self):
-        self._log_debug(f"Requesting to reboot device")
+        self._log_debug("Requesting to reboot device")
         self.send(bytearray([16, 51, 2, 0, 1]))
+
+    #
+    # 2B [43]
+    # Factory Reset Device
+    #
+    def request_action_2B(self):
+        self._log_debug("Requesting to factory reset device")
+        self.send(bytearray([16, 43, 2, 8, 0]))
 
     #
     # 47 [71]

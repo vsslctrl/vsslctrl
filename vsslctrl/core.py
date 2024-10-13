@@ -302,6 +302,14 @@ class Vssl:
             zone.api_alpha.request_action_33_device()
 
     #
+    # Factory Reset Device
+    #
+    def factory_reset(self):
+        zone = self.get_connected_zone()
+        if zone:
+            zone.api_alpha.request_action_2B()
+
+    #
     # Zones Groups. Build a dict of zone according to group membership
     #
     @property

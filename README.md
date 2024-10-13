@@ -86,7 +86,7 @@ print(zone_name)
 >>> 'Living Room'
 ```
 
-**Important** in the above example, `zone1.settings.name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confimation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
+**Important** in the above example, `zone1.settings.name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confirmation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
 
 
 # `Vssl`
@@ -97,6 +97,8 @@ print(zone_name)
 | `serial`   			| Serial number        |	`str` readonly
 | `model`   			| Device Model        |	`int` readonly
 | `reboot()`   			| Reboot all zones        |	`func`  |
+| `factory_reset()`        | Factory reset device        | `func`  |
+
 
 ```python
 """Example"""
@@ -110,6 +112,7 @@ vssl.reboot()
 | ---------------------- 	| ----------- | ----------- |
 | `name`     			 	| Device name |	`str`
 | `optical_input_name`   			| Name of the optical input        |	`str`
+| `bluetooth`        | Bluetooth enabled / disabled        |  `bool`
 
 ```python
 """Example"""
@@ -117,6 +120,10 @@ vssl.reboot()
 vssl.settings.name = 'My House'
 # Setting optical input name
 vssl.settings.optical_input_name = 'Optical Input 1'
+# Enable Bluetooth
+vssl.settings.bluetooth = True
+# Toggle Bluetooth
+vssl.settings.bluetooth_toggle()
 ```
 
 ## `Vssl.settings.power`
@@ -204,7 +211,7 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 ## `Zone.track`
 
 * Not all sources have complete metadata - missing value will be set to defaults.
-* Airplay track `progress` is not avaiable.
+* Airplay track `progress` is not available.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- | ----------- | ----------- |----------- |
@@ -244,7 +251,7 @@ zone1.input.priority = InputRouter.Priorities.LOCAL
 
 ## `Zone.group`
 
-Working on A.3x but offically unsupported in x series amplifiers.
+Officially unsupported in X series amplifiers.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
@@ -254,6 +261,7 @@ Working on A.3x but offically unsupported in x series amplifiers.
 | `remove_member()`   		| Remove zone from group      |	`func`  | `ZoneIDs`
 | `dissolve()`   			| Dissolve group / remove all members       |	`func`  |
 | `leave()`   				| Leave the group if a member       |	`func`  |
+| `is_party_zone_member`  | Member of Party Zone |  `bool`  |
 
 ```python
 """Examples"""
@@ -264,6 +272,10 @@ zone2.group.leave() # or
 zone1.group.remove_member(ZoneIDs.ZONE_2)
 # If zone 1 is a master, remove all members
 zone1.group.dissolve()
+# Add zone to the party zone group
+zone1.group.is_party_zone_member = True
+# Toggle Party Zone Membership
+zone1.group.is_party_zone_member_toggle()
 ```
 
 ## `Zone.analog_output`
@@ -414,7 +426,7 @@ shell_command:
 
 The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
 
-Motovation for this project was to intergrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and have control over different subnets (not mDNS dependant)
+Motivation for this project was to integrate VSSLs amplifiers into [Home Assistant](https://www.home-assistant.io/) and have control over different subnets (not mDNS dependant)
 
 ## Known Issues & Limitiations
 
@@ -422,10 +434,10 @@ Motovation for this project was to intergrate VSSLs amplifiers into [Home Assist
 * VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 * Not all sources set the volume to 0 when the zone is muted
 * Grouping feedback is flaky on the X series amplifiers
-* Airplay `Zone.track.progress` is not avaiable.
+* Airplay `Zone.track.progress` is not available.
 * Cant stop a URL playback, feedback is worng at least
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
-* `stop()` is intended to disconnect the client and pause the stream. Doesnt always function this way, depending on stream source
+* `stop()` is intended to disconnect the client and pause the stream. Doesn’t always function this way, depending on stream source
 * Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects
 
 ## Future
