@@ -9,8 +9,9 @@
 I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping. <vsslcontrolled@proton.me>
 
 Tested on:
-- Test suite run on a VSSL **A.3x** software version **p15305.016.3701**
-- The Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) is reported working on a **A.6x** software version **p15305.017.3701**
+- **A.3x** software version **p15305.016.3701**
+- **A.6x** software version **p15305.017.3701** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
+- **A.1** software version **12013.141.3703** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
 
 ## Important
 
@@ -423,6 +424,8 @@ shell_command:
 ```
 
 ## Credit
+
+Thanks to [@dj-jam](https://github.com/dj-jam) for the continued testing.
 
 The VSSL API was reverse engineered using Wireshark, VSSLs native "legacy" iOS app and their deprecated [vsslagent](https://vssl.gitbook.io/vssl-rest-api/getting-started/start).
 

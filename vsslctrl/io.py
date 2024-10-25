@@ -116,7 +116,7 @@ class AnalogOutput(ZoneDataClass):
 
     TODO: Support for Bus 1 & 2 - Bus 1 and 2 outs can have fixed volume also.
         Since the BUS zones wont have a dedicated zone, mayeb we should move these
-        commands to the VSSL instead of the zone
+        commands to the VSSL instead of the zone.
     """
 
     #
@@ -156,7 +156,7 @@ class AnalogOutput(ZoneDataClass):
         self._source = self.Sources(zone.id + 2)
 
     #
-    # Analog Output Fix Volume. Output wont respond to volume control
+    # Analog Output Fix Volume. i.e output wont respond to volume control
     #
     @property
     def is_fixed_volume(self):
