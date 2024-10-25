@@ -112,11 +112,11 @@ class AnalogOutput(ZoneDataClass):
     Should this be on the VSSL or Zone? For now its on the zone, because the zone will
     receive feedback for the corrosponding analog output id
 
-    Zones will be determined by source Input Priority
+    Zones will be determined by source Input Priority @see InputRouter class
 
     TODO: Support for Bus 1 & 2 - Bus 1 and 2 outs can have fixed volume also.
-        Since the BUS zones wont have a dedicated zone, mayeb we should move these
-        commands to the VSSL instead of the zone.
+        Since the BUS zones dont have a dedicated zone, maybe we should move these
+        commands to the VSSL device control class instead of the zone class?
     """
 
     #
