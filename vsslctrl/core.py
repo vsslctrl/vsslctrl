@@ -3,8 +3,8 @@
 
 import asyncio
 from typing import Dict, Union, List
-import importlib.metadata
 
+from . import VSSL_VERSION
 from .zone import Zone
 from .exceptions import VsslCtrlException, ZoneError, ZeroConfNotInstalled
 from .event_bus import EventBus
@@ -94,8 +94,7 @@ class Vssl:
                 raise VsslCtrlException(message)
 
             # Output a bit of helpful info
-            version = importlib.metadata.version("vsslctrl")
-            self._log_info(f"vsslctrl version: {version}")
+            self._log_info(f"vsslctrl Version: {VSSL_VERSION}")
             self._log_info(f"Device Model: {self.model.name}")
             self._log_info(f"Device SW Version: {self.sw_version}")
             self._log_info(f"Device Serial: {self.serial}")
