@@ -48,6 +48,12 @@ async def main():
 	zone3 = vssl.add_zone(ZoneIDs.ZONE_3, '192.168.1.12')
 	#... up to 6 zones
 
+  """ Example for A.1(x)
+
+  zone1 = vssl.add_zone(ZoneIDs.A1, '192.168.1.10')
+  
+  """
+
 	# Connect and initiate zones.
    	await vssl.initialise()
 
@@ -105,6 +111,8 @@ print(zone_name)
 """Example"""
 # Reboot all zones
 vssl.reboot()
+# Do a factory reset (reset all settings)
+vssl.factory_reset()
 ```
 
 ## `Vssl.settings`
@@ -114,6 +122,7 @@ vssl.reboot()
 | `name`     			 	| Device name |	`str`
 | `optical_input_name`   			| Name of the optical input        |	`str`
 | `bluetooth`        | Bluetooth enabled / disabled        |  `bool`
+| `bluetooth_toggle()`        | Toggle Bluetooth        | `func`  |
 
 ```python
 """Example"""
