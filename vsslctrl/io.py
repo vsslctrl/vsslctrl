@@ -153,7 +153,11 @@ class AnalogOutput(ZoneDataClass):
         self.zone = zone
 
         self._is_fixed_volume = self.DEFAULTS["is_fixed_volume"]
-        self._source = self.Sources(zone.id + 2)
+
+        # A1 has ID of 7
+        self._source = (
+            self.Sources(zone.id + 2) if zone.id < 7 else self.DEFAULTS["source"]
+        )
 
     #
     # Analog Output Fix Volume. i.e output wont respond to volume control

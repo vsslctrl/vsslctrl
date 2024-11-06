@@ -26,51 +26,72 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 `vsslctrl` needs to be running inside a **[asyncio](https://docs.python.org/3/library/asyncio.html)** event loop.
 
+### A.1 Example
+
+```python
+import asyncio
+from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
+
+async def main():
+  
+  # Represents a physical VSSL amplifier
+  vssl = Vssl(DeviceModels.A1)
+  a1 = vssl.add_zone(ZoneIDs.A1, '192.168.1.10')
+
+  # Connect and initiate zones.
+  await vssl.initialise()
+
+  """Control Examples"""
+  # Print device name
+  print(a1.settings.name)
+  # Set volume to 25%
+  a1.volume = 25
+  # Pause
+  a1.pause()
+  # Print track name
+  print(a1.track.name)
+
+  # Shutdown and disconnect all zones
+  await vssl.shutdown()
+
+asyncio.run(main())
+```
+
+### A.3x Example
+
 ```python
 import asyncio
 from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
 
 async def main():
 	
-	# Represents a physical VSSL amplifier
-	vssl = Vssl()
+  # Represents a physical VSSL amplifier
+  # If no DeviceModels is passed, vsslctrl will default to the feature set of the X series amps
+  vssl = Vssl(DeviceModels.A3X)
 
-  """Optional to init Vssl with a device model
+  # Add each you wish to control
+  zone1 = vssl.add_zone(ZoneIDs.ZONE_1, '192.168.1.10')
+  zone2 = vssl.add_zone(ZoneIDs.ZONE_2, '192.168.1.11')
+  zone3 = vssl.add_zone(ZoneIDs.ZONE_3, '192.168.1.12')
+  #... up to 6 zones
 
-    vssl = Vssl(DeviceModels.A3X)
+  # Connect and initiate zones.
+  await vssl.initialise()
 
-    If no DeviceModels is passed, vsslctrl will default to the feature set of the X series amps
-  """
-
-	# Add each you wish to control
-	zone1 = vssl.add_zone(ZoneIDs.ZONE_1, '192.168.1.10')
-	zone2 = vssl.add_zone(ZoneIDs.ZONE_2, '192.168.1.11')
-	zone3 = vssl.add_zone(ZoneIDs.ZONE_3, '192.168.1.12')
-	#... up to 6 zones
-
-  """ Example for A.1(x)
-
-  zone1 = vssl.add_zone(ZoneIDs.A1, '192.168.1.10')
-  
-  """
-
-	# Connect and initiate zones.
-   	await vssl.initialise()
-
-   	"""Control Examples"""
-   	# Print zone1 name
-   	print(zone1.settings.name)
-   	# Set zone2 volume to 25%
-   	zone2.volume = 25
-   	# Pause zone3
-   	zone3.pause()
-   	# or zone3.transport.pause()
-   	# Print zone1 track name
-   	print(zone1.track.name)
+  """Control Examples"""
+  # Print zone1 name
+  print(zone1.settings.name)
+  # Set zone2 volume to 25%
+  zone2.volume = 25
+  # Pause zone3
+  zone3.pause()
+  # or zone3.transport.pause()
+  # Print zone1 track name
+  print(zone1.track.name)
 
 
-   	# Shutdown and disconnect all zones
-   	await vssl.shutdown()
+  # Shutdown and disconnect all zones
+  await vssl.shutdown()
 
 
 asyncio.run(main())
