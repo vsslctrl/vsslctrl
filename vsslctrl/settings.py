@@ -690,8 +690,8 @@ class EQSettings(ZoneDataClass):
 
 # Not in io.py to prevent circ import in device.py
 class SubwooferSettings(ZoneDataClass):
-    MIN_VALUE = 0
-    MAX_VALUE = 1000
+    MIN_VALUE = 50
+    MAX_VALUE = 200
 
     #
     # Subwoofer events
@@ -703,6 +703,10 @@ class SubwooferSettings(ZoneDataClass):
     #
     # Defaults
     #
+    # 0 is full range / off
+    #
+    # From Manual: The crossover is adjustable from 50-200Hz.
+    #
     DEFAULTS = {"crossover": 0}
 
     def __init__(self, zone: "zone.Zone"):
@@ -713,7 +717,11 @@ class SubwooferSettings(ZoneDataClass):
     #
     # Clamp between min and max
     #
-    def _clamp_crossover(self, value: int = 100):
+    def _clamp_crossover(self, value: int = 0):
+        # Allow 0 to enable full range setting
+        if value < 1:
+            return 0
+
         return int(max(self.MIN_VALUE, min(value, self.MAX_VALUE)))
 
     #
@@ -732,11 +740,8 @@ class SubwooferSettings(ZoneDataClass):
                 f"VSSL {self.zone.vssl.model.name} does not have a subwoofer output"
             )
             return
-        #
-        # TODO
-        #
-        self.zone._log_info(f"TODO - crossover set function")
-        # self.zone.api_alpha.request_action_crossover(freq)
+
+        self.zone.api_alpha.request_action_57(freq)
 
     def _set_crossover(self, freq: int):
         freq = self._clamp_crossover(freq)

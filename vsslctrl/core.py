@@ -199,6 +199,8 @@ class Vssl:
     # Maybe we can just use the ID of the zone because 7 will be an A1(x) otherwise
     # we will need to count the zones.
     #
+    # Or we just require a model to be passed?
+    #
     #
     def _infer_device_model(self, data: Dict[str, int]):
         # if we dont have a model, default to x series

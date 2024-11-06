@@ -153,7 +153,6 @@ class AnalogOutput(ZoneDataClass):
         self.zone = zone
 
         self._is_fixed_volume = self.DEFAULTS["is_fixed_volume"]
-        # A1 has ID of 7 so lets use default to off
         self._source = self.DEFAULTS["source"]
 
     #

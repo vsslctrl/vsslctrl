@@ -49,6 +49,16 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
+A.1
+{
+    "B1Src":"3",
+    "B2Src":"3",
+    "B1Nm":"OPT",
+    "B2Nm":"COAX",
+    "dev":"VSSL A.1",
+    "ver":"p15265.033.3703"
+}
+
 A.3x
 {
     "B1Src": "3",
@@ -112,17 +122,15 @@ DO NOT CHANGE - VSSL Defined
  IRMskL / IRMskH:
  These could potentially be related to Infrared (IR) remote control signals. "IRMskL" and "IRMskH" might represent the low and high values of the modulation frequency or pulse width for an infrared signal.
 
- BTSta:
- This might represent the Bluetooth status, with "0" indicating that Bluetooth is currently not active or disconnected.
-
- Crs:
- It could stand for "Crossfade" and may represent a setting related to crossfading between audio tracks.
-
- Fes:
- This might stand for "Frequency" or "Filter Effect Setting," representing a parameter related to frequency or filtering effects.
-
- Drk: ?
-
+A.1
+{
+    'IRMskL': '255',
+    'IRMskH': '255',
+    'BTSta': '0',
+    'Crs': '0',
+    'Fes': '0',
+    'Drk': '0'
+}
 
 A.3x
 {
@@ -161,13 +169,30 @@ class DeviceStatusExtendedExtKeys:
     IR_HIGH = "IRMskH"  # Guess - To Confirm
     IR_LOW = "IRMskL"  # Guess - To Confirm
     BLUETOOTH_STATUS = "BTSta"  # Guess - To Confirm
-    SUBWOOFER_CROSSOVER = "Crs"  # Guess - To Confirm
+    SUBWOOFER_CROSSOVER = "Crs"
 
 
 """
 JSON Structure
 
 DO NOT CHANGE - VSSL Defined
+
+A.1
+{
+    'id': '7', 
+    'ac': '1', 
+    'mc': 'XXXXXXXXXXXX', 
+    'vol': '20', 
+    'mt': '0', 
+    'pa': '0', 
+    'rm': '0', 
+    'ts': '0', 
+    'lb': '17', 
+    'tp': '1', 
+    'wr': '0', 
+    'as': '0', 
+    'rg': '0'
+}
 
 A.3x
 {
@@ -245,6 +270,22 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
+A.1
+{
+    "mono":"0",
+    "AiNm":"",
+    "eq1":"100",
+    "eq2":"97",
+    "eq3":"103",
+    "eq4":"103",
+    "eq5":"103",
+    "eq6":"99",
+    "eq7":"99",
+    "voll":"75",
+    "volr":"75",
+    "vold":"0"
+}
+
 A.3x
 {
     "mono": "0",
@@ -314,6 +355,22 @@ class ZoneEQStatusExtKeys:
 JSON Structure
 
 DO NOT CHANGE - VSSL Defined
+
+A.1
+{
+    "ECO":"0",
+    "eqsw":"1",
+    "inSrc":"3",
+    "SP":"0",
+    "BF1":"0",
+    "BF2":"0",
+    "GRM":"0",
+    "GRS":"255",
+    "Pwr":"1",
+    "Bvr":"7",
+    "fxv":"20",
+    "AtPwr":"1"
+}
 
 A.3x
 {
