@@ -1129,6 +1129,16 @@ class APIAlpha(APIBase):
             self.zone.input._set_property("priority", priority)
 
     #
+    # 66 [102]
+    # Bluetooth state
+    #
+    def response_action_66(self, state: int):
+        if hex_to_int(hexl[2]) == 2:
+            state = bool(hex_to_int(hexl[4]))
+            self._log_debug(f"Received bluetooth state: {state}")
+            self.vssl.settings._set_property("bluetooth", state)
+
+    #
     # 50 [80]
     # Adaptive Power Feedback
     #

@@ -74,6 +74,8 @@ class VsslSettings(VsslDataClass):
     #
     # Bluetooth
     #
+    # A.3 has 3 bluetooth states (0,1,2), but we simplfy to just a bool.
+    #
     @property
     def bluetooth(self):
         return bool(self._bluetooth)
@@ -88,9 +90,7 @@ class VsslSettings(VsslDataClass):
 
         zone = self._vssl.get_connected_zone()
         if zone:
-            # TODO
-            # zone.api_alpha.request_action_bluetooth(not not enabled)
-            self._vssl._log_info(f"TODO - bluetooth set function")
+            zone.api_alpha.request_action_65(enabled)
 
     def bluetooth_toggle(self):
         self.bluetooth = False if self.bluetooth else True

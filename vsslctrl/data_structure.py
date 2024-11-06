@@ -103,7 +103,7 @@ class DeviceStatusExtKeys:
     ANALOG_OUTPUT_4_SOURCE = "B4Src"
     ANALOG_OUTPUT_5_SOURCE = "B5Src"
     ANALOG_OUTPUT_6_SOURCE = "B6Src"
-    UNKNOWN = "B1Nm"  # Party mode bus?
+    BUS_1_NAME = "B1Nm"  # Party mode bus?
     OPTICAL_INPUT_NAME = "B2Nm"  # For A.3x this is the optical input name
     DEVICE_NAME = "dev"
     SW_VERSION = "ver"
@@ -166,9 +166,9 @@ A.6x
 
 
 class DeviceStatusExtendedExtKeys:
-    IR_HIGH = "IRMskH"  # Guess - To Confirm
-    IR_LOW = "IRMskL"  # Guess - To Confirm
-    BLUETOOTH_STATUS = "BTSta"  # Guess - To Confirm
+    IR_HIGH = "IRMskH"  # To Confirm
+    IR_LOW = "IRMskL"  # To Confirm
+    BLUETOOTH_STATUS = "BTSta"
     SUBWOOFER_CROSSOVER = "Crs"
 
 

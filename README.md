@@ -20,7 +20,7 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 ## TODOs
 
-* **A.1(x)** specific control e.g bluetooth
+* Correct IO mapping between models and versions
 * Better test coverage
 
 ## Basic Usage
