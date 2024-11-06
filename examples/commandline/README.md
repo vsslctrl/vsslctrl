@@ -34,3 +34,13 @@ python cli.py
 # Tail the log output from the script
 tail -f vssl.log
 ```
+
+At this point you can run / type commands or print variables in the terminal you opened in step 4.
+
+e.g
+```bash
+# Pause zone 1
+Enter a command ("exit" to quit): zone1.pause()
+# Print a var
+Enter a command ("exit" to quit): print(zone1.settings.name)
+```

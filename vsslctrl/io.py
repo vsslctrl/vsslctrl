@@ -117,6 +117,8 @@ class AnalogOutput(ZoneDataClass):
     TODO: Support for Bus 1 & 2 - Bus 1 and 2 outs can have fixed volume also.
         Since the BUS zones dont have a dedicated zone, maybe we should move these
         commands to the VSSL device control class instead of the zone class?
+
+        TODO: A1 input and output mappings!
     """
 
     #
@@ -126,8 +128,8 @@ class AnalogOutput(ZoneDataClass):
     #
     class Sources(VsslIntEnum):
         OFF = 0  # Disconnected / Off / No Output
-        BUS_IN_1 = 1  # TODO bus or party mode of original A series
-        BUS_IN_2 = 2  # TODO bus or party mode of original A series
+        BUS_IN_1 = 1  # TODO bus or party mode of original A series?
+        BUS_IN_2 = 2  # TODO bus or party mode of original A series?
         ZONE_1 = 3
         ZONE_2 = 4
         ZONE_3 = 5

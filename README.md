@@ -9,6 +9,7 @@
 I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping. <vsslcontrolled@proton.me>
 
 Tested on:
+- **A.1** software version **p15265.033.3703** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
 - **A.3** software version **p12013.141.3703** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
 - **A.3x** software version **p15305.016.3701**
 - **A.6x** software version **p15305.017.3701** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
@@ -19,7 +20,7 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 ## TODOs
 
-* **A.1(x)** specific control e.g sub crossover, bluetooth
+* **A.1(x)** specific control e.g bluetooth
 * Better test coverage
 
 ## Basic Usage
@@ -492,7 +493,7 @@ Motivation for this project was to integrate VSSLs amplifiers into [Home Assista
 
 ## Future
 
-* A.1(x) coverage i.e Bluetooth and subwoofer control
+* A.1(x) coverage i.e Bluetooth
 * REST API / Web App
 * Save and recall EQ
 * IR Control

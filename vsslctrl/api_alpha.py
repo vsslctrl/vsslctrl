@@ -611,6 +611,9 @@ class APIAlpha(APIBase):
         # Not used?
 
         # B2Nm - Bus2 Name - For A3.X this is the optical input name
+        # B1Nm - Bus1 Name - For A1 this is the Optical input
+        # B2Nm - Bus2 Name - For A1 this is the coax
+
         if DeviceStatusExtKeys.OPTICAL_INPUT_NAME in metadata:
             self.vssl.settings._set_property(
                 "optical_input_name",

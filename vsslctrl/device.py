@@ -9,7 +9,7 @@ A.1x:
 SUB OUT
 ANALOG IN 1
 ANALOG OUT 1
-COAXIAL IN (Are Coxial and Optical inputs linked?)
+COAXIAL IN
 COAXIAL OUT
 OPTICAL IN
 OPTICAL OUT
@@ -19,7 +19,7 @@ A1:
 SUB OUT
 ANALOG IN 1
 ANALOG OUT 1
-COAXIAL IN (Are Coxial and Optical inputs linked?)
+COAXIAL IN
 COAXIAL OUT
 OPTICAL IN
 OPTICAL OUT
@@ -77,6 +77,8 @@ ANALOG IN 6
 
 ---------------------------------
 
+Following is from Source: https://vssl.gitbook.io/vssl-rest-api/zone-control/set-analog-input-source
+
 Analog Input Source legend: input: inputs specific to model (e.g. A3 does not have zones 4-6 or bus input 2, only A3 has optical input, ...) 
 
 
@@ -92,8 +94,7 @@ Analog Input Source legend: input: inputs specific to model (e.g. A3 does not ha
 16 - optical input
 
 
-Source: https://vssl.gitbook.io/vssl-rest-api/zone-control/set-analog-input-source
-
+TODO COAX Input and output!
 
 """
 

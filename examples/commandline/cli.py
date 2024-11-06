@@ -43,7 +43,7 @@ async def main():
         while True:
             try:
                 user_input = await session.prompt_async(
-                    'Enter a message ("exit" to quit): '
+                    'Enter a command ("exit" to quit): '
                 )
 
                 if user_input.lower() == "exit":
