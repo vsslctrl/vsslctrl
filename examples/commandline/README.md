@@ -35,9 +35,7 @@ python cli.py
 tail -f vssl.log
 ```
 
-At this point you can run / type commands or print variables in the terminal you opened in step 4.
-
-e.g
+At this point you can run commands and functions or print variables in the terminal you opened in step 4. For example:
 ```bash
 # Pause zone 1
 Enter a command ("exit" to quit): zone1.pause()
