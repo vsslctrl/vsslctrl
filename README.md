@@ -406,6 +406,23 @@ EQ to be set in [decibel](https://en.wikipedia.org/wiki/Decibel) using a range `
 zone1.settings.eq.khz1_db = -2
 ```
 
+## `Zone.settings.subwoofer`
+
+* **A.1 and A.1x only**
+* Set `0` for full frequency range
+
+| Property        | Description | Type    | Values    | Default |
+| ----------------------  | ----------- | ----------- |----------- |----------- |
+| `crossover`             | Set "sub out" crossover frequency from 50-200Hz.       |  `int` | `0` or `50...200` | `0`
+
+```python
+"""Examples"""
+# Set subwoofer ouput crossover to 100hz
+zone1.settings.subwoofer.crossover = 100
+```
+
+
+
 ## Another (Lite) Way
 
 If you perfer to not run the complete intergration, you can send basic HEX commands to the VSSL device using [Netcat](https://nc110.sourceforge.io/) (or any network tool) on port `50002`.

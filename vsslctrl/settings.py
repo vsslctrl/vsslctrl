@@ -705,7 +705,7 @@ class SubwooferSettings(ZoneDataClass):
     #
     # 0 is full range / off
     #
-    # From Manual: The crossover is adjustable from 50-200Hz.
+    # The crossover is adjustable from 50-200Hz.
     #
     DEFAULTS = {"crossover": 0}
 
@@ -719,7 +719,7 @@ class SubwooferSettings(ZoneDataClass):
     #
     def _clamp_crossover(self, value: int = 0):
         # Allow 0 to enable full range setting
-        if value < 1:
+        if value < self.MIN_VALUE:
             return 0
 
         return int(max(self.MIN_VALUE, min(value, self.MAX_VALUE)))
