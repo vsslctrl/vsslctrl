@@ -106,7 +106,7 @@ class InputRouter(ZoneDataClass):
 class AnalogOutput(ZoneDataClass):
     """
 
-    Analog output is the source which will play out the corrosponding analog output
+    AnalogOutput.Sources is the source which will play out the corrosponding analog output
 
 
     Should this be on the VSSL or Zone? For now its on the zone, because the zone will
@@ -128,8 +128,8 @@ class AnalogOutput(ZoneDataClass):
     #
     class Sources(VsslIntEnum):
         OFF = 0  # Disconnected / Off / No Output
-        BUS_IN_1 = 1  # TODO bus or party mode of original A series?
-        BUS_IN_2 = 2  # TODO bus or party mode of original A series?
+        BUS_IN_1 = 1
+        BUS_IN_2 = 2
         ZONE_1 = 3
         ZONE_2 = 4
         ZONE_3 = 5

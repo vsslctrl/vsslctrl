@@ -50,6 +50,11 @@ JSON Structure
 DO NOT CHANGE - VSSL Defined
 
 A.1
+SUB OUT
+ANALOG OUT 1
+COAXIAL OUT
+OPTICAL OUT
+
 {
     "B1Src":"3",
     "B2Src":"3",
@@ -59,7 +64,23 @@ A.1
     "ver":"p15265.033.3703"
 }
 
+A.3
+BUS 1 OUT
+
+{
+    'B1Src': '1', 
+    'B2Src': '2', 
+    'B1Nm': '', 
+    'B2Nm': '', 
+    'dev': 'VSSL A.3', 
+    'ver': '12013 .141.3703'
+}
+
 A.3x
+ANALOG OUT 1
+ANALOG OUT 2
+ANALOG OUT 3
+
 {
     "B1Src": "3",
     "B2Src": "4",
@@ -70,17 +91,14 @@ A.3x
     "ver": "p15305.016.3701"
 }
 
-A.3
-{
-    'B1Src': '1', 
-    'B2Src': '2', 
-    'B1Nm': '', 
-    'B2Nm': '', 
-    'dev': 'VSSL A.3', 
-    'ver': '12013 .141.3703'
-}
-
 A.6x
+ANALOG OUT 1
+ANALOG OUT 2
+ANALOG OUT 3
+ANALOG OUT 4
+ANALOG OUT 5
+ANALOG OUT 6
+
 {
     "B1Src": "3",
     "B2Src": "4",
@@ -103,8 +121,18 @@ class DeviceStatusExtKeys:
     ANALOG_OUTPUT_4_SOURCE = "B4Src"
     ANALOG_OUTPUT_5_SOURCE = "B5Src"
     ANALOG_OUTPUT_6_SOURCE = "B6Src"
-    BUS_1_NAME = "B1Nm"  # Party mode bus?
-    OPTICAL_INPUT_NAME = "B2Nm"  # For A.3x this is the optical input name
+
+    #
+    # A.1: Optical Input
+    #
+    BUS_1_NAME = "B1Nm"
+
+    #
+    # A.1: Coax
+    # A.3x: Optical Input
+    #
+    BUS_2_NAME = "B2Nm"
+
     DEVICE_NAME = "dev"
     SW_VERSION = "ver"
 
@@ -120,7 +148,8 @@ DO NOT CHANGE - VSSL Defined
 
 
  IRMskL / IRMskH:
- These could potentially be related to Infrared (IR) remote control signals. "IRMskL" and "IRMskH" might represent the low and high values of the modulation frequency or pulse width for an infrared signal.
+ These could potentially be related to Infrared (IR) remote control signals. 
+ "IRMskL" and "IRMskH" might represent the low and high values of the modulation frequency or pulse width for an infrared signal.
 
 A.1
 {

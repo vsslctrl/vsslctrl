@@ -16,7 +16,8 @@ VSSL_SETTINGS_EVENT_PREFIX = "vssl.settings."
 class VsslSettings(VsslDataClass):
     class Keys:
         NAME = "name"
-        OPTICAL_INPUT_NAME = "optical_input_name"
+        BUS_1_NAME = "bus_1_name"
+        BUS_2_NAME = "bus_2_name"
         BLUETOOTH = "bluetooth"
 
     #
@@ -25,7 +26,8 @@ class VsslSettings(VsslDataClass):
     class Events:
         PREFIX = VSSL_SETTINGS_EVENT_PREFIX
         NAME_CHANGE = PREFIX + "name_changed"
-        OPTICAL_INPUT_NAME_CHANGE = PREFIX + "optical_input_name_changed"
+        BUS_1_NAME_CHANGE = PREFIX + "bus_1_name_changed"
+        BUS_2_NAME_CHANGE = PREFIX + "bus_2_name_changed"
         BLUETOOTH_CHANGE = PREFIX + "bluetooth_changed"
 
     #
@@ -33,7 +35,8 @@ class VsslSettings(VsslDataClass):
     #
     DEFAULTS = {
         Keys.NAME: None,
-        Keys.OPTICAL_INPUT_NAME: "Optical In",
+        Keys.BUS_1_NAME: "",
+        Keys.BUS_2_NAME: "",
         Keys.BLUETOOTH: 0,
     }
 
@@ -41,7 +44,8 @@ class VsslSettings(VsslDataClass):
         self._vssl = vssl
 
         self._name = None  # device name
-        self._optical_input_name = self.DEFAULTS[self.Keys.OPTICAL_INPUT_NAME]
+        self._bus_1_name = self.DEFAULTS[self.Keys.BUS_1_NAME]
+        self._bus_2_name = self.DEFAULTS[self.Keys.BUS_2_NAME]
         self._bluetooth = self.DEFAULTS[self.Keys.BLUETOOTH]
         self.power = VsslPowerSettings(vssl)
 
@@ -59,14 +63,31 @@ class VsslSettings(VsslDataClass):
             zone.api_alpha.request_action_18(name)
 
     #
-    # Optical Input Name
+    # Bus 1 Name
+    #
+    # @see data_structure DeviceStatusExtKeys
     #
     @property
-    def optical_input_name(self):
-        return self._optical_input_name
+    def bus_1_name(self):
+        return self._bus_1_name
 
-    @optical_input_name.setter
-    def optical_input_name(self, name: str):
+    @bus_1_name.setter
+    def bus_1_name(self, name: str):
+        zone = self._vssl.get_connected_zone()
+        if zone:
+            zone.api_alpha.request_action_15_10(name)
+
+    #
+    # Bus 2 Name
+    #
+    # @see data_structure DeviceStatusExtKeys
+    #
+    @property
+    def bus_2_name(self):
+        return self._bus_2_name
+
+    @bus_2_name.setter
+    def bus_2_name(self, name: str):
         zone = self._vssl.get_connected_zone()
         if zone:
             zone.api_alpha.request_action_15_12(name)

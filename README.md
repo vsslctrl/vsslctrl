@@ -22,6 +22,7 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 * Correct IO mapping between models and versions
 * Better test coverage
+* Party mode for original A series
 
 ## Basic Usage
 
@@ -142,7 +143,8 @@ vssl.factory_reset()
 | Property      	| Description | Type 		| 
 | ---------------------- 	| ----------- | ----------- |
 | `name`     			 	| Device name |	`str`
-| `optical_input_name`   			| Name of the optical input        |	`str`
+| `bus_1_name`   			| Name of Bus 1        |	`str`
+| `bus_2_name`        | Name of Bus 2        |  `str`
 | `bluetooth`        | Bluetooth enabled / disabled        |  `bool`
 | `bluetooth_toggle()`        | Toggle Bluetooth        | `func`  |
 
@@ -150,8 +152,8 @@ vssl.factory_reset()
 """Example"""
 # Setting device name
 vssl.settings.name = 'My House'
-# Setting optical input name
-vssl.settings.optical_input_name = 'Optical Input 1'
+# Setting bus 2 name
+vssl.settings.bus_2_name = 'Optical Input'
 # Enable Bluetooth
 vssl.settings.bluetooth = True
 # Toggle Bluetooth

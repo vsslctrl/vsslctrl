@@ -282,11 +282,24 @@ class APIAlpha(APIBase):
 
     #
     # 15 [21]
-    # Set Optical Input Name / Rename Optical Input
+    # Set Bus 1 Name
+    #
+    def request_action_15_10(self, name: str):
+        name = name.strip()
+        self._log_debug(f"Requesting to change bus 1 name: {name}")
+        command = bytearray([16, 21])
+        command.extend(struct.pack(">B", len(name) + 1))
+        command.extend([10])
+        command.extend(name.encode("utf-8"))
+        self.send(command)
+
+    #
+    # 15 [21]
+    # Set Bus 2 Name
     #
     def request_action_15_12(self, name: str):
         name = name.strip()
-        self._log_debug(f"Requesting to change optical input name: {name}")
+        self._log_debug(f"Requesting to change bus 2 name: {name}")
         command = bytearray([16, 21])
         command.extend(struct.pack(">B", len(name) + 1))
         command.extend([12])
@@ -620,17 +633,18 @@ class APIAlpha(APIBase):
         if key in metadata:
             self.zone.analog_output._set_property("source", int(metadata[key]))
 
-        # B1Nm - Bus1 Name
-        # Not used?
-
-        # B2Nm - Bus2 Name - For A3.X this is the optical input name
-        # B1Nm - Bus1 Name - For A1 this is the Optical input
-        # B2Nm - Bus2 Name - For A1 this is the coax
-
-        if DeviceStatusExtKeys.OPTICAL_INPUT_NAME in metadata:
+        # Bus 1 Name
+        if DeviceStatusExtKeys.BUS_1_NAME in metadata:
             self.vssl.settings._set_property(
-                "optical_input_name",
-                metadata[DeviceStatusExtKeys.OPTICAL_INPUT_NAME].strip(),
+                "bus_1_name",
+                metadata[DeviceStatusExtKeys.BUS_1_NAME].strip(),
+            )
+
+        # Bus 2 Name
+        if DeviceStatusExtKeys.BUS_2_NAME in metadata:
+            self.vssl.settings._set_property(
+                "bus_2_name",
+                metadata[DeviceStatusExtKeys.BUS_2_NAME].strip(),
             )
 
         # Set the device name
@@ -813,6 +827,9 @@ class APIAlpha(APIBase):
 
         # Analog Output Fix Volume
         #  e.g BF1
+        #
+        # TODO, this not great for A1
+        #
         key = ZoneRouterStatusExtKeys.add_zone_to_ao_fixed_volume_key(self.zone.id)
         if key in metadata:
             self.zone.analog_output._set_property(
@@ -1024,7 +1041,7 @@ class APIAlpha(APIBase):
     # TODO, maybe this should be global with the analog outputs
     #
     def response_action_16(self, hexl: list, response: bytes):
-        self._log_debug(f"Received analog input name: {hexl}")
+        self._log_debug(f"Received input name: {hexl}")
 
         input_id = hex_to_int(hexl[3])
         name = response[4:].decode("ascii")
@@ -1033,10 +1050,15 @@ class APIAlpha(APIBase):
             self._log_debug(f"Received analog input {input_id} name: {name}")
             self.zone.settings.analog_input._set_property("name", name.strip())
 
-        # Optical Input
+        # Bus 1 Name
+        elif input_id == 10:
+            self._log_debug(f"Received bus 1 name: {name}")
+            self.vssl.settings._set_property("bus_1_name", name.strip())
+
+        # Bus 2 Name
         elif input_id == 12:
-            self._log_debug(f"Received optical input name: {name}")
-            self.vssl.settings._set_property("optical_input_name", name.strip())
+            self._log_debug(f"Received bus 2 name: {name}")
+            self.vssl.settings._set_property("bus_2_name", name.strip())
 
     #
     # 17 [23]
