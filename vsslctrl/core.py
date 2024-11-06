@@ -294,6 +294,14 @@ class Vssl:
     #
     # Get the device name
     #
+    def _test_bluetooth(self, state: int):
+        zone = self.get_connected_zone()
+        if zone:
+            zone.api_alpha.request_action_65(state)
+
+    #
+    # Get the device name
+    #
     def _request_name(self):
         zone = self.get_connected_zone()
         if zone:

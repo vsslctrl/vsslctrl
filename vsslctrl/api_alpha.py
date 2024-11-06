@@ -391,6 +391,19 @@ class APIAlpha(APIBase):
         self.send(command)
 
     #
+    # 65 [101]
+    # Enable / Disable Bluetooth
+    #
+    # On:  bytearray([16, 101, 2, 1, 14]) Hex: 106502010e
+    # Off: bytearray([16, 101, 2, 1, 15]) Hex: 106502010f
+    #
+    def request_action_65(self, state: int):
+        state = int(not not state)
+        self._log_debug(f"Requesting to set bluetooth state: {state}")
+        cmd = 14 if state else 15
+        self.send(bytearray([16, 101, 2, 1, cmd]))
+
+    #
     # 33 [51]
     # Reboot All Zones
     #
