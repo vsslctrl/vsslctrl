@@ -206,22 +206,12 @@ class APIAlpha(APIBase):
 
     #
     # 4F [79]
-    # Adaptive Power - Device level Command
+    # Adaptive Power
     #
     def request_action_4F(self, state=True):
         self._log_debug(f"Requesting to set adaptive power state: {state}")
         # Device level command (dont need zone)
         command = bytearray([16, 79, 2, 8, int(state)])
-        self.send(command)
-
-    #
-    # 57 [87]
-    # Subwoofer Crossover
-    #
-    def request_action_57(self, freq: int):
-        self._log_debug(f"Requesting to set subwoofer crossover: {freq}")
-        # We hard code the zone ID to be 7 since this A.1(x)
-        command = bytearray([16, 87, 3, ZoneIDs.A1, 0, freq])
         self.send(command)
 
     #
@@ -231,6 +221,16 @@ class APIAlpha(APIBase):
     #
     #
     #
+
+    #
+    # 57 [87]
+    # Subwoofer Crossover
+    #
+    def request_action_57(self, freq: int):
+        self._log_debug(f"Requesting to set subwoofer crossover: {freq}")
+        # We hard code the zone ID to be 7 since this has to be a A.1(x)
+        command = bytearray([16, 87, 3, ZoneIDs.A1, 0, freq])
+        self.send(command)
 
     #
     # 03 [3]

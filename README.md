@@ -9,10 +9,13 @@
 I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping. <vsslcontrolled@proton.me>
 
 Tested on:
-- **A.1** software version **p15265.033.3703** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
-- **A.3** software version **p12013.141.3703** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
 - **A.3x** software version **p15305.016.3701**
-- **A.6x** software version **p15305.017.3701** via Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) (reported)
+
+Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) working on:
+- **A.1** software version **p15265.033.3703** (reported)
+- **A.3** software version **p12013.141.3703** (reported)
+- **A.3x** software version **p15305.016.3701**
+- **A.6x** software version **p15305.017.3701** (reported)
 
 ## Important
 
