@@ -10,7 +10,11 @@ from .transport import ZoneTransport
 from .settings import EQSettings
 
 from .utils import hex_to_int, clamp_volume, hex_to_bytearray_string
-from .decorators import logging_helpers
+from .decorators import (
+    logging_helpers,
+    validate_response_length,
+    validate_response_zone_id,
+)
 from .data_structure import (
     ZoneIDs,
     ZoneStatusExtKeys,
@@ -44,13 +48,35 @@ class APIAlpha(APIBase):
     #
     #
     #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
     # Requests
+    #
+    #
+    #
+    #
+    #
+    #
+    #
     #
     #
     #
     def _add_zone_id_to_request(self, command: bytearray, index: int = 3):
         command[index] = self.zone.id
         return command
+
+    #
+    #
+    #
+    # Device Requests
+    #
+    #
+    #
 
     #
     # 17 [23]
@@ -103,6 +129,110 @@ class APIAlpha(APIBase):
         self.send(bytearray([16, 0, 1, 11]))  # HEX: 1000010B
 
     #
+    # 19 [25]
+    # Get Device name
+    #
+    def request_action_19(self):
+        self._log_debug(f"Requesting device name")
+        self.send(bytearray([16, 25, 1, 0]))
+
+    #
+    # 65 [101]
+    # Enable / Disable Bluetooth
+    #
+    # On:  bytearray([16, 101, 2, 1, 14]) Hex: 106502010e
+    # Off: bytearray([16, 101, 2, 1, 15]) Hex: 106502010f
+    #
+    def request_action_65(self, state: int):
+        state = int(not not state)
+        self._log_debug(f"Requesting to set bluetooth state: {state}")
+        cmd = 14 if state else 15
+        self.send(bytearray([16, 101, 2, 1, cmd]))
+
+    #
+    # 33 [51]
+    # Reboot All Zones
+    #
+    def request_action_33_device(self):
+        self._log_debug("Requesting to reboot device")
+        self.send(bytearray([16, 51, 2, 0, 1]))
+
+    #
+    # 2B [43]
+    # Factory Reset Device
+    #
+    def request_action_2B(self):
+        self._log_debug("Requesting to factory reset device")
+        self.send(bytearray([16, 43, 2, 8, 0]))
+
+    #
+    # 15 [21]
+    # Set Bus 1 Name
+    #
+    def request_action_15_10(self, name: str):
+        name = name.strip()
+        self._log_debug(f"Requesting to change bus 1 name: {name}")
+        command = bytearray([16, 21])
+        command.extend(struct.pack(">B", len(name) + 1))
+        command.extend([10])
+        command.extend(name.encode("utf-8"))
+        self.send(command)
+
+    #
+    # 15 [21]
+    # Set Bus 2 Name
+    #
+    def request_action_15_12(self, name: str):
+        name = name.strip()
+        self._log_debug(f"Requesting to change bus 2 name: {name}")
+        command = bytearray([16, 21])
+        command.extend(struct.pack(">B", len(name) + 1))
+        command.extend([12])
+        command.extend(name.encode("utf-8"))
+        self.send(command)
+
+    #
+    # 18 [24]
+    # Set Device Name / Rename Device
+    #
+    def request_action_18(self, name: str):
+        name = name.strip()
+        self._log_debug(f"Requesting to change device name: {name}")
+        command = bytearray([16, 24])
+        command.extend(struct.pack(">B", len(name) + 1))
+        command.extend([7])
+        command.extend(name.encode("utf-8"))
+        self.send(command)
+
+    #
+    # 4F [79]
+    # Adaptive Power - Device level Command
+    #
+    def request_action_4F(self, state=True):
+        self._log_debug(f"Requesting to set adaptive power state: {state}")
+        # Device level command (dont need zone)
+        command = bytearray([16, 79, 2, 8, int(state)])
+        self.send(command)
+
+    #
+    # 57 [87]
+    # Subwoofer Crossover
+    #
+    def request_action_57(self, freq: int):
+        self._log_debug(f"Requesting to set subwoofer crossover: {freq}")
+        # We hard code the zone ID to be 7 since this A.1(x)
+        command = bytearray([16, 87, 3, ZoneIDs.A1, 0, freq])
+        self.send(command)
+
+    #
+    #
+    #
+    # Zone Requests
+    #
+    #
+    #
+
+    #
     # 03 [3]
     # Input Source Set
     #
@@ -110,6 +240,10 @@ class APIAlpha(APIBase):
         self._log_debug(f"Requesting to change input source to {src}")
         command = self._add_zone_id_to_request(bytearray([16, 3, 2, 0, src]))
         self.send(command)
+
+    def request_action_03A(self, src: int, zone: int = 1):
+        self._log_debug(f"Requesting to change input source to {src}")
+        self.send(bytearray([16, 3, 2, zone, src]))
 
     #
     # 04 [4]
@@ -194,7 +328,8 @@ class APIAlpha(APIBase):
     #
     def request_action_07(self):
         self._log_debug("Requesting status transport state")
-        self.send(bytearray([16, 7, 1, 0]))
+        command = self._add_zone_id_to_request(bytearray([16, 7, 1, 0]))
+        self.send(command)
 
     #
     # 0C [12]
@@ -270,6 +405,8 @@ class APIAlpha(APIBase):
     # 15 [21]
     # Set Analog Input Name / Rename Analog Input
     #
+    # TODO: Does this work on A.1(x)?
+    #
     def request_action_15(self, name: str):
         name = name.strip()
         self._log_debug(f"Requesting to change analog input name: {name}")
@@ -281,79 +418,21 @@ class APIAlpha(APIBase):
         self.send(command)
 
     #
-    # 15 [21]
-    # Set Bus 1 Name
-    #
-    def request_action_15_10(self, name: str):
-        name = name.strip()
-        self._log_debug(f"Requesting to change bus 1 name: {name}")
-        command = bytearray([16, 21])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([10])
-        command.extend(name.encode("utf-8"))
-        self.send(command)
-
-    #
-    # 15 [21]
-    # Set Bus 2 Name
-    #
-    def request_action_15_12(self, name: str):
-        name = name.strip()
-        self._log_debug(f"Requesting to change bus 2 name: {name}")
-        command = bytearray([16, 21])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([12])
-        command.extend(name.encode("utf-8"))
-        self.send(command)
-
-    #
-    # 18 [24]
-    # Set Device Name / Rename Device
-    #
-    def request_action_18(self, name: str):
-        name = name.strip()
-        self._log_debug(f"Requesting to change device name: {name}")
-        command = bytearray([16, 24])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([7])
-        command.extend(name.encode("utf-8"))
-        self.send(command)
-
-    #
-    # 19 [25]
-    # Get Device name
-    #
-    def request_action_19(self):
-        self._log_debug(f"Requesting device name")
-        command = self._add_zone_id_to_request(bytearray([16, 25, 1, 0]))
-        self.send(command)
-
-    #
     # 1D [29]
     # Analog Output Set Src
     #
-    def request_action_1D(self, src: int):
-        self._log_debug(f"Requesting to change analog ouput source to {src}")
-        command = self._add_zone_id_to_request(bytearray([16, 29, 2, 0, src]))
-        self.send(command)
-
-    def request_action_1D_router(self, ao_id: int, src: int):
-        self._log_debug(f"Requesting to change analog ouput {ao_id} source to {src}")
+    def request_action_1D(self, ao_id: int, src: int):
+        self._log_debug(
+            f"Requesting to change analog ouput id: {ao_id} to analog ouput source: {src}"
+        )
         self.send(bytearray([16, 29, 2, ao_id, src]))
 
     #
     # 49 [73]
     # Analog Output Fix Output Vol
     #
-    def request_action_49(self, fix: bool):
-        self._log_debug(f"Requesting to fix analog ouput volume {fix}")
-        command = self._add_zone_id_to_request(
-            bytearray([16, 73, 2, 0, int(not not fix)])
-        )
-        self.send(command)
-
-    def request_action_49_router(self, ao_id: int, fix: bool):
-        self._log_debug(f"Requesting to fix analog ouput {ao_id} volume {fix}")
+    def request_action_49(self, ao_id: int, fix: bool):
+        self._log_debug(f"Requesting to fix the volume of analog ouput {ao_id}")
         self.send(bytearray([16, 73, 2, ao_id, int(not not fix)]))
 
     #
@@ -402,35 +481,6 @@ class APIAlpha(APIBase):
         self._log_debug(f"Requesting to reboot single zone")
         command = self._add_zone_id_to_request(bytearray([16, 51, 2, 0, 1]))
         self.send(command)
-
-    #
-    # 65 [101]
-    # Enable / Disable Bluetooth
-    #
-    # On:  bytearray([16, 101, 2, 1, 14]) Hex: 106502010e
-    # Off: bytearray([16, 101, 2, 1, 15]) Hex: 106502010f
-    #
-    def request_action_65(self, state: int):
-        state = int(not not state)
-        self._log_debug(f"Requesting to set bluetooth state: {state}")
-        cmd = 14 if state else 15
-        self.send(bytearray([16, 101, 2, 1, cmd]))
-
-    #
-    # 33 [51]
-    # Reboot All Zones
-    #
-    def request_action_33_device(self):
-        self._log_debug("Requesting to reboot device")
-        self.send(bytearray([16, 51, 2, 0, 1]))
-
-    #
-    # 2B [43]
-    # Factory Reset Device
-    #
-    def request_action_2B(self):
-        self._log_debug("Requesting to factory reset device")
-        self.send(bytearray([16, 43, 2, 8, 0]))
 
     #
     # 47 [71]
@@ -518,29 +568,23 @@ class APIAlpha(APIBase):
         self.send(command)
 
     #
-    # 4F [79]
-    # Adaptive Power - Device level Command
     #
-    def request_action_4F(self, state=True):
-        self._log_debug(f"Requesting to set adaptive power state: {state}")
-        # Device level command (dont need zone)
-        command = bytearray([16, 79, 2, 8, int(state)])
-        self.send(command)
-
     #
-    # 57 [87]
-    # Subwoofer Crossover
     #
-    def request_action_57(self, freq: int):
-        self._log_debug(f"Requesting to set subwoofer crossover: {freq}")
-        # We hard code the zone ID to be 7 since this A.1(x)
-        command = bytearray([16, 87, 3, ZoneIDs.A1, 0, freq])
-        self.send(command)
-
+    #
+    #
+    #
     #
     #
     #
     # Respsonses
+    #
+    #
+    #
+    #
+    #
+    #
+    #
     #
     #
     #
@@ -626,9 +670,11 @@ class APIAlpha(APIBase):
         self._log_debug(f"Received 00 Status: {metadata}")
 
         # Guess device model
+        # TODO: remove?
         self.vssl._infer_device_model(metadata)
 
         # Analog output source
+        # TODO: this need to be global (on the core?)
         key = DeviceStatusExtKeys.add_zone_to_bus_key(self.zone.id)
         if key in metadata:
             self.zone.analog_output._set_property("source", int(metadata[key]))
@@ -899,142 +945,6 @@ class APIAlpha(APIBase):
             )
 
     #
-    # 2A [42]
-    # Stream Source
-    #
-    def response_action_2A(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            source = hex_to_int(hexl[4])
-            self._log_debug(f"Received stream source: {source}")
-            self.zone.track.source = source
-
-    #
-    # 1E [30]
-    # Received Analog Output Source Change
-    #
-    # Note: This is received on the zone which is the same as the output ID
-    #
-    def response_action_1E(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            output = hex_to_int(hexl[3])
-            source = hex_to_int(hexl[4])
-            self._log_debug(f"Received analog output {output} source change: {source}")
-            self.zone.analog_output._set_property("source", source)
-
-    #
-    # 4A [74]
-    # Analog Output Fix Output Vol
-    #
-    # Note: This is received on the zone which is the same as the output ID
-    #
-    def response_action_4A(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            output = hex_to_int(hexl[3])
-            state = hex_to_int(hexl[4])
-            self._log_debug(f"Received analog output {output} volume fixed: {state}")
-            self.zone.analog_output._set_property("is_fixed_volume", bool(state))
-
-    #
-    # 04 [4]
-    # Received Input Source
-    #
-    def response_action_04(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            source = hex_to_int(hexl[4])
-            self._log_debug(f"Received input source: {source}")
-            self.zone.input._set_property("source", source)
-
-    #
-    # 06 [6]
-    # Received Volume Data
-    #
-    def response_action_06(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 3:
-            vol = hex_to_int(hexl[4])
-            vol_cmd = hex_to_int(hexl[5])
-
-            self._log_debug(f"Received volume cmd: {vol_cmd} vol: {vol}")
-            self._log_debug(f"Received volume {response.hex()}")
-
-            # Analog input fixed gain
-            if vol_cmd == 0:
-                self.zone.settings.analog_input._set_property("fixed_gain", vol)
-
-            # Max Left
-            elif vol_cmd == 1:
-                self.zone.settings.volume._set_property("max_left", vol)
-
-            # Max Right
-            elif vol_cmd == 2:
-                self.zone.settings.volume._set_property("max_right", vol)
-
-            # Normal Volume Change
-            elif vol_cmd == 3:
-                self.zone._set_property("volume", vol)
-
-            # Defaul On Volume Change
-            elif vol_cmd == 8:
-                self.zone.settings.volume._set_property("default_on", vol)
-        else:
-            self._log_debug(f"Volume Error")
-
-    #
-    # 07 [7]
-    # Transport State
-    #
-    # 0 = stop
-    # 1 = play
-    # 2 = pause
-    #
-    def response_action_07(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            state = hex_to_int(hexl[4])
-            self._log_debug(f"Received transport state: {state}")
-            self.zone.transport._set_property("state", state)
-
-    #
-    # 0C [12]
-    # Party Mode
-    #
-    # Not supported on X series
-    #
-    def response_action_0C(self, hexl: list, response: bytes):
-        state = hex_to_int(hexl[4])
-        self._log_debug(f"Received party member state: {state}")
-        self.zone.group._set_property("is_party_zone_member", state)
-
-    #
-    # 0E [14]
-    # EQ
-    #
-    def response_action_0E(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 3:
-            freq = hex_to_int(hexl[4])
-            value = hex_to_int(hexl[5])
-            self._log_debug(f"Received EQ frequency:{freq} value: {value}")
-            self.zone.settings.eq._set_eq_freq(freq, value)
-
-    #
-    # 10 [16]
-    # Mono output
-    #
-    def response_action_10(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            state = hex_to_int(hexl[4])
-            self._log_debug(f"Received mono ouput: {state}")
-            self.zone.settings._set_property("mono", state)
-
-    #
-    # 12 [18]
-    # Mute status
-    #
-    def response_action_12(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            is_muted = bool(hex_to_int(hexl[4]))
-            self._log_debug(f"Received mute status 12: {is_muted}")
-            self.zone._set_property("mute", is_muted)
-
-    #
     # 16 [22]
     # Received Analog Input Name
     #
@@ -1061,15 +971,6 @@ class APIAlpha(APIBase):
             self.vssl.settings._set_property("bus_2_name", name.strip())
 
     #
-    # 17 [23]
-    # Keep Alive
-    #
-    def response_action_17(self, hexl: list, response: bytes):
-        self._log_debug(f"Received keep alive: {response}")
-        # TODO
-        pass
-
-    #
     # 19 [25]
     # Received Device Name
     #
@@ -1088,25 +989,190 @@ class APIAlpha(APIBase):
             self._log_error(f"Exception occurred receiving device name: {error}")
 
     #
-    # 26 [38]
-    # Zone Enabled / Disabled Feedback
     #
+    #
+    # Zone Response
+    #
+    #
+    #
+
+    #
+    # 1E [30]
+    # Received Analog Output Source Change
+    #
+    # Note: This is only received on the zone which is the same as the output ID
+    # on X-series at least.
+    #
+    @validate_response_length()
+    # @validate_response_zone_id()
+    def response_action_1E(self, hexl: list, response: bytes):
+        output = hex_to_int(hexl[3])
+        source = hex_to_int(hexl[4])
+        self._log_debug(f"Received analog output {output} source change: {source}")
+        self.zone.analog_output._set_property("source", source)
+
+    #
+    # 4A [74]
+    # Analog Output Fix Output Vol
+    #
+    # Note: This is only received on the zone which is the same as the output ID
+    # on X-series at least.
+    #
+    @validate_response_length()
+    # @validate_response_zone_id()
+    def response_action_4A(self, hexl: list, response: bytes):
+        output = hex_to_int(hexl[3])
+        state = hex_to_int(hexl[4])
+        self._log_debug(f"Received analog output {output} volume fixed: {state}")
+        self.zone.analog_output._set_property("is_fixed_volume", bool(state))
+
+    #
+    # 2A [42]
+    # Stream Source
+    #
+    @validate_response_length()
+    @validate_response_zone_id()
+    def response_action_2A(self, hexl: list, response: bytes):
+        source = hex_to_int(hexl[4])
+        self._log_debug(f"Received stream source: {source}")
+        self.zone.track.source = source
+
+    #
+    # 04 [4]
+    # Received Input Source
+    #
+    @validate_response_length()
+    @validate_response_zone_id()
+    def response_action_04(self, hexl: list, response: bytes):
+        source = hex_to_int(hexl[4])
+        self._log_debug(f"Received input source: {source}")
+        self.zone.input._set_property("source", source)
+
+    #
+    # 06 [6]
+    # Received Volume Data
+    #
+    @validate_response_length(3)
+    @validate_response_zone_id()
+    def response_action_06(self, hexl: list, response: bytes):
+        vol = hex_to_int(hexl[4])
+        vol_cmd = hex_to_int(hexl[5])
+
+        self._log_debug(f"Received volume cmd: {vol_cmd} vol: {vol}")
+        self._log_debug(f"Received volume {response.hex()}")
+
+        # Analog input fixed gain
+        if vol_cmd == 0:
+            self.zone.settings.analog_input._set_property("fixed_gain", vol)
+
+        # Max Left
+        elif vol_cmd == 1:
+            self.zone.settings.volume._set_property("max_left", vol)
+
+        # Max Right
+        elif vol_cmd == 2:
+            self.zone.settings.volume._set_property("max_right", vol)
+
+        # Normal Volume Change
+        elif vol_cmd == 3:
+            self.zone._set_property("volume", vol)
+
+        # Defaul On Volume Change
+        elif vol_cmd == 8:
+            self.zone.settings.volume._set_property("default_on", vol)
+
+    #
+    # 07 [7]
+    # Transport State
+    #
+    # 0 = stop
+    # 1 = play
+    # 2 = pause
+    #
+    @validate_response_length()
+    @validate_response_zone_id()
+    def response_action_07(self, hexl: list, response: bytes):
+        state = hex_to_int(hexl[4])
+        self._log_debug(f"Received transport state: {state}")
+        self.zone.transport._set_property("state", state)
+
+    #
+    # 0C [12]
+    # Party Mode
+    #
+    # Not supported on X series
+    #
+    @validate_response_length()
+    @validate_response_zone_id()
+    def response_action_0C(self, hexl: list, response: bytes):
+        state = hex_to_int(hexl[4])
+        self._log_debug(f"Received party member state: {state}")
+        self.zone.group._set_property("is_party_zone_member", state)
+
+    #
+    # 0E [14]
+    # EQ
+    #
+    @validate_response_length(3)
+    @validate_response_zone_id()
+    def response_action_0E(self, hexl: list, response: bytes):
+        freq = hex_to_int(hexl[4])
+        value = hex_to_int(hexl[5])
+        self._log_debug(f"Received EQ frequency:{freq} value: {value}")
+        self.zone.settings.eq._set_eq_freq(freq, value)
+
+    #
+    # 10 [16]
+    # Mono output
+    #
+    @validate_response_length()
+    @validate_response_zone_id()
+    def response_action_10(self, hexl: list, response: bytes):
+        state = hex_to_int(hexl[4])
+        self._log_debug(f"Received mono ouput: {state}")
+        self.zone.settings._set_property("mono", state)
+
+    #
+    # 12 [18]
+    # Mute status
+    #
+    @validate_response_length()
+    @validate_response_zone_id()
+    def response_action_12(self, hexl: list, response: bytes):
+        is_muted = bool(hex_to_int(hexl[4]))
+        self._log_debug(f"Received mute status 12: {is_muted}")
+        self.zone._set_property("mute", is_muted)
+
+    #
+    # 17 [23]
+    # Keep Alive
+    #
+    def response_action_17(self, hexl: list, response: bytes):
+        self._log_debug(f"Received keep alive: {response}")
+        # TODO, not needed?
+        pass
+
+    #
+    # 26 [38]
+    # Zone Enabled / Disabled
+    #
+    @validate_response_length(3)
+    @validate_response_zone_id()
     def response_action_26(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 3:
-            # hexl[4] is the zone id
-            disabled = hex_to_int(hexl[5])
-            self._log_debug(f"Received zone disable: {disabled}")
-            self.zone.settings._set_property("disabled", bool(disabled))
+        disabled = hex_to_int(hexl[5])
+        self._log_debug(f"Received zone disable: {disabled}")
+        self.zone.settings._set_property("disabled", bool(disabled))
 
     #
     # 2E [46]
     # EQ Switch
     #
+    @validate_response_length()
+    @validate_response_zone_id()
     def response_action_2E(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            enabled = hex_to_int(hexl[4])
-            self._log_debug(f"Received EQ Switch: {enabled}")
-            self.zone.settings.eq._set_property("enabled", bool(enabled))
+        enabled = hex_to_int(hexl[4])
+        self._log_debug(f"Received EQ Switch: {enabled}")
+        self.zone.settings.eq._set_property("enabled", bool(enabled))
 
     #
     # 32 [50]
@@ -1117,68 +1183,67 @@ class APIAlpha(APIBase):
     #
     # When a stream is started, a 'rm' is allocated to the zone.
     # RM feedback is 0 when not playing and removed from a group
+    @validate_response_length()
+    @validate_response_zone_id()
     def response_action_32(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            index = hex_to_int(hexl[4])
-            self._log_debug(f"Received group index: {index}")
-            self.zone.group._set_property("index", int(index))
+        index = hex_to_int(hexl[4])
+        self._log_debug(f"Received group index: {index}")
+        self.zone.group._set_property("index", int(index))
 
     #
     # 4C [76]
     # Group Response
     #
+    @validate_response_length(3)
+    @validate_response_zone_id()
     def response_action_4C(self, hexl: list, response: bytes):
         self._log_debug(f"Received group info: {hexl}")
-
-        if hex_to_int(hexl[2]) == 3:
-            if hex_to_int(hexl[3]) != self.zone.id:
-                self._log_warning(
-                    f"Z{self.zone.id} Alpha - incorrect zone id in group response"
-                )
-                return
-
-            self.zone.group._set_property("source", hex_to_int(hexl[5]))
-            self.zone.group._set_property("is_master", hex_to_int(hexl[4]))
+        self.zone.group._set_property("source", hex_to_int(hexl[5]))
+        self.zone.group._set_property("is_master", hex_to_int(hexl[4]))
 
     #
     # 48 [72]
     # Input Priority Feedback
     #
+    @validate_response_length()
+    @validate_response_zone_id()
     def response_action_48(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            priority = hex_to_int(hexl[4])
-            self._log_debug(f"Received input priority: {priority}")
-            self.zone.input._set_property("priority", priority)
+        priority = hex_to_int(hexl[4])
+        self._log_debug(f"Received input priority: {priority}")
+        self.zone.input._set_property("priority", priority)
 
     #
     # 66 [102]
     # Bluetooth state
     #
+    @validate_response_length()
+    @validate_response_zone_id()
     def response_action_66(self, state: int):
-        if hex_to_int(hexl[2]) == 2:
-            state = bool(hex_to_int(hexl[4]))
-            self._log_debug(f"Received bluetooth state: {state}")
-            self.vssl.settings._set_property("bluetooth", state)
+        state = bool(hex_to_int(hexl[4]))
+        self._log_debug(f"Received bluetooth state: {state}")
+        self.vssl.settings._set_property("bluetooth", state)
 
     #
     # 50 [80]
     # Adaptive Power Feedback
     #
+    @validate_response_length()
+    @validate_response_zone_id()
     def response_action_50(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 2:
-            enabled = hex_to_int(hexl[4])
-            self._log_debug(f"Received adaptive power setting: {enabled}")
-            self.vssl.settings.power._set_property("adaptive", bool(int(enabled)))
+        enabled = hex_to_int(hexl[4])
+        self._log_debug(f"Received adaptive power setting: {enabled}")
+        self.vssl.settings.power._set_property("adaptive", bool(int(enabled)))
 
     #
     # 58 [88]
     # Subwoofer Crossover Feedback
     #
+    @validate_response_length(3)
+    @validate_response_zone_id()
     def response_action_58(self, hexl: list, response: bytes):
-        if hex_to_int(hexl[2]) == 3:
-            freq = hex_to_int(hexl[5])
-            self._log_debug(f"Received subwoofer crossover frequency: {freq}")
-            self.zone.settings.subwoofer._set_property("crossover", freq)
+        freq = hex_to_int(hexl[5])
+        self._log_debug(f"Received subwoofer crossover frequency: {freq}")
+        self.zone.settings.subwoofer._set_property("crossover", freq)
 
     #
     # Command confimation

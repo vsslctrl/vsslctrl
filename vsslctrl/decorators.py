@@ -1,5 +1,7 @@
 import json
 import logging
+from functools import wraps
+from .utils import hex_to_int
 
 
 def sterilizable(cls):
@@ -57,5 +59,57 @@ def logging_helpers(prefix=""):
             )  # Pass prefix here
 
         return cls
+
+    return decorator
+
+
+#
+# Validate response lengths
+#
+def validate_response_length(expected_length: int = 2, index: int = 2):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, hexl, *args, **kwargs):
+            if index >= len(hexl):
+                self._log_warning(
+                    f"Response length validation failed: hexl does not have enough elements. Expected at least {index + 1}, but got {len(hexl)}."
+                )
+                return None
+
+            if hex_to_int(hexl[index]) != expected_length:
+                self._log_warning(
+                    f"Response length validation failed: hexl[{index}] is {hex_to_int(hexl[index])}, expected {expected_length}."
+                )
+                return None
+
+            return func(self, hexl, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+#
+# Validate response Zone ID
+#
+def validate_response_zone_id(index: int = 3):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, hexl, *args, **kwargs):
+            if index >= len(hexl):
+                self._log_warning(
+                    f"Response Zone ID validation failed: hexl does not have enough elements. Expected at least {index + 1}, but got {len(hexl)}."
+                )
+                return None
+
+            if hex_to_int(hexl[index]) != self.zone.id:
+                self._log_warning(
+                    f"Response Zone ID validation failed: hexl[{index}] is {hex_to_int(hexl[index])}, expected {self.zone.id}."
+                )
+                return None
+
+            return func(self, hexl, *args, **kwargs)
+
+        return wrapper
 
     return decorator

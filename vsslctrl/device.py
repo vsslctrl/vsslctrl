@@ -144,6 +144,37 @@ INPUT_SOURCES_FOR_A6 = [
 
 
 """ 
+    Analog Outputs
+
+
+"""
+
+# A.1 & A.1x
+ANALOG_OUTPUTS_FOR_1_ZONE_DEVICE = [AnalogOutput.IDs.ANALOG_OUTPUT_1]
+
+# A.3x
+ANALOG_OUTPUTS_FOR_3_ZONE_DEVICE = ANALOG_OUTPUTS_FOR_1_ZONE_DEVICE + [
+    AnalogOutput.IDs.ANALOG_OUTPUT_2,
+    AnalogOutput.IDs.ANALOG_OUTPUT_3,
+]
+
+# A.3
+ANALOG_OUTPUTS_FOR_A3 = [AnalogOutput.IDs.ANALOG_OUTPUT_1]  # BUS_1
+
+# A.6x
+ANALOG_OUTPUTS_FOR_6_ZONE_DEVICE = ANALOG_OUTPUTS_FOR_3_ZONE_DEVICE + [
+    AnalogOutput.IDs.ANALOG_OUTPUT_4,
+    AnalogOutput.IDs.ANALOG_OUTPUT_5,
+    AnalogOutput.IDs.ANALOG_OUTPUT_6,
+]
+
+# A.6
+ANALOG_OUTPUTS_FOR_A6 = [
+    AnalogOutput.IDs.ANALOG_OUTPUT_1,  # BUS_1
+    AnalogOutput.IDs.ANALOG_OUTPUT_2,  # BUS_2
+]
+
+""" 
     Analog Output Sources
 
 
@@ -190,6 +221,7 @@ class Model:
         self.name = model.get("name")
         self.zones = model.get("zones", [])
         self.input_sources = model.get("input_sources", [])
+        self.analog_outputs = model.get("analog_outputs", [])
         self.analog_output_sources = model.get("analog_output_sources", [])
         self.features = model.get("features", [])
 
@@ -211,6 +243,7 @@ class Models(VsslEnum):
             "name": "A.1x",
             "zones": SINGLE_ZONE,
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
+            "analog_outputs": ANALOG_OUTPUTS_FOR_1_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
             "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
         }
@@ -220,6 +253,7 @@ class Models(VsslEnum):
             "name": "A.3x",
             "zones": THREE_ZONES,
             "input_sources": INPUT_SOURCES_FOR_3_ZONE_DEVICE,
+            "analog_outputs": ANALOG_OUTPUTS_FOR_3_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_3_ZONE_DEVICE,
             "features": [Features.GROUPING],
         }
@@ -229,6 +263,7 @@ class Models(VsslEnum):
             "name": "A.6x",
             "zones": SIX_ZONES,
             "input_sources": INPUT_SOURCES_FOR_6_ZONE_DEVICE,
+            "analog_outputs": ANALOG_OUTPUTS_FOR_6_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_6_ZONE_DEVICE,
             "features": [Features.GROUPING],
         }
@@ -238,6 +273,7 @@ class Models(VsslEnum):
             "name": "A.1",
             "zones": SINGLE_ZONE,
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
+            "analog_outputs": ANALOG_OUTPUTS_FOR_1_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
             "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
         }
@@ -247,6 +283,7 @@ class Models(VsslEnum):
             "name": "A.3",
             "zones": THREE_ZONES,
             "input_sources": INPUT_SOURCES_FOR_A3,
+            "analog_outputs": ANALOG_OUTPUTS_FOR_A3,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A3,
             "features": [Features.GROUPING, Features.PARTY_ZONE],
         }
@@ -256,6 +293,7 @@ class Models(VsslEnum):
             "name": "A.6",
             "zones": SIX_ZONES,
             "input_sources": INPUT_SOURCES_FOR_A6,
+            "analog_outputs": ANALOG_OUTPUTS_FOR_A6,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A6,
             "features": [Features.GROUPING, Features.PARTY_ZONE],
         }

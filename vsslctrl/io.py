@@ -6,6 +6,12 @@ from .data_structure import VsslIntEnum, ZoneDataClass
 
 
 class InputRouter(ZoneDataClass):
+    """
+
+    What is going to be routed out the zones speakers
+
+    """
+
     #
     # Input Priority
     #
@@ -85,9 +91,8 @@ class InputRouter(ZoneDataClass):
 
     @source.setter
     def source(self, src: "InputRouter.Sources"):
-        # if self.Sources.is_valid():
+        # check source is avaialbe on this device
         if src in self.zone.vssl.model.input_sources:
-            # check source is avaialbe on this device
             self.zone.api_alpha.request_action_03(src)
         else:
             self.zone._log_error(
@@ -120,6 +125,22 @@ class AnalogOutput(ZoneDataClass):
 
         TODO: A1 input and output mappings!
     """
+
+    #
+    # Output IDs
+    #
+    # DO NOT CHANGE - VSSL Defined
+    #
+    # On the X-series, this is the same as the ZoneID, but because A series
+    # amps are different, we make a distinction
+    #
+    class IDs(VsslIntEnum):
+        ANALOG_OUTPUT_1 = 1  # TODO: Confirm BUS 1 on A.3/A.6
+        ANALOG_OUTPUT_2 = 2  # TODO: Confirm BUS 2 on A.3/A.6
+        ANALOG_OUTPUT_3 = 3
+        ANALOG_OUTPUT_4 = 4
+        ANALOG_OUTPUT_5 = 5
+        ANALOG_OUTPUT_6 = 6
 
     #
     # Sources
@@ -166,7 +187,21 @@ class AnalogOutput(ZoneDataClass):
 
     @is_fixed_volume.setter
     def is_fixed_volume(self, state: Union[bool, int]):
-        self.zone.api_alpha.request_action_49(state)
+        # Default to zone 1 for A.1(x)
+        # TODO - this needs testing!
+        ao_id = (
+            self.zone.id
+            if self.IDs.is_valid(self.zone.id)
+            else self.IDs.ANALOG_OUTPUT_1
+        )
+
+        if ao_id not in self.zone.vssl.model.analog_outputs:
+            self.zone._log_error(
+                f"AnalogOutput.IDs {ao_id} doesnt exist in {list(self.zone.vssl.model.analog_outputs)}"
+            )
+            return
+
+        self.zone.api_alpha.request_action_49(ao_id, state)
 
     def is_fixed_volume_toggle(self):
         self.is_fixed_volume = False if self.is_fixed_volume else True
@@ -174,7 +209,7 @@ class AnalogOutput(ZoneDataClass):
     #
     # Analog Output Source
     #
-    # As in what audio is going to be sent to the analog output.
+    # Audio source which is going to be sent to the analog output.
     #
     @property
     def source(self):
@@ -182,13 +217,27 @@ class AnalogOutput(ZoneDataClass):
 
     @source.setter
     def source(self, src: "AnalogOutput.Sources"):
-        # if self.Sources.is_valid(src):
-        if src in self.zone.vssl.model.analog_output_sources:
-            self.zone.api_alpha.request_action_1D(src)
-        else:
+        # Default to zone 1 for A.1(x)
+        # TODO - this needs testing!
+        ao_id = (
+            self.zone.id
+            if self.IDs.is_valid(self.zone.id)
+            else self.IDs.ANALOG_OUTPUT_1
+        )
+
+        if ao_id not in self.zone.vssl.model.analog_outputs:
+            self.zone._log_error(
+                f"AnalogOutput.IDs {ao_id} doesnt exist in {list(self.zone.vssl.model.analog_outputs)}"
+            )
+            return
+
+        if src not in self.zone.vssl.model.analog_output_sources:
             self.zone._log_error(
                 f"AnalogOutput.Sources {src} doesnt exist in {list(self.zone.vssl.model.analog_output_sources)}"
             )
+            return
+
+        self.zone.api_alpha.request_action_1D(ao_id, src)
 
     def _set_source(self, src: int):
         if self.source != src:
