@@ -18,6 +18,8 @@ class InputRouter(ZoneDataClass):
     # 0: Stream -> Party Zone -> Bus 1 In -> Bus 2 In -> Analog Input (Stream First)
     # 1: Bus 1 In -> Bus 2 In -> Analog Input -> Stream -> Party Zone (Local First)
     #
+    # A.1x has automatically set priorities that cannot be adjusted: 1) optical input 2) coaxial input 3) analog input
+    #
     # DO NOT CHANGE - VSSL Defined
     #
     class Priorities(VsslIntEnum):
@@ -124,6 +126,7 @@ class AnalogOutput(ZoneDataClass):
         commands to the VSSL device control class instead of the zone class?
 
         TODO: A1 input and output mappings!
+        TODO: Digital Outputs can also have fixed or variable gain on A.1(x)
     """
 
     #
@@ -218,7 +221,7 @@ class AnalogOutput(ZoneDataClass):
     @source.setter
     def source(self, src: "AnalogOutput.Sources"):
         # Default to zone 1 for A.1(x)
-        # TODO - this needs testing!
+        # TODO - this needs testing, its possible this is not possible on a A.1(x)
         ao_id = (
             self.zone.id
             if self.IDs.is_valid(self.zone.id)

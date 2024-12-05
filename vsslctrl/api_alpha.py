@@ -241,10 +241,6 @@ class APIAlpha(APIBase):
         command = self._add_zone_id_to_request(bytearray([16, 3, 2, 0, src]))
         self.send(command)
 
-    def request_action_03A(self, src: int, zone: int = 1):
-        self._log_debug(f"Requesting to change input source to {src}")
-        self.send(bytearray([16, 3, 2, zone, src]))
-
     #
     # 04 [4]
     # Input Source Get

@@ -11,7 +11,7 @@ I am looking for testers with any VSSL amplifier models, please get in touch if 
 Tested on:
 - **A.3x** software version **p15305.016.3701**
 
-Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) working on:
+Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) with basic functionality working on:
 - **A.1** software version **p15265.033.3703** (reported)
 - **A.3** software version **p12013.141.3703** (reported)
 - **A.3x** software version **p15305.016.3701**
@@ -25,7 +25,8 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 * Correct IO mapping between models and versions
 * Better test coverage
-* Party mode for original A series
+* A.1(x) testing, features: Line Out Only Mode (AMPLIFICATION switch)
+* 
 
 ## Basic Usage
 
