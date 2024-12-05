@@ -25,8 +25,7 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
 * Correct IO mapping between models and versions
 * Better test coverage
-* A.1(x) testing, features: Line Out Only Mode (AMPLIFICATION switch)
-* 
+* A.1(x) testing
 
 ## Basic Usage
 
