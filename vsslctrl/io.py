@@ -2,7 +2,7 @@ import logging
 from enum import IntEnum
 from typing import Dict, Union
 from .utils import clamp_volume
-from .data_structure import VsslIntEnum, ZoneDataClass
+from .data_structure import VsslIntEnum, ZoneDataClass, DeviceFeatureFlags
 
 
 class InputRouter(ZoneDataClass):
@@ -15,10 +15,8 @@ class InputRouter(ZoneDataClass):
     #
     # Input Priority
     #
-    # 0: Stream -> Party Zone -> Bus 1 In -> Bus 2 In -> Analog Input (Stream First)
-    # 1: Bus 1 In -> Bus 2 In -> Analog Input -> Stream -> Party Zone (Local First)
-    #
-    # A.1x has automatically set priorities that cannot be adjusted: 1) optical input 2) coaxial input 3) analog input
+    # 0 = Stream -> Party Zone -> Bus 1 In -> Bus 2 In -> Optical Input -> Coaxial Input -> Analog Input (Stream First)
+    # 1 = Bus 1 In -> Bus 2 In -> Optical Input -> Coaxial Input -> Analog Input -> Stream -> Party Zone (Local First)
     #
     # DO NOT CHANGE - VSSL Defined
     #
@@ -30,6 +28,9 @@ class InputRouter(ZoneDataClass):
     # Input Sources
     #
     # DO NOT CHANGE - VSSL Defined
+    #
+    # A.1(x) doesnt support input routing, but has a fixed routing order of its inputs:
+    # Optical Input -> Coaxial Input -> Analog Input
     #
     class Sources(VsslIntEnum):
         STREAM = 0
@@ -93,13 +94,21 @@ class InputRouter(ZoneDataClass):
 
     @source.setter
     def source(self, src: "InputRouter.Sources"):
-        # check source is avaialbe on this device
-        if src in self.zone.vssl.model.input_sources:
-            self.zone.api_alpha.request_action_03(src)
-        else:
+        # Check model supports input routing
+        if not self.zone.vssl.model.supports_feature(DeviceFeatureFlags.INPUT_ROUTING):
+            self.zone._log_error(
+                f"VSSL {self.zone.vssl.model.name} does not support input routing."
+            )
+            return
+
+        # Check device has this input
+        if src not in self.zone.vssl.model.input_sources:
             self.zone._log_error(
                 f"InputRouter.Sources {src} doesnt exist in {list(self.zone.vssl.model.input_sources)}"
             )
+            return
+
+        self.zone.api_alpha.request_action_03(src)
 
     def _set_source(self, src: int):
         if self.source != src:
@@ -116,17 +125,18 @@ class AnalogOutput(ZoneDataClass):
     AnalogOutput.Sources is the source which will play out the corrosponding analog output
 
 
-    Should this be on the VSSL or Zone? For now its on the zone, because the zone will
-    receive feedback for the corrosponding analog output id
+    On X series the zone will receive feedback for the corrosponding analog output id
+
+    TODO: Confirm on original series amps:
+        Zone 1 == ANALOG_OUTPUT_1 == Bus output 1
+        Zone 2 == ANALOG_OUTPUT_2 == Bus output 2
+
+    TODO: A.1(x) what ao_id need to be sent to fix the volume or change the input gain?
 
     Zones will be determined by source Input Priority @see InputRouter class
 
-    TODO: Support for Bus 1 & 2 - Bus 1 and 2 outs can have fixed volume also.
-        Since the BUS zones dont have a dedicated zone, maybe we should move these
-        commands to the VSSL device control class instead of the zone class?
+    A1(x): Source cant be changed
 
-        TODO: A1 input and output mappings!
-        TODO: Digital Outputs can also have fixed or variable gain on A.1(x)
     """
 
     #
@@ -134,12 +144,9 @@ class AnalogOutput(ZoneDataClass):
     #
     # DO NOT CHANGE - VSSL Defined
     #
-    # On the X-series, this is the same as the ZoneID, but because A series
-    # amps are different, we make a distinction
-    #
     class IDs(VsslIntEnum):
-        ANALOG_OUTPUT_1 = 1  # TODO: Confirm BUS 1 on A.3/A.6
-        ANALOG_OUTPUT_2 = 2  # TODO: Confirm BUS 2 on A.3/A.6
+        ANALOG_OUTPUT_1 = 1  # TODO: Confirm BUS 1 Output on A.3/A.6
+        ANALOG_OUTPUT_2 = 2  # TODO: Confirm BUS 2 Output on A.3/A.6
         ANALOG_OUTPUT_3 = 3
         ANALOG_OUTPUT_4 = 4
         ANALOG_OUTPUT_5 = 5
@@ -190,8 +197,8 @@ class AnalogOutput(ZoneDataClass):
 
     @is_fixed_volume.setter
     def is_fixed_volume(self, state: Union[bool, int]):
+        # TODO - this needs testing on A.1(x)
         # Default to zone 1 for A.1(x)
-        # TODO - this needs testing!
         ao_id = (
             self.zone.id
             if self.IDs.is_valid(self.zone.id)
@@ -220,20 +227,24 @@ class AnalogOutput(ZoneDataClass):
 
     @source.setter
     def source(self, src: "AnalogOutput.Sources"):
-        # Default to zone 1 for A.1(x)
-        # TODO - this needs testing, its possible this is not possible on a A.1(x)
-        ao_id = (
-            self.zone.id
-            if self.IDs.is_valid(self.zone.id)
-            else self.IDs.ANALOG_OUTPUT_1
-        )
+        # Check model supports output routing
+        if not self.zone.vssl.model.supports_feature(DeviceFeatureFlags.OUTPUT_ROUTING):
+            self.zone._log_error(
+                f"VSSL {self.zone.vssl.model.name} does not support output routing."
+            )
+            return
 
+        # A.1(x) doesnt support routing to so the Zone ID == output ID
+        ao_id = self.zone.id
+
+        # Check model has the output
         if ao_id not in self.zone.vssl.model.analog_outputs:
             self.zone._log_error(
                 f"AnalogOutput.IDs {ao_id} doesnt exist in {list(self.zone.vssl.model.analog_outputs)}"
             )
             return
 
+        # Check model has the src
         if src not in self.zone.vssl.model.analog_output_sources:
             self.zone._log_error(
                 f"AnalogOutput.Sources {src} doesnt exist in {list(self.zone.vssl.model.analog_output_sources)}"
@@ -254,6 +265,8 @@ class AnalogOutput(ZoneDataClass):
 class AnalogInput(ZoneDataClass):
     #
     # Analog Input Events
+    #
+    # One AiN per zone
     #
     class Events:
         PREFIX = "zone.analog_input."

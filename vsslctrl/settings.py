@@ -2,12 +2,12 @@ import logging
 from typing import Dict, Union
 from .utils import clamp_volume
 from .io import AnalogInput
-from .device import Features as DeviceFeatures
 from .data_structure import (
     VsslIntEnum,
     VsslDataClass,
     ZoneDataClass,
     ZoneEQStatusExtKeys,
+    DeviceFeatureFlags,
 )
 
 VSSL_SETTINGS_EVENT_PREFIX = "vssl.settings."
@@ -103,7 +103,7 @@ class VsslSettings(VsslDataClass):
 
     @bluetooth.setter
     def bluetooth(self, enabled: bool):
-        if not self._vssl.model.supports_feature(DeviceFeatures.BLUETOOTH):
+        if not self._vssl.model.supports_feature(DeviceFeatureFlags.BLUETOOTH):
             self._vssl._log_error(
                 f"VSSL {self._vssl.model.name} does not support Bluetooth"
             )
@@ -755,7 +755,7 @@ class SubwooferSettings(ZoneDataClass):
     @crossover.setter
     def crossover(self, freq: int):
         if not self.zone.vssl.model.supports_feature(
-            DeviceFeatures.SUBWOOFER_CROSSOVER
+            DeviceFeatureFlags.SUBWOOFER_CROSSOVER
         ):
             self.zone._log_error(
                 f"VSSL {self.zone.vssl.model.name} does not have a subwoofer output"

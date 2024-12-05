@@ -144,12 +144,12 @@ vssl.factory_reset()
 
 ## `Vssl.settings`
 
-| Property      	| Description | Type 		| 
-| ---------------------- 	| ----------- | ----------- |
-| `name`     			 	| Device name |	`str`
-| `bus_1_name`   			| Name of Bus 1        |	`str`
-| `bus_2_name`        | Name of Bus 2        |  `str`
-| `bluetooth`        | Bluetooth enabled / disabled        |  `bool`
+| Property      	| Description | Type 		| Notes / Defaults |
+| ---------------------- 	| ----------- | ----------- | ----------- |
+| `name`     			 	| Device name |	`str` |
+| `bus_1_name`   			| Name of Bus 1        |	`str` | <ul><li>A.1: Optical Input</li><li>A.3x/6x: Not Used</li></ul>
+| `bus_2_name`        | Name of Bus 2        |  `str` | <ul><li>A.1: Coax Input</li><li>A.3x/6x: Optical Input</li></ul>
+| `bluetooth`        | Bluetooth enabled / disabled        |  `bool` |
 | `bluetooth_toggle()`        | Toggle Bluetooth        | `func`  |
 
 ```python
@@ -268,15 +268,25 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `source`     			 	| Change input source |	`int`	| `InputRouter.Sources`
-| `priority`     			| Change input priority. Stream or analog in higher priority  |	`int`	| `InputRouter.Priorities`
+| `source`     			 	| Change input source.<br/>Source to be played out the zones speakers |	`int`	| `InputRouter.Sources`
+| `priority`     			| Change input priority.<br/>Stream or local to have precedence  |	`int`	| `InputRouter.Priorities`
 
-### Priority Order:
+
+### A.1(x) Source Routing Order
+A.1 and A.1x don't support manually changing the input source. Instead a fixed source routing order is used:
+  
+  1. Optical Input
+  2. Coaxial Input
+  3. Analog Input
+  
+Input `InputRouter.Priorities` still apply.
+
+### Input Priority / Precedence
 
 | `InputRouter.Priorities`       | Priority Order |
 | ----------------------  | ----------- |
-| **`STREAM`**  | <ol><li>Stream</li><li>Party Zone</li><li>Bus 1 In</li><li>Bus 2 In</li><li>Analog Input</li></ol>
-|  **`LOCAL`**  | <ol><li>Bus 1 In</li><li>Bus 2 In</li><li>Analog Input</li><li>Stream</li><li>Party Zone</li></ol>
+| **`STREAM`**  | <ol><li>Stream</li><li>Party Zone</li><li>Bus 1</li><li>Bus 2</li><li>Optical</li><li>Coaxial</li><li>Analog</li></ol>
+|  **`LOCAL`**  | <ol><li>Bus 1</li><li>Bus 2</li><li>Optical</li><li>Coaxial</li><li>Analog</li><li>Stream</li><li>Party Zone</li></ol>
 
 ```python
 """Example"""
@@ -320,7 +330,7 @@ zone1.group.is_party_zone_member_toggle()
 
 | Property      	| Description | Type		| Values 		| Default |
 | ---------------------- 	| ----------- | ----------- |----------- |----------- |
-| `source`     			 	| Where the AO is routed from. i.e a zone, optical input or off |	`int`	| `AnalogOutput.Sources` | `Off`
+| `source`     			 	| Where the AO is routed from. i.e stream, optical input or off |	`int`	| `AnalogOutput.Sources` | `Off`
 | `is_fixed_volume`   			| Fix the output volume. Output wont respond to volume control        |	`bool` | |`False`
 | `is_fixed_volume_toggle()`   			| Toggle fixed volume      |	`func`  |
 

@@ -167,6 +167,22 @@ class APIAlpha(APIBase):
 
     #
     # 15 [21]
+    # Set Analog Input Name / Rename Analog Input
+    #
+    # TODO: Does this work on A.1(x)?
+    #
+    def request_action_15(self, name: str):
+        name = name.strip()
+        self._log_debug(f"Requesting to change analog input name: {name}")
+        command = bytearray([16, 21])
+        command.extend(struct.pack(">B", len(name) + 1))
+        command.extend([0])  # zone id placeholder
+        command = self._add_zone_id_to_request(command)
+        command.extend(name.encode("utf-8"))
+        self.send(command)
+
+    #
+    # 15 [21]
     # Set Bus 1 Name
     #
     def request_action_15_10(self, name: str):
@@ -385,7 +401,7 @@ class APIAlpha(APIBase):
 
     #
     # 25 [37]
-    # Enable or Disable Zone
+    # Enable or disable zone
     #
     # 1 = Disable
     # 0 = Enable
@@ -398,24 +414,8 @@ class APIAlpha(APIBase):
         self.send(command)
 
     #
-    # 15 [21]
-    # Set Analog Input Name / Rename Analog Input
-    #
-    # TODO: Does this work on A.1(x)?
-    #
-    def request_action_15(self, name: str):
-        name = name.strip()
-        self._log_debug(f"Requesting to change analog input name: {name}")
-        command = bytearray([16, 21])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([0])  # zone id placeholder
-        command = self._add_zone_id_to_request(command)
-        command.extend(name.encode("utf-8"))
-        self.send(command)
-
-    #
     # 1D [29]
-    # Analog Output Set Src
+    # Analog output change source
     #
     def request_action_1D(self, ao_id: int, src: int):
         self._log_debug(
@@ -425,7 +425,7 @@ class APIAlpha(APIBase):
 
     #
     # 49 [73]
-    # Analog Output Fix Output Vol
+    # Analog output fix output volume
     #
     def request_action_49(self, ao_id: int, fix: bool):
         self._log_debug(f"Requesting to fix the volume of analog ouput {ao_id}")
@@ -944,7 +944,7 @@ class APIAlpha(APIBase):
     # 16 [22]
     # Received Analog Input Name
     #
-    # TODO, maybe this should be global with the analog outputs
+    # TODO, maybe this should be global with the analog outputs.
     #
     def response_action_16(self, hexl: list, response: bytes):
         self._log_debug(f"Received input name: {hexl}")

@@ -44,6 +44,20 @@ class ZoneIDs(VsslIntEnum):
     A1 = 7  # A.1 and A.1x
 
 
+#
+# Device Feature Flags
+#
+# Moved here to help with circular imports
+#
+class DeviceFeatureFlags(VsslIntEnum):
+    INPUT_ROUTING = 1000
+    OUTPUT_ROUTING = 1001
+    GROUPING = 1002
+    BLUETOOTH = 1003
+    PARTY_ZONE = 1004
+    SUBWOOFER_CROSSOVER = 1005
+
+
 """
 JSON Structure
 
@@ -124,6 +138,7 @@ class DeviceStatusExtKeys:
 
     #
     # A.1: Optical Input
+    # A.3x: Not Used
     #
     BUS_1_NAME = "B1Nm"
 
@@ -460,8 +475,8 @@ class ZoneRouterStatusExtKeys:
     EQ_ENABLED = "eqsw"
     INPUT_SOURCE = "inSrc"
     SOURCE_PRIORITY = "SP"
-    ANALOG_OUTPUT_1_FIXED_VOLUME = "BF1"  # TODO On A3 / A6 is this Bus 1?
-    ANALOG_OUTPUT_2_FIXED_VOLUME = "BF2"  # TODO On A6 is this Bus 2?
+    ANALOG_OUTPUT_1_FIXED_VOLUME = "BF1"  # TODO A3/A6: Bus 1? A1: is this AO1?
+    ANALOG_OUTPUT_2_FIXED_VOLUME = "BF2"  # TODO A6: Bus 2?
     ANALOG_OUTPUT_3_FIXED_VOLUME = "BF3"
     ANALOG_OUTPUT_4_FIXED_VOLUME = "BF4"
     ANALOG_OUTPUT_5_FIXED_VOLUME = "BF5"

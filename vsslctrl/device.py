@@ -1,4 +1,4 @@
-from .data_structure import VsslEnum, VsslIntEnum, ZoneIDs
+from .data_structure import VsslEnum, VsslIntEnum, ZoneIDs, DeviceFeatureFlags
 from .io import AnalogOutput, InputRouter
 
 
@@ -115,6 +115,7 @@ SIX_ZONES = THREE_ZONES + [ZoneIDs.ZONE_4, ZoneIDs.ZONE_5, ZoneIDs.ZONE_6]
 """
 
 # A.1 & A.1x
+# These are not used since A.1(x) deosnt support routing, but keep them just to be complete
 INPUT_SOURCES_FOR_1_ZONE_DEVICE = [
     InputRouter.Sources.STREAM,
     InputRouter.Sources.ANALOG_IN_1,
@@ -138,6 +139,7 @@ INPUT_SOURCES_FOR_6_ZONE_DEVICE = INPUT_SOURCES_FOR_3_ZONE_DEVICE + [
 ]
 
 # A.6
+# A.6 doenst have optical input
 INPUT_SOURCES_FOR_A6 = [
     source for source in InputRouter.Sources if source != InputRouter.Sources.OPTICAL_IN
 ]
@@ -209,13 +211,6 @@ ANALOG_OUTPUT_SOURCES_FOR_6_ZONE_DEVICE = ANALOG_OUTPUT_SOURCES_FOR_3_ZONE_DEVIC
 ANALOG_OUTPUT_SOURCES_FOR_A6 = list(AnalogOutput.Sources)
 
 
-class Features(VsslIntEnum):
-    GROUPING = 1000
-    BLUETOOTH = 1001
-    PARTY_ZONE = 1002
-    SUBWOOFER_CROSSOVER = 1003
-
-
 class Model:
     def __init__(self, model: dict):
         self.name = model.get("name")
@@ -233,7 +228,7 @@ class Model:
     def is_multizone(self):
         return self.zone_count > 1
 
-    def supports_feature(self, feature: Features):
+    def supports_feature(self, feature: DeviceFeatureFlags):
         return feature in self.features
 
 
@@ -245,7 +240,10 @@ class Models(VsslEnum):
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
             "analog_outputs": ANALOG_OUTPUTS_FOR_1_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
-            "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
+            "features": [
+                DeviceFeatureFlags.BLUETOOTH,
+                DeviceFeatureFlags.SUBWOOFER_CROSSOVER,
+            ],
         }
     )
     A3X = Model(
@@ -255,7 +253,10 @@ class Models(VsslEnum):
             "input_sources": INPUT_SOURCES_FOR_3_ZONE_DEVICE,
             "analog_outputs": ANALOG_OUTPUTS_FOR_3_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_3_ZONE_DEVICE,
-            "features": [Features.GROUPING],
+            "features": [
+                DeviceFeatureFlags.INPUT_ROUTING,
+                DeviceFeatureFlags.OUTPUT_ROUTING,
+            ],
         }
     )
     A6X = Model(
@@ -265,7 +266,10 @@ class Models(VsslEnum):
             "input_sources": INPUT_SOURCES_FOR_6_ZONE_DEVICE,
             "analog_outputs": ANALOG_OUTPUTS_FOR_6_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_6_ZONE_DEVICE,
-            "features": [Features.GROUPING],
+            "features": [
+                DeviceFeatureFlags.INPUT_ROUTING,
+                DeviceFeatureFlags.OUTPUT_ROUTING,
+            ],
         }
     )
     A1 = Model(
@@ -275,7 +279,10 @@ class Models(VsslEnum):
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
             "analog_outputs": ANALOG_OUTPUTS_FOR_1_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_1_ZONE_DEVICE,
-            "features": [Features.BLUETOOTH, Features.SUBWOOFER_CROSSOVER],
+            "features": [
+                DeviceFeatureFlags.BLUETOOTH,
+                DeviceFeatureFlags.SUBWOOFER_CROSSOVER,
+            ],
         }
     )
     A3 = Model(
@@ -285,7 +292,12 @@ class Models(VsslEnum):
             "input_sources": INPUT_SOURCES_FOR_A3,
             "analog_outputs": ANALOG_OUTPUTS_FOR_A3,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A3,
-            "features": [Features.GROUPING, Features.PARTY_ZONE],
+            "features": [
+                DeviceFeatureFlags.INPUT_ROUTING,
+                DeviceFeatureFlags.OUTPUT_ROUTING,
+                DeviceFeatureFlags.GROUPING,
+                DeviceFeatureFlags.PARTY_ZONE,
+            ],
         }
     )
     A6 = Model(
@@ -295,7 +307,12 @@ class Models(VsslEnum):
             "input_sources": INPUT_SOURCES_FOR_A6,
             "analog_outputs": ANALOG_OUTPUTS_FOR_A6,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_A6,
-            "features": [Features.GROUPING, Features.PARTY_ZONE],
+            "features": [
+                DeviceFeatureFlags.INPUT_ROUTING,
+                DeviceFeatureFlags.OUTPUT_ROUTING,
+                DeviceFeatureFlags.GROUPING,
+                DeviceFeatureFlags.PARTY_ZONE,
+            ],
         }
     )
 

@@ -1,8 +1,7 @@
 import logging
 from . import zone
 from typing import Dict, Union
-from .data_structure import ZoneDataClass, ZoneIDs
-from .device import Features as DeviceFeatures
+from .data_structure import ZoneDataClass, ZoneIDs, DeviceFeatureFlags
 
 
 """
@@ -68,7 +67,7 @@ class ZoneGroup(ZoneDataClass):
     #
     def add_member(self, zone_id: ZoneIDs):
         # Check this device is a multizone device
-        if not self.zone.vssl.model.supports_feature(DeviceFeatures.GROUPING):
+        if not self.zone.vssl.model.supports_feature(DeviceFeatureFlags.GROUPING):
             self.zone._log_error(
                 f"VSSL {self.zone.vssl.model.name} doesnt support grouping"
             )
@@ -209,7 +208,7 @@ class ZoneGroup(ZoneDataClass):
     @is_party_zone_member.setter
     def is_party_zone_member(self, state: int):
         # Check this device supports party mode
-        if not self.zone.vssl.model.supports_feature(DeviceFeatures.PARTY_ZONE):
+        if not self.zone.vssl.model.supports_feature(DeviceFeatureFlags.PARTY_ZONE):
             self.zone._log_error(f"VSSL {self.zone.vssl.model.name} doesnt party zone")
             return
 
