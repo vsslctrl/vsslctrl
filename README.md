@@ -292,7 +292,7 @@ Input `InputRouter.Priorities` still apply.
 # Change zone 1 to listen to analog input 4
 zone1.input.source = InputRouter.Sources.ANALOG_IN_4
 
-# Change zone 1 to perfer analog input (local) over stream
+# Change zone 1 to perfer local inputs over stream
 zone1.input.priority = InputRouter.Priorities.LOCAL
 ```
 

@@ -31,7 +31,7 @@ class Vssl:
 
     def __init__(
         self,
-        model: Models = None,
+        model: Models,
         zones: Union[str, List[str]] = None,
     ):
         self.event_bus = EventBus()
@@ -39,10 +39,8 @@ class Vssl:
         self._sw_version = None
         self._serial = None
         self._model = None
+        self.model = model
         self.settings = VsslSettings(self)
-
-        if model is not None:
-            self.model = model
 
         # Add zones if any are passed
         if zones:
@@ -56,38 +54,27 @@ class Vssl:
     #
     async def initialise(self, init_timeout: int = 10):
         if len(self.zones) < 1:
-            raise VsslCtrlException("No zones were added to VSSL before calling run()")
+            raise VsslCtrlException("Add atleast one zone before initializing")
 
         zones_to_init = self.zones.copy()
 
         try:
             key, first_zone = zones_to_init.popitem()
 
-            # If we dont pass a model we will default to the zone count of the X series amps once we
-            # know some info about the device
-            if not self.model:
-                future_model = self.event_bus.future(
-                    self.Events.MODEL_CHANGE, self.ENTITY_ID
-                )
+            future_serial = self.event_bus.future(Zone.Events.SERIAL_RECEIVED)
+            future_sw_version = self.event_bus.future(self.Events.SW_VERSION_CHANGE)
+            future_name = self.event_bus.future(VsslSettings.Events.NAME_CHANGE)
 
-            # Lets make sure the zone is initialised, otherwsie we fail for all zones
+            # Check first zone will initialise, otherwsie fail all zones
             await first_zone.initialise()
 
-            # Only continue after we have a model
-            try:
-                if not self.model:
-                    await asyncio.wait_for(future_model, timeout=init_timeout)
+            # Wait until we have some basic infomation
+            await self.event_bus.wait_future(future_serial)
+            await self.event_bus.wait_future(future_sw_version)
+            await self.event_bus.wait_future(future_name)
 
-                if len(self.zones) > self.model.zone_count:
-                    raise VsslCtrlException("")
-
-            except asyncio.TimeoutError:
-                message = f"Timed out waiting for model infomation from zone {first_zone.id}, exiting!"
-                self._log_critical(message)
-                await first_zone.disconnect()
-                raise VsslCtrlException(message)
-
-            except VsslCtrlException:
+            # Check we haven't added too many zones
+            if len(self.zones) > self.model.zone_count:
                 message = f"Device model {self.model.name} only has {self.model.zone_count} zones not {len(self.zones)}."
                 self._log_critical(message)
                 await first_zone.disconnect()
@@ -95,20 +82,27 @@ class Vssl:
 
             # Output a bit of helpful info
             self._log_info(f"vsslctrl Version: {VSSL_VERSION}")
-            self._log_info(f"Device Model: {self.model.name}")
-            self._log_info(f"Device SW Version: {self.sw_version}")
             self._log_info(f"Device Serial: {self.serial}")
+            self._log_info(f"Device SW Version: {self.sw_version}")
+            self._log_info(f"Device Model: {self.model.name}")
 
-            # Now we can init the rest of the zones
+            # Initialise remaining zones
             initialisations = [zone.initialise() for zone in zones_to_init.values()]
             await asyncio.gather(*initialisations)
 
         except ZoneError as e:
-            message = f"Error occured while initialising zones {e}"
-            self._log_critical(e)
+            message = f"Zone initializing error: {e}"
+            self._log_critical(message)
             await self.disconnect()
             raise
 
+        except asyncio.TimeoutError:
+            message = f"Timeout during VSSL initialization. Are any zones avaiable?"
+            self._log_critical(message)
+            await first_zone.disconnect()
+            raise VsslCtrlException(message)
+
+        self._log_info(f"Core initialization complete")
         return True
 
     #
@@ -188,33 +182,9 @@ class Vssl:
             if hasattr(Models, model):
                 self._set_property("model", getattr(Models, model).value)
         else:
-            message = f"Model {model} doesnt exist"
+            message = f"VSSL model {model} doesnt exist"
             self._log_error(message)
             raise VsslCtrlException(message)
-
-    #
-    # Work out the a model given some device info
-    #
-    #
-    #
-    # THIS WONT WORK FOR ORIGINAL A SERIES! TODO!
-    # Maybe we can just use the ID of the zone because 7 will be an A1(x) otherwise
-    # we will need to count the zones.
-    #
-    # Or we just require a model to be passed?
-    #
-    #
-    def _infer_device_model(self, data: Dict[str, int]):
-        # if we dont have a model, default to x series
-        if not self.model:
-            zone_count = sum(
-                1 for key in data if key.startswith("B") and key.endswith("Src")
-            )
-
-            if zone_count in (1, 3, 6):
-                self.model = f"A{zone_count}X"
-            else:
-                self.model = Models.A1X
 
     #
     # Disconnect / Shutdown
@@ -224,7 +194,7 @@ class Vssl:
             await zone.disconnect()
 
     #
-    # Add a Zones using a List, index emplys the zone ID
+    # Add a Zones using a List, index implies the zone ID
     #
     def add_zones(self, zones=Union[str, List[str]]):
         zones_list = [zones] if isinstance(zones, str) else zones

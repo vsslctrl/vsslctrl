@@ -665,10 +665,6 @@ class APIAlpha(APIBase):
     def response_action_00_00(self, metadata: list):
         self._log_debug(f"Received 00 Status: {metadata}")
 
-        # Guess device model
-        # TODO: remove?
-        self.vssl._infer_device_model(metadata)
-
         # Analog output source
         # TODO: this need to be global (on the core?)
         key = DeviceStatusExtKeys.add_zone_to_bus_key(self.zone.id)

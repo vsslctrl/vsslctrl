@@ -34,7 +34,7 @@ class EventBus:
     #
     # Subscribe
     #
-    def subscribe(self, event_type, callback: Callable, entity="*", once=False):
+    def subscribe(self, event_type, callback: Callable, entity=WILDCARD, once=False):
         # Make sure we are using async callbacks
         if callback is not None and asyncio.iscoroutinefunction(callback):
             event_type = event_type.lower()
@@ -62,7 +62,7 @@ class EventBus:
     #
     # Get a future value from the event bus
     #
-    def future(self, event_type, entity=None) -> asyncio.Future:
+    def future(self, event_type, entity=WILDCARD) -> asyncio.Future:
         future = asyncio.Future()
 
         async def future_callback(data, *args):
@@ -81,7 +81,7 @@ class EventBus:
             try:
                 return await asyncio.wait_for(future, timeout)
             except asyncio.TimeoutError as error:
-                self._log_error(f"timeout waiting for future")
+                self._log_error(f"Timeout waiting for eventbus future")
                 raise error
         else:
             return await future
@@ -92,7 +92,7 @@ class EventBus:
     async def wait_for(
         self,
         event_type,
-        entity=None,
+        entity=WILDCARD,
         timeout: int = FUTURE_TIMEOUT,
         timeout_result=None,
     ):

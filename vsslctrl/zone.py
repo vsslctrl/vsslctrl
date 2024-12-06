@@ -105,21 +105,27 @@ class Zone:
         # Start polling zone
         self._poller.start()
 
-        # Wait for the ID, serial and name to be returned from the device
-        received_id = await future_id
-        received_serial = await future_serial
-        await future_name
+        try:
+            # Wait for the ID, serial and name to be returned from the device
+            received_id = await self.vssl.event_bus.wait_future(future_id)
+            received_serial = await self.vssl.event_bus.wait_future(future_serial)
+            await self.vssl.event_bus.wait_future(future_name)
+        except asyncio.TimeoutError:
+            message = f"Zone {self.id}: initialization timeout. Is the zone avaiable?"
+            self._log_critical(message)
+            await first_zone.disconnect()
+            raise ZoneError(message)
 
-        # Confirm the zone id is matches returned ID
+        # Confirm the zone id is matches the returned zone ID
         if received_id != self.id:
-            message = f"Zone ID mismatch. {self.host} returned zone ID {received_id} instead of {self.id}"
+            message = f"Zone {self.id}: ID mismatch. {self.host} returned zone ID {received_id} instead of {self.id}"
             self._log_critical(message)
             await self.disconnect()
             raise ZoneError(message)
 
         # Confirm the zone and VSSL serial numbers match
         if self.vssl.serial != received_serial:
-            message = f"Zone ({received_serial}) and VSSL ({self.vssl.serial}) serial numbers do not match. Does this zone belong to this VSSL?"
+            message = f"Zone {self.id}: ({received_serial}) and VSSL ({self.vssl.serial}) serial numbers do not match. Does this zone belong to this VSSL?"
             self._log_critical(message)
             await self.disconnect()
             raise ZoneError(message)
