@@ -80,7 +80,7 @@ class Zone:
 
     # Initialise
     async def initialise(self):
-        # ID and serial number futures
+        # Data we require from the device
         future_id = self.vssl.event_bus.future(self.Events.ID_RECEIVED, self.id)
         future_serial = self.vssl.event_bus.future(self.Events.SERIAL_RECEIVED, self.id)
         future_name = self.vssl.event_bus.future(
@@ -98,7 +98,6 @@ class Zone:
         )
 
         # Connect the APIs
-        # Wait until the zone is connected then continue
         await self.api_alpha.connect()
         await self.api_bravo.connect()
 

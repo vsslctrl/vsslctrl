@@ -24,17 +24,15 @@ class Vssl:
     #
     class Events:
         PREFIX = "vssl."
+        INITIALISED = PREFIX + "initialised"
         MODEL_CHANGE = PREFIX + "model_changed"
         SW_VERSION_CHANGE = PREFIX + "sw_version_changed"
         SERIAL_CHANGE = PREFIX + "serial_changed"
         ALL = EventBus.WILDCARD
 
-    def __init__(
-        self,
-        model: Models,
-        zones: Union[str, List[str]] = None,
-    ):
+    def __init__(self, model: Models):
         self.event_bus = EventBus()
+        self.initialisation = asyncio.Event()
         self.zones = {}
         self._sw_version = None
         self._serial = None
@@ -42,15 +40,13 @@ class Vssl:
         self.model = model
         self.settings = VsslSettings(self)
 
-        # Add zones if any are passed
-        if zones:
-            self.add_zones(zones)
+    @property
+    def initialised(self):
+        """Initialised Event"""
+        return self.initialisation.is_set()
 
     #
-    # Initialise the zones
-    #
-    # We init all the zones sequentially, so we can do some error checking
-    # and fail if any of the zones are in error
+    # Initialize the zones
     #
     async def initialise(self, init_timeout: int = 10):
         if len(self.zones) < 1:
@@ -65,7 +61,6 @@ class Vssl:
             future_sw_version = self.event_bus.future(self.Events.SW_VERSION_CHANGE)
             future_name = self.event_bus.future(VsslSettings.Events.NAME_CHANGE)
 
-            # Check first zone will initialise, otherwsie fail all zones
             await first_zone.initialise()
 
             # Wait until we have some basic infomation
@@ -102,8 +97,12 @@ class Vssl:
             await first_zone.disconnect()
             raise VsslCtrlException(message)
 
+        # Initialised
+        self.initialisation.set()
+        self.event_bus.publish(self.Events.INITIALISED, self.ENTITY_ID, self)
         self._log_info(f"Core initialization complete")
-        return True
+
+        return self
 
     #
     # Shutdown
@@ -128,7 +127,7 @@ class Vssl:
             raise
 
     #
-    # Update a property and fire the event
+    # Update a property and fire an event
     #
     #
     # TODO, use the ZoneDataClass here too? Needs some reconfig
@@ -194,41 +193,59 @@ class Vssl:
             await zone.disconnect()
 
     #
-    # Add a Zones using a List, index implies the zone ID
-    #
-    def add_zones(self, zones=Union[str, List[str]]):
-        zones_list = [zones] if isinstance(zones, str) else zones
-
-        for index, ip in enumerate(zones_list):
-            self.add_zone(index + 1, ip)
-
-    #
     # Add a Zone
     #
     def add_zone(self, zone_index: ZoneIDs, host: str):
+        # Check if VSSL is already initialised
+        if self.initialised:
+            error = f"Zones can not be added after VSSL is initialised. Error trying to add Zone {zone_index}"
+            self._log_error(error)
+            raise ZoneError(error)
+
+        # Check the ZoneID is valid for the model
+        if zone_index not in self.model.zones:
+            error = f"ZoneIDs {zone_index} is not supported on device model {self.model.name}. Did you select the correct model?"
+            self._log_error(error)
+            raise ZoneError(error)
+
+        # Double check ZoneID is valid
         if ZoneIDs.is_not_valid(zone_index):
             error = f"ZoneIDs {zone_index} doesnt exist"
             self._log_error(error)
             raise ZoneError(error)
-            return None
 
+        # Check ZoneID is unique
         if zone_index in self.zones:
-            error = f"Zone {zone_index} already exists"
+            error = f"Zone {zone_index} already exists on this instance"
             self._log_error(error)
             raise ZoneError(error)
-            return None
 
-        # Check if any object in the dictionary has the specified value for the
-        # property
+        # Check IPs are unique
         if any(zone.host == host for zone in self.zones.values()):
             error = f"Zone with IP {host} already exists"
             self._log_error(error)
             raise ZoneError(error)
-            return None
 
         self.zones[zone_index] = Zone(self, zone_index, host)
 
         return self.zones[zone_index]
+
+    #
+    # Add a Zones using a list.
+    #
+    async def add_zones(self, zones=Union[str, List[str]]):
+        zones_list = [zones] if isinstance(zones, str) else zones
+
+        # A.1(x)
+        if not self.model.is_multizone:
+            return self.add_zone(ZoneIDs.A1, zones_list[0])
+        else:
+            # Fetch the ZoneID from the device
+            for host in zones_list:
+                zone_id, serial = await fetch_zone_id_serial(host)
+                self.add_zone(ZoneIDs(int(zone_id)), host)
+
+        return self.zones
 
     #
     # Get a Zone by ID
@@ -240,19 +257,7 @@ class Vssl:
             return None
 
     #
-    # Get a Zone by group index
-    #
-    def get_zones_by_group_index(self, group_index: int):
-        zones = {}
-        if self.zones:
-            for zone_id in self.zones:
-                zone = self.zones[zone_id]
-                if zone.group.index == group_index:
-                    zones[zone_id] = zone
-        return zones
-
-    #
-    # Get a Zone that is connected to its APIs
+    # Get a Zone that is connected
     #
     def get_connected_zone(self):
         if self.zones:
@@ -284,6 +289,18 @@ class Vssl:
         zone = self.get_connected_zone()
         if zone:
             zone.api_alpha.request_action_2B()
+
+    #
+    # Get a Zone by group index
+    #
+    def get_zones_by_group_index(self, group_index: int):
+        zones = {}
+        if self.zones:
+            for zone_id in self.zones:
+                zone = self.zones[zone_id]
+                if zone.group.index == group_index:
+                    zones[zone_id] = zone
+        return zones
 
     #
     # Zones Groups. Build a dict of zone according to group membership
