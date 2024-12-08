@@ -195,7 +195,7 @@ class Vssl:
     #
     # Add a Zone
     #
-    def add_zone(self, zone_index: ZoneIDs, host: str):
+    def add_zone(self, host: str, zone_index: ZoneIDs = ZoneIDs.A1):
         # Check if VSSL is already initialised
         if self.initialised:
             error = f"Zones can not be added after VSSL is initialised. Error trying to add Zone {zone_index}"
@@ -238,12 +238,12 @@ class Vssl:
 
         # A.1(x)
         if not self.model.is_multizone:
-            return self.add_zone(ZoneIDs.A1, zones_list[0])
+            return self.add_zone(zones_list[0], ZoneIDs.A1)
         else:
             # Fetch the ZoneID from the device
             for host in zones_list:
                 zone_id, serial = await fetch_zone_id_serial(host)
-                self.add_zone(ZoneIDs(int(zone_id)), host)
+                self.add_zone(host, ZoneIDs(int(zone_id)))
 
         return self.zones
 

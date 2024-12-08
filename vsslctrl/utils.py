@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 
 #
@@ -49,6 +50,16 @@ def hex_to_bytearray_string(hex_string):
     bytearray_str = f'bytearray([{", ".join(map(str, byte_array))}])'
 
     return bytearray_str
+
+
+#
+# Generate a random INT excliding
+#
+def generate_number_excluding(excluded_number, lower: int = 1, upper: int = 100):
+    while True:
+        num = random.randint(lower, upper)
+        if num != excluded_number:
+            return num
 
 
 #

@@ -5,8 +5,7 @@ import pytest
 import pytest_asyncio
 
 import vsslctrl as vssl_module
-from vsslctrl.core import Vssl
-from vsslctrl.zone import Zone
+from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
 from vsslctrl.transport import ZoneTransport
 from vsslctrl.group import ZoneGroup
 from vsslctrl.io import AnalogOutput, InputRouter, AnalogInput
@@ -16,7 +15,10 @@ from vsslctrl.settings import (
     EQSettings,
     VsslSettings,
     VsslPowerSettings,
+    SubwooferSettings,
 )
+from vsslctrl.utils import generate_number_excluding
+from vsslctrl.data_structure import ZoneIDs, DeviceFeatureFlags
 
 
 FUTURE_TIMEOUT = 5
@@ -35,48 +37,36 @@ async def zone(request):
     if ip is None:
         pytest.fail("No ip address specified. Use the --ip option.")
 
-    zone = request.config.option.zone
-    if zone is None:
-        pytest.fail("No Zone specified. Use the --zone option.")
+    model = request.config.option.model
+    if model is None:
+        pytest.fail("No model specified. Use the --model option.")
 
-    vssl_instance = vssl_module.Vssl()
-    zone_instance = vssl_instance.add_zone(zone, ip)
+    vssl = Vssl(model)
 
-    asyncio.create_task(vssl_instance.initialise())
+    # Use add_zones since it will figure out the ZoneID for us
+    await vssl.add_zones(ip)
+    await vssl.initialise()
 
-    try:
-        await asyncio.wait_for(zone_instance.initialisation.wait(), 3)
-    except asyncio.TimeoutError:
-        pytest.fail(f"Couldnt connect to Zone at {ip}, not initialised")
+    # Get the connected zone
+    zone = vssl.get_connected_zone()
 
-    if (
-        not zone_instance.transport.is_playing
-        or zone_instance.input.source != InputRouter.Sources.STREAM
-    ):
+    if not zone.initialised:
+        pytest.fail(f"Zone not initialised, dunno!")
+
+    if zone.id not in [ZoneIDs.A1, ZoneIDs.ZONE_1]:
         pytest.fail(
-            "Integration tests on the VSSL class must be run "
-            "with the VSSL zone playing a stream (not analog input)"
+            "Please run tests on ZoneIDs.ZONE_1 because it will receive feedback for device level commands"
         )
 
-    original_volume = zone_instance.volume
-
-    future_vol = vssl_instance.event_bus.future(
-        Zone.Events.VOLUME_CHANGE, zone_instance.id
-    )
-    zone_instance.volume = 50
-    await vssl_instance.event_bus.wait_future(future_vol, FUTURE_TIMEOUT)
+    orig_volume = zone.volume
 
     # Yield the device to the test function
-    yield zone_instance
-
-    future_vol = vssl_instance.event_bus.future(
-        Zone.Events.VOLUME_CHANGE, zone_instance.id
-    )
-    zone_instance.volume = original_volume
-    await vssl_instance.event_bus.wait_future(future_vol, FUTURE_TIMEOUT)
+    yield zone
 
     # Tear down. Restore state
-    await vssl_instance.disconnect()
+    await vssl.disconnect()
+
+    zone.volume = orig_volume
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -95,95 +85,144 @@ class TestVssl:
         original_name = vssl.settings.name
         test_name = str(int(time.time()))
 
-        future_name = eb.future(VsslSettings.Events.NAME_CHANGE, 0)
-
+        future_name = eb.future(VsslSettings.Events.NAME_CHANGE)
         vssl.settings.name = test_name
         assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == test_name
         assert vssl.settings.name == test_name
 
-        future_name = eb.future(VsslSettings.Events.NAME_CHANGE, 0)
-
+        future_name = eb.future(VsslSettings.Events.NAME_CHANGE)
         vssl.settings.name = original_name
         assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == original_name
         assert vssl.settings.name == original_name
 
-    # @pytest.mark.asyncio(scope="session")
-    # async def test_optical_input_name_change(self, zone, eb, vssl):
-
-    #     original_name = vssl.settings.optical_input_name
-    #     test_name = str(int(time.time()))
-
-    #     future_name = eb.future(VsslSettings.Events.OPTICAL_INPUT_NAME_CHANGE, 0)
-
-    #     vssl.settings.optical_input_name = test_name
-    #     assert await  eb.wait_future(future_name, FUTURE_TIMEOUT) == test_name
-    #     assert vssl.settings.optical_input_name == test_name
-
-    #     future_name = eb.future(VsslSettings.Events.OPTICAL_INPUT_NAME_CHANGE, 0)
-
-    #     vssl.settings.optical_input_name = original_name
-    #     assert await  eb.wait_future(future_name, FUTURE_TIMEOUT) == original_name
-    #     assert vssl.settings.optical_input_name == original_name
-
     @pytest.mark.asyncio(scope="session")
     async def test_power_adaptive_change(self, zone, eb, vssl):
-        original_state = vssl.settings.power.adaptive
+        orig_state = vssl.settings.power.adaptive
 
-        if original_state != True:
-            future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0)
-            vssl.settings.power.adaptive = True
-            await eb.wait_future(future_state, FUTURE_TIMEOUT)
-            assert vssl.settings.power.adaptive == True
-
-        future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0)
+        future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE)
         vssl.settings.power.adaptive_toggle()
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == False
-        assert vssl.settings.power.adaptive == False
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == (not orig_state)
+        assert vssl.settings.power.adaptive == (not orig_state)
 
-        if original_state != False:
-            future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE, 0)
-            vssl.settings.power.adaptive = True
-            await eb.wait_future(future_state, FUTURE_TIMEOUT)
-            assert vssl.settings.power.adaptive == True
+        future_state = eb.future(VsslPowerSettings.Events.ADAPTIVE_CHANGE)
+        vssl.settings.power.adaptive = orig_state
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_state
+        assert vssl.settings.power.adaptive == orig_state
 
-        assert vssl.settings.power.adaptive == original_state
+    @pytest.mark.asyncio(scope="session")
+    async def test_bus_1_rename(self, zone, eb, vssl):
+        original_name = vssl.settings.bus_1_name
+        test_name = "TestName"
+
+        future_name = eb.future(VsslSettings.Events.BUS_1_NAME_CHANGE)
+        vssl.settings.bus_1_name = test_name
+        # Feedback sometime isnt sent so poll to make sure it changes
+        zone._request_status_bus()
+        assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == test_name
+        assert vssl.settings.bus_1_name == test_name
+
+        future_name = eb.future(VsslSettings.Events.BUS_1_NAME_CHANGE)
+        vssl.settings.bus_1_name = original_name
+        # Feedback sometime isnt sent so poll to make sure it changes
+        zone._request_status_bus()
+        assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == original_name
+        assert vssl.settings.bus_1_name == original_name
+
+    @pytest.mark.asyncio(scope="session")
+    async def test_bus_2_rename(self, zone, eb, vssl):
+        original_name = vssl.settings.bus_2_name
+        test_name = "TestName"
+
+        future_name = eb.future(VsslSettings.Events.BUS_2_NAME_CHANGE)
+        vssl.settings.bus_2_name = test_name
+        # Feedback sometime isnt sent so poll to make sure it changes
+        zone._request_status_bus()
+        assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == test_name
+        assert vssl.settings.bus_2_name == test_name
+
+        future_name = eb.future(VsslSettings.Events.BUS_2_NAME_CHANGE)
+        vssl.settings.bus_2_name = original_name
+        # Feedback sometime isnt sent so poll to make sure it changes
+        zone._request_status_bus()
+        assert await eb.wait_future(future_name, FUTURE_TIMEOUT) == original_name
+        assert vssl.settings.bus_2_name == original_name
+
+    @pytest.mark.asyncio(scope="session")
+    async def test_bluetooth(self, zone, eb, vssl):
+        if not zone.vssl.model.supports_feature(DeviceFeatureFlags.BLUETOOTH):
+            pytest.skip(f"Model {zone.vssl.model.name} doesnt support bluetooth")
+
+        orig_state = vssl.settings.bluetooth
+
+        future_state = eb.future(VsslSettings.Events.BLUETOOTH_CHANGE)
+        vssl.settings.bluetooth_toggle()
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_state
+        assert vssl.settings.bluetooth == orig_state
+
+        future_state = eb.future(VsslSettings.Events.BLUETOOTH_CHANGE)
+        vssl.settings.bluetooth = orig_state
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_state
+        assert vssl.settings.bluetooth == orig_state
 
 
 class TestVolume:
     """Integration tests for the volume property."""
 
     @pytest.mark.asyncio(scope="session")
-    async def test_valid_volumes(self, zone, eb):
-        random_vol = random.randint(15, 25)  # less than whats set when setting up zone
+    async def test_volume_change(self, zone, eb):
+        orig_volume = zone.volume
+        random_vol = generate_number_excluding(orig_volume, 1, 25)
+
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume = random_vol
         assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == random_vol
         assert zone.volume == random_vol
 
+        # Restore state
+        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+        zone.volume = orig_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
+        assert zone.volume == orig_volume
+
     @pytest.mark.asyncio(scope="session")
     async def test_mute_unmute(self, zone, eb):
-        if zone.mute == True:
+        # Use self._mute since self.mute is dependant on volume
+        if zone._mute == True:
             future_state = eb.future(Zone.Events.MUTE_CHANGE, zone.id)
             zone.mute = False
-            assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == False
+            # Dont check future since it returns zone.mute
+            await eb.wait_future(future_state, FUTURE_TIMEOUT)
+            assert zone._mute == False
 
         future_state = eb.future(Zone.Events.MUTE_CHANGE, zone.id)
         zone.mute_toggle()
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == True
-        assert zone.mute == True
+        # Dont check future since it returns zone.mute
+        await eb.wait_future(future_state, FUTURE_TIMEOUT)
+        assert zone._mute == True
 
         future_state = eb.future(Zone.Events.MUTE_CHANGE, zone.id)
         zone.mute = False
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == False
+        # Dont check future since it returns zone.mute
+        await eb.wait_future(future_state, FUTURE_TIMEOUT)
+        assert zone._mute == False
 
     @pytest.mark.asyncio(scope="session")
     async def test_unmute_when_volume_changed(self, zone, eb):
-        original_vol = zone.volume
+        orig_volume = zone.volume
+        base_volume = generate_number_excluding(orig_volume, 10, 20)
 
-        if zone.mute == False:
+        # Be sure we are not a volume 0
+        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+        zone.volume = base_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == base_volume
+        assert zone.volume == base_volume
+
+        if not zone.mute:
             future_state = eb.future(Zone.Events.MUTE_CHANGE, zone.id)
             zone.mute = True
-            assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == True
+            # Dont check future since it returns zone.mute
+            await eb.wait_future(future_state, FUTURE_TIMEOUT)
+            assert zone.mute == True
 
         """
             Volume wont unmute if the volume is 
@@ -192,40 +231,62 @@ class TestVolume:
         future_state = eb.future(Zone.Events.MUTE_CHANGE, zone.id)
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
 
-        zone.volume = original_vol + 2
+        zone.volume = base_volume + 2
 
         assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == False
         assert zone.mute == False
 
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == (original_vol + 2)
-        assert zone.volume == (original_vol + 2)
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == (base_volume + 2)
+        assert zone.volume == (base_volume + 2)
 
     @pytest.mark.asyncio(scope="session")
     async def test_volume_raise_lower(self, zone, eb):
-        original_vol = zone.volume
+        orig_volume = zone.volume
+        test_vol = generate_number_excluding(orig_volume, 40, 50)
+
+        # Make sure we have room for test
+        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+        zone.volume = test_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
+        assert zone.volume == test_vol
 
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume_raise()
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol + 1
-        assert zone.volume == original_vol + 1
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol + 1
+        assert zone.volume == test_vol + 1
 
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume_lower()
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol
-        assert zone.volume == original_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
+        assert zone.volume == test_vol
 
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume_lower(5)
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol - 5
-        assert zone.volume == original_vol - 5
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol - 5
+        assert zone.volume == test_vol - 5
 
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume_raise(5)
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol
-        assert zone.volume == original_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
+        assert zone.volume == test_vol
+
+        # Restore state
+        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+        zone.volume = orig_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
+        assert zone.volume == orig_volume
 
     @pytest.mark.asyncio(scope="session")
     async def test_invalid_volume_will_be_clamped(self, zone, eb):
+        orig_volume = zone.volume
+        base_volume = generate_number_excluding(orig_volume, 10, 20)
+
+        # Be sure we are not a volume 0
+        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+        zone.volume = base_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == base_volume
+        assert zone.volume == base_volume
+
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume = -5
         assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == 0
@@ -234,7 +295,27 @@ class TestVolume:
 
 class TestGroup:
     @pytest.mark.asyncio(scope="session")
+    async def test_partymode(self, zone, eb, vssl):
+        if not zone.vssl.model.supports_feature(DeviceFeatureFlags.PARTY_ZONE):
+            pytest.skip(f"Model {zone.vssl.model.name} doesnt support party mode")
+
+        orig_setting = zone.group.is_party_zone_member
+
+        future_state = eb.future(SubwooferSettings.Events.IS_PARTY_ZONE_MEMBER_CHANGE)
+        zone.group.is_party_zone_member_toggle()
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == test_setting
+        assert zone.group.is_party_zone_member == test_setting
+
+        future_state = eb.future(SubwooferSettings.Events.IS_PARTY_ZONE_MEMBER_CHANGE)
+        zone.group.is_party_zone_member = orig_setting
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_setting
+        assert zone.group.is_party_zone_member == orig_setting
+
+    @pytest.mark.asyncio(scope="session")
     async def test_group_is_master(self, zone, eb):
+        if not zone.vssl.model.supports_feature(DeviceFeatureFlags.GROUPING):
+            pytest.skip(f"Model {zone.vssl.model.name} doesnt support grouping")
+
         assert isinstance(zone.group.index, int)
         assert zone.group.index != zone.id
         assert zone.group.index != 0
@@ -265,177 +346,44 @@ class TestGroup:
 class TestInputRouter:
     @pytest.mark.asyncio(scope="session")
     async def test_source_change(self, zone, eb):
-        original_source = zone.input.source
+        if not zone.vssl.model.supports_feature(DeviceFeatureFlags.INPUT_ROUTING):
+            pytest.skip(f"Model {zone.vssl.model.name} doesnt support input routing")
 
-        if original_source != InputRouter.Sources.STREAM:
+        async def change_source(source):
             future_source = eb.future(InputRouter.Events.SOURCE_CHANGE, zone.id)
-            zone.input.source = InputRouter.Sources.STREAM
-            assert (
-                await eb.wait_future(future_source, FUTURE_TIMEOUT)
-                == InputRouter.Sources.STREAM
-            )
-            assert zone.input.source == InputRouter.Sources.STREAM
+            zone.input.source = source
+            assert await eb.wait_future(future_source, FUTURE_TIMEOUT) == source
+            assert zone.input.source == source
 
-        # Optical
-        future_source = eb.future(InputRouter.Events.SOURCE_CHANGE, zone.id)
-        zone.input.source = InputRouter.Sources.OPTICAL_IN
-        assert (
-            await eb.wait_future(future_source, FUTURE_TIMEOUT)
-            == InputRouter.Sources.OPTICAL_IN
-        )
-        assert zone.input.source == InputRouter.Sources.OPTICAL_IN
+        orig_source = zone.input.source
 
-        # AI 1
-        future_source = eb.future(InputRouter.Events.SOURCE_CHANGE, zone.id)
-        zone.input.source = InputRouter.Sources.ANALOG_IN_1
-        assert (
-            await eb.wait_future(future_source, FUTURE_TIMEOUT)
-            == InputRouter.Sources.ANALOG_IN_1
-        )
-        assert zone.input.source == InputRouter.Sources.ANALOG_IN_1
+        # Test all supported sources
+        for source in zone.vssl.model.input_sources:
+            if source != orig_source:
+                await change_source(source)
 
         # Back to original source
-        future_source = eb.future(InputRouter.Events.SOURCE_CHANGE, zone.id)
-        zone.input.source = original_source
-        assert await eb.wait_future(future_source, FUTURE_TIMEOUT) == original_source
-        assert zone.input.source == original_source
+        await change_source(orig_source)
 
     @pytest.mark.asyncio(scope="session")
     async def test_priority_change(self, zone, eb):
-        oringal_router_priority = zone.input.priority
-
-        if zone.input.priority != InputRouter.Priorities.STREAM:
+        async def change_priority(priority):
             future_priority = eb.future(InputRouter.Events.PRIORITY_CHANGE, zone.id)
-            zone.input.priority = InputRouter.Priorities.STREAM
-            assert (
-                await eb.wait_future(future_priority, FUTURE_TIMEOUT)
-                == InputRouter.Priorities.STREAM
-            )
-            assert zone.input.priority == InputRouter.Priorities.STREAM
+            zone.input.priority = priority
+            assert await eb.wait_future(future_priority, FUTURE_TIMEOUT) == priority
+            assert zone.input.priority == priority
 
-        future_priority = eb.future(InputRouter.Events.PRIORITY_CHANGE, zone.id)
-        zone.input.priority = InputRouter.Priorities.LOCAL
-        assert (
-            await eb.wait_future(future_priority, FUTURE_TIMEOUT)
-            == InputRouter.Priorities.LOCAL
-        )
-        assert zone.input.priority == InputRouter.Priorities.LOCAL
+        orig_priority = zone.input.priority
 
-        if zone.input.priority != oringal_router_priority:
-            future_priority = eb.future(InputRouter.Events.PRIORITY_CHANGE, zone.id)
-            zone.input.priority = oringal_router_priority
-            assert (
-                await eb.wait_future(future_priority, FUTURE_TIMEOUT)
-                == oringal_router_priority
-            )
-            assert zone.input.priority == oringal_router_priority
+        for priority in InputRouter.Priorities:
+            if priority != orig_priority:
+                await change_priority(priority)
+
+        # Back to original priority
+        await change_priority(orig_priority)
 
 
-class TestAnalogOutput:
-    @pytest.mark.asyncio(scope="session")
-    async def test_source_change(self, zone, eb):
-        original_source = zone.analog_output.source
-
-        if original_source != AnalogOutput.Sources.OFF:
-            future_source = eb.future(AnalogOutput.Events.SOURCE_CHANGE, zone.id)
-            zone.analog_output.source = AnalogOutput.Sources.OFF
-            assert (
-                await eb.wait_future(future_source, FUTURE_TIMEOUT)
-                == AnalogOutput.Sources.OFF
-            )
-            assert zone.analog_output.source == AnalogOutput.Sources.OFF
-
-        future_source = eb.future(AnalogOutput.Events.SOURCE_CHANGE, zone.id)
-        zone.analog_output.source = AnalogOutput.Sources.ZONE_1
-        assert (
-            await eb.wait_future(future_source, FUTURE_TIMEOUT)
-            == AnalogOutput.Sources.ZONE_1
-        )
-        assert zone.analog_output.source == AnalogOutput.Sources.ZONE_1
-
-        future_source = eb.future(AnalogOutput.Events.SOURCE_CHANGE, zone.id)
-        zone.analog_output.source = AnalogOutput.Sources.OPTICAL_IN
-        assert (
-            await eb.wait_future(future_source, FUTURE_TIMEOUT)
-            == AnalogOutput.Sources.OPTICAL_IN
-        )
-        assert zone.analog_output.source == AnalogOutput.Sources.OPTICAL_IN
-
-        if zone.analog_output.source != original_source:
-            future_source = eb.future(AnalogOutput.Events.SOURCE_CHANGE, zone.id)
-            zone.analog_output.source = original_source
-            assert (
-                await eb.wait_future(future_source, FUTURE_TIMEOUT) == original_source
-            )
-            assert zone.analog_output.source == original_source
-
-    @pytest.mark.asyncio(scope="session")
-    async def test_is_fixed_volume(self, zone, eb):
-        original_state = zone.analog_output.is_fixed_volume
-
-        assert isinstance(original_state, bool)
-
-        new_state = not original_state
-
-        future_state = eb.future(AnalogOutput.Events.IS_FIXED_VOLUME_CHANGE, zone.id)
-        zone.analog_output.is_fixed_volume = new_state
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == new_state
-        assert zone.analog_output.is_fixed_volume == new_state
-
-        future_state = eb.future(AnalogOutput.Events.IS_FIXED_VOLUME_CHANGE, zone.id)
-        zone.analog_output.is_fixed_volume_toggle()
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == original_state
-        assert zone.analog_output.is_fixed_volume == original_state
-
-
-class TestVolumeSettings:
-    @pytest.mark.asyncio(scope="session")
-    async def test_vol_setting_default_on(self, zone, eb):
-        original_vol = zone.settings.volume.default_on
-        test_vol = 50 if original_vol != 50 else 40
-
-        future_vol = eb.future(VolumeSettings.Events.DEFAULT_ON_CHANGE, zone.id)
-        zone.settings.volume.default_on = test_vol
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
-        assert zone.settings.volume.default_on == test_vol
-
-        future_vol = eb.future(VolumeSettings.Events.DEFAULT_ON_CHANGE, zone.id)
-        zone.settings.volume.default_on = original_vol
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol
-        assert zone.settings.volume.default_on == original_vol
-
-    @pytest.mark.asyncio(scope="session")
-    async def test_vol_setting_max_left(self, zone, eb):
-        original_vol = zone.settings.volume.max_left
-        test_vol = 50 if original_vol != 50 else 40
-
-        future_vol = eb.future(VolumeSettings.Events.MAX_LEFT_CHANGE, zone.id)
-        zone.settings.volume.max_left = test_vol
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
-        assert zone.settings.volume.max_left == test_vol
-
-        future_vol = eb.future(VolumeSettings.Events.MAX_LEFT_CHANGE, zone.id)
-        zone.settings.volume.max_left = original_vol
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol
-        assert zone.settings.volume.max_left == original_vol
-
-    @pytest.mark.asyncio(scope="session")
-    async def test_vol_setting_max_right(self, zone, eb):
-        original_vol = zone.settings.volume.max_right
-        test_vol = 50 if original_vol != 50 else 40
-
-        future_vol = eb.future(VolumeSettings.Events.MAX_RIGHT_CHANGE, zone.id)
-        zone.settings.volume.max_right = test_vol
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
-        assert zone.settings.volume.max_right == test_vol
-
-        future_vol = eb.future(VolumeSettings.Events.MAX_RIGHT_CHANGE, zone.id)
-        zone.settings.volume.max_right = original_vol
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == original_vol
-        assert zone.settings.volume.max_right == original_vol
-
-
-class TestAnalogInput:
+class TestInput:
     @pytest.mark.asyncio(scope="session")
     async def test_name_change(self, zone, eb):
         original_name = zone.settings.analog_input.name
@@ -484,6 +432,113 @@ class TestAnalogInput:
             assert zone.settings.analog_input.fixed_gain == original_gain
 
 
+class TestOutputs:
+    @pytest.mark.asyncio(scope="session")
+    async def test_source_change(self, zone, eb):
+        if not zone.vssl.model.supports_feature(DeviceFeatureFlags.OUTPUT_ROUTING):
+            pytest.skip(f"Model {zone.vssl.model.name} doesnt support output routing")
+
+        async def change_source(source):
+            future_source = eb.future(AnalogOutput.Events.SOURCE_CHANGE, zone.id)
+            zone.analog_output.source = source
+            assert await eb.wait_future(future_source, FUTURE_TIMEOUT) == source
+            assert zone.analog_output.source == source
+
+        orig_source = zone.analog_output.source
+
+        for source in zone.vssl.model.analog_output_sources:
+            if source != orig_source:
+                await change_source(source)
+
+        # Back to original source
+        await change_source(orig_source)
+
+    @pytest.mark.asyncio(scope="session")
+    async def test_is_fixed_volume(self, zone, eb):
+        orig_state = zone.analog_output.is_fixed_volume
+
+        assert isinstance(orig_state, bool)
+
+        new_state = not orig_state
+
+        future_state = eb.future(AnalogOutput.Events.IS_FIXED_VOLUME_CHANGE, zone.id)
+        zone.analog_output.is_fixed_volume = new_state
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == new_state
+        assert zone.analog_output.is_fixed_volume == new_state
+
+        future_state = eb.future(AnalogOutput.Events.IS_FIXED_VOLUME_CHANGE, zone.id)
+        zone.analog_output.is_fixed_volume_toggle()
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_state
+        assert zone.analog_output.is_fixed_volume == orig_state
+
+    @pytest.mark.asyncio(scope="session")
+    async def test_crossover(self, zone, eb, vssl):
+        if not zone.vssl.model.supports_feature(DeviceFeatureFlags.SUBWOOFER_CROSSOVER):
+            pytest.skip(f"Model {zone.vssl.model.name} doesnt support sub output")
+
+        orig_setting = zone.settings.subwoofer
+        test_setting = generate_number_excluding(
+            orig_setting, SubwooferSettings.MIN_VALUE, SubwooferSettings.MAX_VALUE
+        )
+
+        future_state = eb.future(SubwooferSettings.Events.CROSSOVER_CHANGE)
+        zone.settings.subwoofer = test_setting
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == test_setting
+        assert zone.settings.subwoofer == test_setting
+
+        future_state = eb.future(SubwooferSettings.Events.CROSSOVER_CHANGE)
+        zone.settings.subwoofer = orig_setting
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_setting
+        assert zone.settings.subwoofer == orig_setting
+
+
+class TestVolumeSettings:
+    @pytest.mark.asyncio(scope="session")
+    async def test_vol_setting_default_on(self, zone, eb):
+        orig_volume = zone.settings.volume.default_on
+        test_vol = generate_number_excluding(orig_volume, 10, 20)
+
+        future_vol = eb.future(VolumeSettings.Events.DEFAULT_ON_CHANGE, zone.id)
+        zone.settings.volume.default_on = test_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
+        assert zone.settings.volume.default_on == test_vol
+
+        future_vol = eb.future(VolumeSettings.Events.DEFAULT_ON_CHANGE, zone.id)
+        zone.settings.volume.default_on = orig_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
+        assert zone.settings.volume.default_on == orig_volume
+
+    @pytest.mark.asyncio(scope="session")
+    async def test_vol_setting_max_left(self, zone, eb):
+        orig_volume = zone.settings.volume.max_left
+        test_vol = generate_number_excluding(orig_volume, 10, 50)
+
+        future_vol = eb.future(VolumeSettings.Events.MAX_LEFT_CHANGE, zone.id)
+        zone.settings.volume.max_left = test_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
+        assert zone.settings.volume.max_left == test_vol
+
+        future_vol = eb.future(VolumeSettings.Events.MAX_LEFT_CHANGE, zone.id)
+        zone.settings.volume.max_left = orig_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
+        assert zone.settings.volume.max_left == orig_volume
+
+    @pytest.mark.asyncio(scope="session")
+    async def test_vol_setting_max_right(self, zone, eb):
+        orig_volume = zone.settings.volume.max_right
+        test_vol = generate_number_excluding(orig_volume, 10, 50)
+
+        future_vol = eb.future(VolumeSettings.Events.MAX_RIGHT_CHANGE, zone.id)
+        zone.settings.volume.max_right = test_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
+        assert zone.settings.volume.max_right == test_vol
+
+        future_vol = eb.future(VolumeSettings.Events.MAX_RIGHT_CHANGE, zone.id)
+        zone.settings.volume.max_right = orig_volume
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
+        assert zone.settings.volume.max_right == orig_volume
+
+
 class TestZoneSettings:
     @pytest.mark.asyncio(scope="session")
     async def test_name_change(self, zone, eb):
@@ -502,11 +557,11 @@ class TestZoneSettings:
 
     @pytest.mark.asyncio(scope="session")
     async def test_stereo_mono(self, zone, eb):
-        original_state = zone.settings.mono
+        orig_state = zone.settings.mono
 
-        assert isinstance(original_state, ZoneSettings.StereoMono)
+        assert isinstance(orig_state, ZoneSettings.StereoMono)
 
-        new_state = not original_state
+        new_state = not orig_state
 
         future_state = eb.future(ZoneSettings.Events.MONO_CHANGE, zone.id)
         zone.settings.mono = new_state
@@ -515,18 +570,18 @@ class TestZoneSettings:
 
         future_state = eb.future(ZoneSettings.Events.MONO_CHANGE, zone.id)
         zone.settings.mono_toggle()
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == original_state
-        assert zone.settings.mono == original_state
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_state
+        assert zone.settings.mono == orig_state
 
 
 class TestEQSettings:
     @pytest.mark.asyncio(scope="session")
     async def test_settings_eq_enable(self, zone, eb):
-        original_state = zone.settings.eq.enabled
+        orig_state = zone.settings.eq.enabled
 
-        assert isinstance(original_state, bool)
+        assert isinstance(orig_state, bool)
 
-        new_state = not original_state
+        new_state = not orig_state
 
         future_state = eb.future(EQSettings.Events.ENABLED_CHANGE, zone.id)
         zone.settings.eq.enabled = new_state
@@ -535,16 +590,18 @@ class TestEQSettings:
 
         future_state = eb.future(EQSettings.Events.ENABLED_CHANGE, zone.id)
         zone.settings.eq.enabled_toggle()
-        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == original_state
-        assert zone.settings.eq.enabled == original_state
+        assert await eb.wait_future(future_state, FUTURE_TIMEOUT) == orig_state
+        assert zone.settings.eq.enabled == orig_state
 
     @pytest.mark.asyncio(scope="session")
     async def test_settings_set_eq_freqs(self, zone, eb):
         for freq in EQSettings.Freqs:
-            # Noraml Values
+            # 90 - 110 range
             freq_key = freq.name.lower()
             original_val = getattr(zone.settings.eq, freq_key)
-            test_val = 99 if original_val != 99 else 98
+            test_val = generate_number_excluding(
+                original_val, EQSettings.MIN_VALUE, EQSettings.MAX_VALUE
+            )
 
             future_val = eb.future(
                 getattr(EQSettings.Events, f"{freq.name}_CHANGE"), zone.id
@@ -563,7 +620,9 @@ class TestEQSettings:
             # DB Values
             freq_key = f"{freq.name.lower()}_db"
             original_val = getattr(zone.settings.eq, freq_key)
-            test_val = -7 if original_val != -7 else -6
+            test_val = generate_number_excluding(
+                original_val, EQSettings.MIN_VALUE_DB, EQSettings.MAX_VALUE_DB
+            )
 
             future_val = eb.future(
                 getattr(EQSettings.Events, f"{freq.name}_CHANGE"), zone.id
@@ -589,6 +648,9 @@ class TestEQSettings:
 class TestTransport:
     @pytest.mark.asyncio(scope="session")
     async def test_transport(self, zone, eb):
+        if not zone.transport.is_playing:
+            pytest.skip("Cant test transport when not playing a source")
+
         assert zone.transport.state == ZoneTransport.States.PLAY
         assert zone.transport.is_playing
 

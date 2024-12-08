@@ -41,7 +41,7 @@ async def main():
   
   # Represents a physical VSSL amplifier
   vssl = Vssl(DeviceModels.A1)
-  a1 = vssl.add_zone(ZoneIDs.A1, '192.168.1.10')
+  a1 = vssl.add_zone('192.168.1.10')
 
   # Connect and initiate zones.
   await vssl.initialise()
@@ -71,14 +71,13 @@ from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
 async def main():
 	
   # Represents a physical VSSL amplifier
-  # If no DeviceModels is passed, vsslctrl will default to the feature set of the X series amps
   vssl = Vssl(DeviceModels.A3X)
 
   # Add each you wish to control
-  zone1 = vssl.add_zone(ZoneIDs.ZONE_1, '192.168.1.10')
-  zone2 = vssl.add_zone(ZoneIDs.ZONE_2, '192.168.1.11')
-  zone3 = vssl.add_zone(ZoneIDs.ZONE_3, '192.168.1.12')
-  #... up to 6 zones
+  zone1 = vssl.add_zone('192.168.1.10', ZoneIDs.ZONE_1)
+  zone2 = vssl.add_zone('192.168.1.11', ZoneIDs.ZONE_2)
+  zone3 = vssl.add_zone('192.168.1.12', ZoneIDs.ZONE_3)
+  #... up to 6 zones for A.6(x)
 
   # Connect and initiate zones.
   await vssl.initialise()
@@ -102,9 +101,36 @@ async def main():
 asyncio.run(main())
 ```
 
+# `DeviceModels`
+
+A device model has to be passed to VSSL so it knows internally what features are supported by the device.
+This might be removed in the future if we can differentiate different models from the API.
+
+| Property        | Description |
+| ------------|---------  | 
+| `A1X`       | A.1x      | 
+| `A3X`       | A.3x      | 
+| `A6X`       | A.6x      | 
+| `A1`        | A1        | 
+| `A3`        | A3        | 
+| `A6`        | A6        | 
+
+# `ZoneIDs`
+
+| Property        | Description |
+| ------------|---------  | 
+| `A1`        | A.1(x) Only      | 
+| `ZONE_1`    | Zone 1 of A.3(x) and A.6(x)   | 
+| `ZONE_2`    | Zone 2 of A.3(x) and A.6(x)    | 
+| `ZONE_3`    | Zone 3 of A.3(x) and A.6(x)  | 
+| `ZONE_4`    | Zone 4 of A.6(x)     | 
+| `ZONE_5`    | Zone 5 of A.6(x)       | 
+| `ZONE_6`    | Zone 6 of A.6(x)       | 
+
+
 # API
 
-Most functionality is achived via `getters` and `setters` of the two main classes `Vssl`, `Zone`. 
+Most functionality is achieved via `getters` and `setters` of the two main classes `Vssl`, `Zone`. 
 
 The classes will update the physical VSSL device when setting a property and once feedback has been received, the classes internal state will be updated. For example:
 
@@ -120,7 +146,6 @@ print(zone_name)
 ```
 
 **Important** in the above example, `zone1.settings.name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confirmation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
-
 
 # `Vssl`
 
@@ -143,7 +168,7 @@ vssl.factory_reset()
 
 ## `Vssl.settings`
 
-| Property      	| Description | Type 		| Notes / Defaults |
+| Property      	| Description | Type 		| Model: Default |
 | ---------------------- 	| ----------- | ----------- | ----------- |
 | `name`     			 	| Device name |	`str` |
 | `bus_1_name`   			| Name of Bus 1        |	`str` | <ul><li>A.1: Optical Input</li><li>A.3x/6x: Not Used</li></ul>
@@ -298,7 +323,7 @@ zone1.input.priority = InputRouter.Priorities.LOCAL
 
 ## `Zone.group`
 
-Officially unsupported in X series amplifiers.
+Unsupported on X series amplifiers.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |

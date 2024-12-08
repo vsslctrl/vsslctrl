@@ -5,6 +5,7 @@ import pytest
 import pytest_asyncio
 
 import vsslctrl as vssl_module
+from vsslctrl import ZoneIDs, DeviceModels
 from vsslctrl.core import Vssl
 from vsslctrl.zone import Zone
 from vsslctrl.transport import ZoneTransport
@@ -22,8 +23,8 @@ from vsslctrl.utils import clamp_volume
 
 @pytest_asyncio.fixture(scope="session")
 async def zone(request):
-    vssl_instance = vssl_module.Vssl()
-    zone_instance = vssl_instance.add_zone(1, "192.168.168.1")
+    vssl_instance = vssl_module.Vssl(DeviceModels.A1X)
+    zone_instance = vssl_instance.add_zone("192.168.168.1")
 
     # Yield the device to the test function
     yield zone_instance

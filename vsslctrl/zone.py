@@ -361,16 +361,25 @@ class Zone:
     #
     # Mute
     #
+    # Note: Mute will still return true if volume is at 0
+    # so always use _mute when comparing
+    #
     @property
     def mute(self):
-        return True if not self._volume else self._mute
+        return False if not self._volume else self._mute
 
     @mute.setter
     def mute(self, muted: Union[bool, int]):
         self.api_alpha.request_action_11(not not muted)
 
     def mute_toggle(self):
-        self.mute = False if self.mute else True
+        self.mute = False if self._mute else True
+
+    # Use self._mute since we are chcking volume in mute property
+    def _set_mute(self, state: bool):
+        if self._mute != state:
+            self._mute = state
+            return True
 
     #
     # Play a URL

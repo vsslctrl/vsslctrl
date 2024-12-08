@@ -17,9 +17,9 @@ pip install prompt_toolkit
 3. Text Editor: Edit zones IP addresses in `cli.py` 
 ```python
 ...
- zone1 = vssl.add_zone(ZoneIDs.ZONE_1, "192.168.1.10")
- # zone2 = vssl.add_zone(ZoneIDs.ZONE_2, "192.168.1.11")
- # zone3 = vssl.add_zone(ZoneIDs.ZONE_3, "192.168.1.12")
+ zone1 = vssl.add_zone("192.168.1.10", ZoneIDs.ZONE_1)
+ # zone2 = vssl.add_zone("192.168.1.11", ZoneIDs.ZONE_2)
+ # zone3 = vssl.add_zone("192.168.1.12", ZoneIDs.ZONE_3)
 ...
 ```
 

@@ -166,33 +166,39 @@ class APIAlpha(APIBase):
         self.send(bytearray([16, 43, 2, 8, 0]))
 
     #
+    # Rename Functions
+    #
+    def _request_action_rename(self, name: str, command_byte: int, id_byte: int = 0):
+        """
+        General method to send a request to change a name.
+        :param name: The new name to set.
+        :param command_byte: The subcommand byte (e.g., 21 or 24).
+        :param id_byte: The ID byte to specify the target (default is 0).
+        """
+        name = name.strip()
+        command = bytearray([16, command_byte])
+        command.extend(struct.pack(">B", len(name) + 1))
+        command.extend([id_byte])
+        command.extend(name.encode("utf-8"))
+        self.send(command)
+
+    #
     # 15 [21]
     # Set Analog Input Name / Rename Analog Input
     #
     # TODO: Does this work on A.1(x)?
     #
     def request_action_15(self, name: str):
-        name = name.strip()
         self._log_debug(f"Requesting to change analog input name: {name}")
-        command = bytearray([16, 21])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([0])  # zone id placeholder
-        command = self._add_zone_id_to_request(command)
-        command.extend(name.encode("utf-8"))
-        self.send(command)
+        self._request_action_rename(name, 21, self.zone.id)
 
     #
     # 15 [21]
     # Set Bus 1 Name
     #
     def request_action_15_10(self, name: str):
-        name = name.strip()
         self._log_debug(f"Requesting to change bus 1 name: {name}")
-        command = bytearray([16, 21])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([10])
-        command.extend(name.encode("utf-8"))
-        self.send(command)
+        self._request_action_rename(name, 21, 10)
 
     #
     # 15 [21]
@@ -201,11 +207,7 @@ class APIAlpha(APIBase):
     def request_action_15_12(self, name: str):
         name = name.strip()
         self._log_debug(f"Requesting to change bus 2 name: {name}")
-        command = bytearray([16, 21])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([12])
-        command.extend(name.encode("utf-8"))
-        self.send(command)
+        self._request_action_rename(name, 21, 12)
 
     #
     # 18 [24]
@@ -214,17 +216,13 @@ class APIAlpha(APIBase):
     def request_action_18(self, name: str):
         name = name.strip()
         self._log_debug(f"Requesting to change device name: {name}")
-        command = bytearray([16, 24])
-        command.extend(struct.pack(">B", len(name) + 1))
-        command.extend([7])
-        command.extend(name.encode("utf-8"))
-        self.send(command)
+        self._request_action_rename(name, 24, 7)
 
     #
     # 4F [79]
     # Adaptive Power
     #
-    def request_action_4F(self, state=True):
+    def request_action_4F(self, state: bool = True):
         self._log_debug(f"Requesting to set adaptive power state: {state}")
         # Device level command (dont need zone)
         command = bytearray([16, 79, 2, 8, int(state)])
@@ -940,6 +938,8 @@ class APIAlpha(APIBase):
     # 16 [22]
     # Received Analog Input Name
     #
+    # Note: Only received on Zone 1
+    #
     # TODO, maybe this should be global with the analog outputs.
     #
     def response_action_16(self, hexl: list, response: bytes):
@@ -1218,6 +1218,8 @@ class APIAlpha(APIBase):
     #
     # 50 [80]
     # Adaptive Power Feedback
+    #
+    # Note: Only received on Zone 1
     #
     @validate_response_length()
     @validate_response_zone_id()
