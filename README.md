@@ -1,31 +1,43 @@
 # vsslctrl
 
- Package for controlling [VSSL's](https://www.vssl.com/) range of streaming amplifiers.
+Package for controlling [VSSL's](https://www.vssl.com/) range of streaming amplifiers.
 
- **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
+## Coverage
+
+Tested on:
+
+| Model       | Software Version | Note |
+| ------------|---------  | -------------
+| A.3x       | p15305.016.3701     | 
+
+
+Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) with basic functionality working on:
+
+| Model       | Software Version | User Reported |
+| ------------|---------  | -------------
+| A.1       | p15265.033.3703    | ✔️
+| A.3       | p12013.141.3703     | ✔️
+| A.3x       | p15305.016.3701     | 
+| A.6x       | p15305.017.3701     | ✔️
+
 
 ## Help
 
 I am looking for testers with any VSSL amplifier models, please get in touch if you interested in helping. <vsslcontrolled@proton.me>
 
-Tested on:
-- **A.3x** software version **p15305.016.3701**
 
-Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) with basic functionality working on:
-- **A.1** software version **p15265.033.3703** (reported)
-- **A.3** software version **p12013.141.3703** (reported)
-- **A.3x** software version **p15305.016.3701**
-- **A.6x** software version **p15305.017.3701** (reported)
 
 ## Important
 
-There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* running on the same network. If you dont know what this is, then you can ignore this notice.
+There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/getting-started/start)* running on the network. If you dont know what this is, then you can ignore this notice.
+
+ **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
 ## TODOs
 
-* Correct IO mapping between models and versions
 * Better test coverage
-* A.1(x) testing
+* A.1(x) testing - e.g output settings
+* More controls - e.g IR Control
 
 ## Basic Usage
 
@@ -524,17 +536,9 @@ Motivation for this project was to integrate VSSLs amplifiers into [Home Assista
 * Not tested on A.1x or original A series range of amplifiers (testers welcome)
 * VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 * Not all sources set the volume to 0 when the zone is muted
-* Grouping feedback is flaky on the X series amplifiers
 * Airplay `Zone.track.progress` is not available.
 * Cant stop a URL playback, feedback is worng at least
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
 * `stop()` is intended to disconnect the client and pause the stream. Doesn’t always function this way, depending on stream source
 * Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects
-
-## Future
-
-* A.1(x) coverage i.e Bluetooth
-* REST API / Web App
-* Save and recall EQ
-* IR Control
 
