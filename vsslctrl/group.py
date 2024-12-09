@@ -159,7 +159,6 @@ class ZoneGroup(ZoneDataClass):
     #
     # Group: This zone is a master for a group
     #
-    # TODO: propogate track meta to member zones.
     # Only play state is propgated by the VSSL device
     #
     @property
@@ -215,4 +214,4 @@ class ZoneGroup(ZoneDataClass):
         self.zone.api_alpha.request_action_0C(state)
 
     def is_party_zone_member_toggle(self):
-        self.is_party_zone_member = False if self.is_party_zone_member else True
+        self.is_party_zone_member = not self.is_party_zone_member

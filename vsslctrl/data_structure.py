@@ -489,7 +489,8 @@ class ZoneRouterStatusExtKeys:
 
     @staticmethod
     def add_zone_to_ao_fixed_volume_key(zone_id: int):
-        zone_id = 1 if zone_id > 6 else zone_id  # TODO - test A1 workaround
+        # TODO - Does this work on the A.1(x)?
+        zone_id = ZoneIDs.ZONE_1 if zone_id > ZoneIDs.ZONE_6 else zone_id
         return f"BF{zone_id}"
 
 

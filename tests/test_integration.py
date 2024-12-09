@@ -171,18 +171,12 @@ class TestVolume:
     @pytest.mark.asyncio(scope="session")
     async def test_volume_change(self, zone, eb):
         orig_volume = zone.volume
-        random_vol = generate_number_excluding(orig_volume, 1, 25)
+        random_vol = generate_number_excluding(orig_volume, 5, 15)
 
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
         zone.volume = random_vol
         assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == random_vol
         assert zone.volume == random_vol
-
-        # Restore state
-        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
-        zone.volume = orig_volume
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
-        assert zone.volume == orig_volume
 
     @pytest.mark.asyncio(scope="session")
     async def test_mute_unmute(self, zone, eb):
@@ -207,9 +201,26 @@ class TestVolume:
         assert zone._mute == False
 
     @pytest.mark.asyncio(scope="session")
+    async def test_mute_at_volume_zero(self, zone, eb):
+        # Be sure we are not a volume 0
+        if zone.volume != 0:
+            future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+            zone.volume = 0
+            assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == 0
+            assert zone.volume == 0
+
+        # Check mute is True
+        assert zone.mute == True
+
+        random_vol = generate_number_excluding(zone.volume, 16, 20)
+        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
+        zone.volume = random_vol
+        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == random_vol
+        assert zone.volume == random_vol
+
+    @pytest.mark.asyncio(scope="session")
     async def test_unmute_when_volume_changed(self, zone, eb):
-        orig_volume = zone.volume
-        base_volume = generate_number_excluding(orig_volume, 10, 20)
+        base_volume = generate_number_excluding(zone.volume, 21, 25)
 
         # Be sure we are not a volume 0
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
@@ -241,8 +252,7 @@ class TestVolume:
 
     @pytest.mark.asyncio(scope="session")
     async def test_volume_raise_lower(self, zone, eb):
-        orig_volume = zone.volume
-        test_vol = generate_number_excluding(orig_volume, 40, 50)
+        test_vol = generate_number_excluding(zone.volume, 26, 30)
 
         # Make sure we have room for test
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
@@ -270,16 +280,10 @@ class TestVolume:
         assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == test_vol
         assert zone.volume == test_vol
 
-        # Restore state
-        future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)
-        zone.volume = orig_volume
-        assert await eb.wait_future(future_vol, FUTURE_TIMEOUT) == orig_volume
-        assert zone.volume == orig_volume
-
     @pytest.mark.asyncio(scope="session")
     async def test_invalid_volume_will_be_clamped(self, zone, eb):
         orig_volume = zone.volume
-        base_volume = generate_number_excluding(orig_volume, 10, 20)
+        base_volume = generate_number_excluding(orig_volume, 30, 35)
 
         # Be sure we are not a volume 0
         future_vol = eb.future(Zone.Events.VOLUME_CHANGE, zone.id)

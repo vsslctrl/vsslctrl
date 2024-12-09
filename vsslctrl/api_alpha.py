@@ -862,7 +862,7 @@ class APIAlpha(APIBase):
             )
 
         # Analog Output Fix Volume
-        #  e.g BF1
+        # e.g BF1
         #
         # TODO, this not great for A1
         #

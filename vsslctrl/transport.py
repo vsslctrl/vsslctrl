@@ -70,7 +70,7 @@ class ZoneTransport(ZoneDataClass):
         Doing this will fire the change events on the bus. Instead of conditionally
         using the getter functions since we want the changes to be propogated
 
-        VSSL has a happit of caching the last song played, so we need to clear it
+        VSSL has a habit of caching the last song played, so we need to clear it
         """
         for key, default_value in self.DEFAULTS.items():
             set_func = f"_set_{key}"

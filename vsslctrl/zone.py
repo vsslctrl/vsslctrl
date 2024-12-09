@@ -167,7 +167,7 @@ class Zone:
         Doing this will fire the change events on the bus. Instead of conditionally
         using the getter functions since we want the changes to be propogated
 
-        VSSL has a happit of caching the last songs metadata
+        VSSL has a habit of caching the last songs metadata
 
         """
         if not self.transport.is_stopped:
@@ -366,7 +366,7 @@ class Zone:
     #
     @property
     def mute(self):
-        return False if not self._volume else self._mute
+        return True if not self._volume else self._mute
 
     @mute.setter
     def mute(self, muted: Union[bool, int]):

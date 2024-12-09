@@ -1,4 +1,4 @@
-VSSL_VERSION = "0.1.11.dev1"
+VSSL_VERSION = "0.1.12.dev1"
 VSSL_NAME = "VSSL"
 
 from .core import Vssl

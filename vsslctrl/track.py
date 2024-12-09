@@ -102,7 +102,7 @@ class TrackMetadata(ZoneDataClass):
     # Doing this will fire the change events on the bus. Instead of conditionally
     # using the getter functions since we want the changes to be propogated
     #
-    # VSSL has a happit of caching the last song played, so we need to clear it
+    # VSSL has a habit of caching the last song played, so we need to clear it
     #
     def set_defaults(self):
         for key, default_value in self.DEFAULTS.items():
@@ -143,7 +143,7 @@ class TrackMetadata(ZoneDataClass):
     def _map_response_dict(self, track_data: Dict[str, int]) -> None:
         """Ignore the track data if zone is part of a group.
 
-        VSSL has a happit of caching old track meta when part of a group
+        VSSL has a habit of caching old track meta when part of a group
 
         """
         if not self.zone.group.is_member:
@@ -161,8 +161,7 @@ class TrackMetadata(ZoneDataClass):
         but generally it responds with a BrowseView when its a member of a group
 
         When a group is created, the child will get the group index first (generally this will be the same
-        as the index_id) then its transport state will be
-        updated on the VSSL side.
+        as the index_id) then its transport state will be updated on the VSSL side.
         When the transport state is changed, the zone will request the track meta. VSSL will respond
         with the last cached metadata from the zone and not the correct meta from the current zone master.
 
