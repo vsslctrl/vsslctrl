@@ -172,7 +172,7 @@ from vsslctrl.settings import ZoneSettings
 # Setting the zone name and wait for feedback
 future_name = vssl.event_bus.future(ZoneSettings.Events.NAME_CHANGE, zone1.id)
 zone1.settings.name = 'Bathroom' 
-# Helper to await a future with a timeout
+# Helper to await a future with timeout
 new_name = await vssl.event_bus.wait_future(future_name)
 # Printing zone name
 print(new_name)
@@ -200,15 +200,19 @@ This might be removed in the future if we can differentiate different models fro
 
 # `ZoneIDs`
 
-| Property        | Description |
-| ------------|---------  | 
-| `A1`        | A.1(x) Only      | 
-| `ZONE_1`    | Zone 1 of A.3(x) and A.6(x)   | 
-| `ZONE_2`    | Zone 2 of A.3(x) and A.6(x)    | 
-| `ZONE_3`    | Zone 3 of A.3(x) and A.6(x)  | 
-| `ZONE_4`    | Zone 4 of A.6(x)     | 
-| `ZONE_5`    | Zone 5 of A.6(x)       | 
-| `ZONE_6`    | Zone 6 of A.6(x)       | 
+A `ZoneIDs` must be passed to each `zone` you which to control and it must match the zone on the VSSL device.
+
+If you are unsure of your `ZoneIDs` you could use the discovery helper to find out the correct mapping.
+
+| Property        | Description | A.1(x) | A.3(x) | A.6(x)
+| ------------|---------  |--------  | --------  | --------  |  
+| `A1`        |       |✔️ | | |
+| `ZONE_1`    | Zone 1   | | ✔️| ✔️|
+| `ZONE_2`    | Zone 2    |  | ✔️| ✔️|
+| `ZONE_3`    | Zone 3  |  | ✔️| ✔️|
+| `ZONE_4`    | Zone 4     |  | | ✔️|
+| `ZONE_5`    | Zone 5       |  | | ✔️|
+| `ZONE_6`    | Zone 6       |  | | ✔️|
 
 
 # `Vssl`
