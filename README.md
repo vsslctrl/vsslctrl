@@ -117,7 +117,7 @@ asyncio.run(main())
 
 You can discover VSSL devices on the network using [mDNS](https://wikipedia.org/wiki/Multicast_DNS) / Bonjour if you have the [`zeroconf`](https://pypi.org/project/zeroconf/) package installed.
 
-This uses airplay service string `_airplay._tcp.local.`, therefore airplay needs to available and will not work accross VLAN without other provisions.
+This uses airplay service string `_airplay._tcp.local.`, therefore airplay needs to available and will not work across VLANs without other provisions.
 
 **Note:** This is designed to be a helper and should not to be used for the initialization of the VSSL class.
 
