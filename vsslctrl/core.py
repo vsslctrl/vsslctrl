@@ -114,17 +114,14 @@ class Vssl:
     #
     # Discover host on the network using zero_conf package
     #
-    async def discover(self, *args):
-        try:
-            check_zeroconf_availability()
+    @staticmethod
+    async def discover(*args):
+        check_zeroconf_availability()
 
-            from .discovery import VsslDiscovery
+        from .discovery import VsslDiscovery
 
-            service = VsslDiscovery(*args)
-            return await service.discover()
-        except ZeroConfNotInstalled as e:
-            self._log_error(e)
-            raise
+        service = VsslDiscovery(*args)
+        return await service.discover()
 
     #
     # Update a property and fire an event

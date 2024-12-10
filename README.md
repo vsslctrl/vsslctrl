@@ -55,7 +55,7 @@ async def main():
   vssl = Vssl(DeviceModels.A1)
   a1 = vssl.add_zone('192.168.1.10')
 
-  # Connect and initiate zones.
+  # Connect and initialise zone.
   await vssl.initialise()
 
   """Control Examples"""
@@ -91,7 +91,7 @@ async def main():
   zone3 = vssl.add_zone('192.168.1.12', ZoneIDs.ZONE_3)
   #... up to 6 zones for A.6(x)
 
-  # Connect and initiate zones.
+  # Connect and initialise zones.
   await vssl.initialise()
 
   """Control Examples"""
@@ -112,6 +112,77 @@ async def main():
 
 asyncio.run(main())
 ```
+
+### Device Discovery Helper
+
+You can discover VSSL devices on the network using [mDNS](https://wikipedia.org/wiki/Multicast_DNS) / Bonjour if you have the [`zeroconf`](https://pypi.org/project/zeroconf/) package installed.
+
+This uses airplay service string `_airplay._tcp.local.`, therefore airplay needs to available and will not work accross VLAN without other provisions.
+
+**Note:** This is designed to be a helper and should not to be used for the initialization of the VSSL class.
+
+```python
+import asyncio
+from vsslctrl import Vssl
+
+async def main():
+  
+  print(await Vssl.discover())
+
+  """
+    {
+        'XXXXXXXXXXXX': [
+            {
+                'host': '192.168.168.25',
+                'name': 'Living Room',
+                'model': 'A1x',
+                'mac_addr': 'AA:BB:CC:DD:EE:FF',
+                'zone_id': '7',
+                'serial': 'XXXXXXXXXXXX'
+            }
+        ]
+    }
+
+  """
+
+asyncio.run(main())
+```
+
+
+# API Functionality
+
+Most functionality is achieved via `getters` and `setters` of the two main classes `Vssl`, `Zone`. 
+
+The classes will update the physical VSSL device when setting a property and once feedback has been received, the classes internal state will be updated. For example:
+
+```python
+# Setting the zone name
+zone1.settings.name = 'Living Room'
+>>> 'Old Zone Name'
+
+# Printing zone name
+print(zone1.settings.name)
+>>> 'Living Room'
+```
+
+**Important** in the above example, `zone1.settings.name` won't be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confirmation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events as below:
+
+```python
+from vsslctrl.settings import ZoneSettings
+# Setting the zone name and wait for feedback
+future_name = vssl.event_bus.future(ZoneSettings.Events.NAME_CHANGE, zone1.id)
+zone1.settings.name = 'Bathroom' 
+# Helper to await a future with a timeout
+new_name = await vssl.event_bus.wait_future(future_name)
+# Printing zone name
+print(new_name)
+>>> 'Bathroom'
+# or
+print(zone1.settings.name)
+>>> 'Bathroom'
+```
+
+# API Reference
 
 # `DeviceModels`
 
@@ -139,25 +210,6 @@ This might be removed in the future if we can differentiate different models fro
 | `ZONE_5`    | Zone 5 of A.6(x)       | 
 | `ZONE_6`    | Zone 6 of A.6(x)       | 
 
-
-# API
-
-Most functionality is achieved via `getters` and `setters` of the two main classes `Vssl`, `Zone`. 
-
-The classes will update the physical VSSL device when setting a property and once feedback has been received, the classes internal state will be updated. For example:
-
-```python
-# Setting the zones name
-zone1.settings.name = 'Living Room'
->>> None
-
-# Printing zone name
-zone_name = zone1.settings.name
-print(zone_name)
->>> 'Living Room'
-```
-
-**Important** in the above example, `zone1.settings.name` wont be set to its new value until after the VSSL device has changed the name and the `Zone` class has received confirmation feedback. If you need to wait for the value change, you can await a `[property_name]_CHANGE` events.
 
 # `Vssl`
 
