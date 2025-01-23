@@ -1,13 +1,10 @@
 import asyncio
 import traceback
+import fnmatch
 from enum import IntEnum
 from typing import Callable
 from .exceptions import VsslCtrlException
 from .decorators import logging_helpers
-
-#
-# Event Bus
-#
 
 
 @logging_helpers("EventBus:")
@@ -22,6 +19,10 @@ class EventBus:
         self.running = False
 
         self.process = asyncio.create_task(self.process_events())
+
+    # Helper for wildcard matching, so we can use partial wildcards. e.g zone.api.connected
+    def _matches_pattern(self, event_type, pattern):
+        return fnmatch.fnmatch(event_type, pattern)
 
     #
     # Stop
@@ -67,7 +68,8 @@ class EventBus:
 
         async def future_callback(data, *args):
             nonlocal future
-            future.set_result(data)
+            if not future.done():  # Ensure the future is not already resolved
+                future.set_result(data)
 
         self.subscribe(event_type, future_callback, entity, once=True)
 
@@ -115,12 +117,8 @@ class EventBus:
         event_type = event_type.lower()
         await self.event_queue.put((event_type, entity, data))
 
-    #
-    # Process Events
-    #
     async def process_events(self):
         self._log_debug(f"starting event processing")
-
         self.running = True
         while self.running:
             try:
@@ -136,23 +134,22 @@ class EventBus:
                         message += str(data)
                     self._log_debug(message)
 
-                for event in [event_type, self.WILDCARD]:
-                    if event in self.subscribers:
-                        for callback, subscribed_entity, once in self.subscribers[
-                            event
-                        ]:
-                            if entity is None or subscribed_entity in {
-                                entity,
-                                self.WILDCARD,
-                            }:
-                                await callback(data, entity, event_type)
-                                if once:
-                                    self.unsubscribe(event, callback)
+                # Check for matching subscribers, including wildcards.
+                # e.g "zone.*", "zone.api.*"
+                matched_subscribers = []
+                for pattern in self.subscribers:
+                    if self._matches_pattern(event_type, pattern):
+                        matched_subscribers.extend(self.subscribers[pattern])
+
+                for callback, subscribed_entity, once in matched_subscribers:
+                    if entity is None or subscribed_entity in {entity, self.WILDCARD}:
+                        await callback(data, entity, event_type)
+                        if once:
+                            self.unsubscribe(pattern, callback)
 
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                # Capture the traceback as a string
                 traceback_str = traceback.format_exc()
                 self._log_error(
                     f"exception occurred processing event: {e}\n{traceback_str}"

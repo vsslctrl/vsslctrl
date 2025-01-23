@@ -45,6 +45,17 @@ class APIBase(ABC):
 
     FRIST_BYTE = 1
 
+    #
+    # API Events
+    #
+    class Events:
+        PREFIX = "zone.api."
+        CONNECTING = PREFIX + "connecting"
+        CONNECTED = PREFIX + "connected"
+        DISCONNECTING = PREFIX + "disconnecting"
+        DISCONNECTED = PREFIX + "disconnected"
+        RECONNECTING = PREFIX + "reconnecting"
+
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -89,6 +100,7 @@ class APIBase(ABC):
             return self.connected
 
         self._connecting = True
+        self._event_publish(self.Events.CONNECTING)
 
         try:
             self._log_debug(f"Attemping connection to {self.host}:{self.port}")
@@ -98,6 +110,7 @@ class APIBase(ABC):
 
             # Connected
             self.connection_event.set()
+            self._event_publish(self.Events.CONNECTED)
 
             # cancel any reconnecting loops
             self._cancel_keep_connected()
@@ -140,6 +153,7 @@ class APIBase(ABC):
     @final
     async def disconnect(self):
         self._disconnecting = True
+        self._event_publish(self.Events.DISCONNECTING)
 
         # cancel any reconnecting loops
         self._cancel_keep_connected()
@@ -176,6 +190,8 @@ class APIBase(ABC):
 
         self._disconnecting = False
 
+        self._event_publish(self.Events.DISCONNECTED)
+
         return not self.connected
 
     #
@@ -184,7 +200,9 @@ class APIBase(ABC):
     @final
     async def reconnect(self):
         if not self._reconnecting and not self._is_keep_connected_running():
+            self._event_publish(self.Events.RECONNECTING)
             await self.disconnect()
+            await asyncio.sleep(1)
             self._keep_connected()
 
     #
@@ -304,6 +322,13 @@ class APIBase(ABC):
     #
     @abstractmethod
     async def _read_byte_stream(self):
+        pass
+
+    #
+    # Send event on event bus
+    #
+    @abstractmethod
+    def _event_publish(self, event_type, data=None):
         pass
 
     #

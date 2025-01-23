@@ -28,7 +28,6 @@ class Vssl:
         MODEL_CHANGE = PREFIX + "model_changed"
         SW_VERSION_CHANGE = PREFIX + "sw_version_changed"
         SERIAL_CHANGE = PREFIX + "serial_changed"
-        ALL = EventBus.WILDCARD
 
     def __init__(self, model: Models):
         self.event_bus = EventBus()
@@ -50,7 +49,7 @@ class Vssl:
     #
     async def initialise(self, init_timeout: int = 10):
         if len(self.zones) < 1:
-            raise VsslCtrlException("Add atleast one zone before initializing")
+            raise VsslCtrlException("Add minimum one zone before initializing")
 
         zones_to_init = self.zones.copy()
 
@@ -64,9 +63,9 @@ class Vssl:
             await first_zone.initialise()
 
             # Wait until we have some basic infomation
-            await self.event_bus.wait_future(future_serial)
-            await self.event_bus.wait_future(future_sw_version)
-            await self.event_bus.wait_future(future_name)
+            await self.event_bus.wait_future(future_serial, init_timeout)
+            await self.event_bus.wait_future(future_sw_version, init_timeout)
+            await self.event_bus.wait_future(future_name, init_timeout)
 
             # Check we haven't added too many zones
             if len(self.zones) > self.model.zone_count:
@@ -92,7 +91,7 @@ class Vssl:
             raise
 
         except asyncio.TimeoutError:
-            message = f"Timeout during VSSL initialization. Are any zones avaiable?"
+            message = f"Timeout during VSSL initialization. Are any zones available?"
             self._log_critical(message)
             await first_zone.disconnect()
             raise VsslCtrlException(message)
@@ -254,7 +253,7 @@ class Vssl:
             return None
 
     #
-    # Get a Zone that is connected
+    # Get a zone that is connected
     #
     def get_connected_zone(self):
         if self.zones:
@@ -262,6 +261,14 @@ class Vssl:
                 zone = self.zones[zone_id]
                 if zone.connected:
                     return zone
+        self._log_error("There are no connected zones.")
+
+    #
+    # Has a connected zone
+    #
+    @property
+    def connected(self):
+        return True if self.get_connected_zone() else False
 
     #
     # Get the device name

@@ -68,7 +68,7 @@ class TestEventBus:
             assert getattr(callback, "data") == 1
 
             # Publish an event
-            event_bus.publish("random_event_2", 1, 20)
+            event_bus.publish("random_event_2.other", 1, 20)
             # Wait for a short time to allow the event to be processed
             await asyncio.sleep(0.1)
             assert getattr(callback, "data") == 21
@@ -84,6 +84,49 @@ class TestEventBus:
             event_bus.unsubscribe(event_bus.WILDCARD, callback)
             # Ensure the callback function was not called after unsubscribing
             assert len(event_bus.subscribers.get(event_bus.WILDCARD)) == 0
+
+    @pytest.mark.asyncio
+    async def test_event_bus_scoped_wildcard_event_type(self, event_bus):
+        # Define a callback function to be subscribed to the event
+        async def callback(data: int = 0, *args, **kwargs):
+            callback.data = data + 1
+
+        event_type = "zone.api." + event_bus.WILDCARD
+
+        event_bus.subscribe(event_type, callback, 1)
+        # Ensure the callback function is subscribed
+        assert len(event_bus.subscribers.get(event_type)) == 1
+
+        try:
+            # Publish an event
+            event_bus.publish("zone.api.connected", 1, 0)
+            # Wait for a short time to allow the event to be processed
+            await asyncio.sleep(0.1)
+            assert getattr(callback, "data") == 1
+
+            # Publish an event
+            event_bus.publish("zone.api.disconnected", 1, 20)
+            # Wait for a short time to allow the event to be processed
+            await asyncio.sleep(0.1)
+            assert getattr(callback, "data") == 21
+
+            # Publish an different event
+            event_bus.publish("zone.api", 1, 30)
+            # Wait for a short time to allow the event to be processed
+            await asyncio.sleep(0.1)
+            assert getattr(callback, "data") == 21  # should be unchanged
+
+            # Publish an different event
+            event_bus.publish("zone", 1, 40)
+            # Wait for a short time to allow the event to be processed
+            await asyncio.sleep(0.1)
+            assert getattr(callback, "data") == 21  # should be unchanged
+
+        finally:
+            # Unsubscribe the callback function
+            event_bus.unsubscribe(event_type, callback)
+            # Ensure the callback function was not called after unsubscribing
+            assert len(event_bus.subscribers.get(event_type)) == 0
 
     @pytest.mark.asyncio
     async def test_event_bus_wildcard_entity(self, event_bus):

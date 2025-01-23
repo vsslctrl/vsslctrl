@@ -40,6 +40,12 @@ class APIAlpha(APIBase):
         self.zone = zone
 
     #
+    # Send event on event bus
+    #
+    def _event_publish(self, event_type, data=None):
+        self.zone._event_publish(event_type, (self.zone.host, self.TCP_PORT))
+
+    #
     # Send keep alive
     #
     def _send_keepalive(self):

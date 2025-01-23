@@ -29,7 +29,6 @@ class Zone:
     # Zone Events
     #
     class Events:
-        ALL = "*"
         PREFIX = "zone."
         INITIALISED = PREFIX + "initialised"
         ID_RECEIVED = PREFIX + "id_received"
@@ -79,7 +78,7 @@ class Zone:
         )
 
     # Initialise
-    async def initialise(self):
+    async def initialise(self, init_timeout: int = 10):
         # Data we require from the device
         future_id = self.vssl.event_bus.future(self.Events.ID_RECEIVED, self.id)
         future_serial = self.vssl.event_bus.future(self.Events.SERIAL_RECEIVED, self.id)
@@ -106,13 +105,15 @@ class Zone:
 
         try:
             # Wait for the ID, serial and name to be returned from the device
-            received_id = await self.vssl.event_bus.wait_future(future_id)
-            received_serial = await self.vssl.event_bus.wait_future(future_serial)
-            await self.vssl.event_bus.wait_future(future_name)
+            received_id = await self.vssl.event_bus.wait_future(future_id, init_timeout)
+            received_serial = await self.vssl.event_bus.wait_future(
+                future_serial, init_timeout
+            )
+            await self.vssl.event_bus.wait_future(future_name, init_timeout)
         except asyncio.TimeoutError:
-            message = f"Zone {self.id}: initialization timeout. Is the zone avaiable?"
+            message = f"Zone {self.id}: initialization timeout. Is the zone available?"
             self._log_critical(message)
-            await first_zone.disconnect()
+            await self.disconnect()
             raise ZoneError(message)
 
         # Confirm the zone id is matches the returned zone ID
