@@ -322,6 +322,10 @@ class Models(VsslEnum):
 
     @classmethod
     def get_model_by_name(cls, name):
+        # Return None immediately if input is None
+        if name is None:
+            return None
+
         # Preprocess input name: convert to lowercase and remove dots
         name_cleaned = name.lower().replace(".", "")
 

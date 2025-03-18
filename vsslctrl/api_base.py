@@ -166,9 +166,14 @@ class APIBase(ABC):
 
         if self._writer:
             try:
+                # If there's unsent data in the buffer, wait_closed() might hang.
+                # Fix: Call await self._writer.drain() before closing to ensure all data is sent
+                await self._writer.drain()
+
                 # Writer hangs on disconnect sometimes
-                self._writer.close()
-                await asyncio.wait_for(self._writer.wait_closed(), self.TIMEOUT)
+                if not self._writer.is_closing():
+                    self._writer.close()
+                    await asyncio.wait_for(self._writer.wait_closed(), self.TIMEOUT)
 
             except asyncio.CancelledError:
                 self._log_debug(f"writer close timeout")
@@ -182,6 +187,10 @@ class APIBase(ABC):
                 self._log_error(f"Unexpected error occurred while disconnecting: {e}")
                 # Handle unexpected errors
             finally:
+                # If nothing works, you may need to forcefully close the socket:
+                # if hasattr(self._writer, 'transport'):
+                # self._writer.transport.close()
+
                 self._writer = None
 
         self._reader = None
