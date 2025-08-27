@@ -7,29 +7,22 @@ Terminal will need to have access to Python.
 pip install prompt_toolkit
 ```
 
-2. Text Editor: Edit the device model passed to `Vssl` in `cli.py`. Device models can be found [here](https://github.com/vsslctrl/vsslctrl/blob/fdaffdefa35cf4e11f05e8a7792584e597e20a04/vsslctrl/device.py#L61).
+2. Text Editor: Edit zones IP addresses in `cli.py` 
 ```python
 ...
- vssl = Vssl(DeviceModels.A1X)
+ zone1 = vssl.add_zone("192.168.1.10")
+ # zone2 = vssl.add_zone("192.168.1.11")
+ # zone3 = vssl.add_zone("192.168.1.12")
 ...
 ```
 
-3. Text Editor: Edit zones IP addresses in `cli.py` 
-```python
-...
- zone1 = vssl.add_zone("192.168.1.10", ZoneIDs.ZONE_1)
- # zone2 = vssl.add_zone("192.168.1.11", ZoneIDs.ZONE_2)
- # zone3 = vssl.add_zone("192.168.1.12", ZoneIDs.ZONE_3)
-...
-```
-
-4. Terminal: Run the program:
+3. Terminal: Run the program:
 ```bash
 # Run the script
 python cli.py
 ```
 
-5. Terminal: Monitor script output in another terminal window
+4. Terminal: Monitor script output in another terminal window
 ```bash
 # Tail the log output from the script
 tail -f vssl.log

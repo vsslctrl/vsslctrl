@@ -1,6 +1,7 @@
 import re
 from enum import Enum, IntEnum
 from abc import ABC, abstractmethod
+from .event_bus import event_bus
 from .decorators import sterilizable
 
 
@@ -29,26 +30,31 @@ class VsslIntEnum(VsslEnum, IntEnum):
     """IntEnum"""
 
 
-#
-# Zones IDs
-#
-# Moved here to help with circular imports
-#
-class ZoneIDs(VsslIntEnum):
-    ZONE_1 = 1
-    ZONE_2 = 2
-    ZONE_3 = 3
-    ZONE_4 = 4
-    ZONE_5 = 5
-    ZONE_6 = 6
-    A1 = 7  # A.1 and A.1x
+"""
+DO NOT CHANGE - VSSL Defined
+
+VSSL device IDs / Types
+
+@see ZoneStatusExtKeys.TYPE
+
+"""
 
 
-#
-# Device Feature Flags
-#
-# Moved here to help with circular imports
-#
+class ModelIDs(VsslIntEnum):
+    A1 = 1
+    A3 = 3
+    A6 = 6
+    A1X = 11
+    A3X = 13
+    A6X = 16
+
+
+"""
+Device Feature Flags
+
+"""
+
+
 class DeviceFeatureFlags(VsslIntEnum):
     INPUT_ROUTING = 1000
     OUTPUT_ROUTING = 1001
@@ -59,9 +65,38 @@ class DeviceFeatureFlags(VsslIntEnum):
 
 
 """
+DO NOT CHANGE - VSSL Defined
+
+Zone IDs
+
+"""
+
+
+class ZoneIDs(VsslIntEnum):
+    ZONE_1 = 1
+    ZONE_2 = 2
+    ZONE_3 = 3
+    ZONE_4 = 4
+    ZONE_5 = 5
+    ZONE_6 = 6
+    A1 = 7  # A.1 and A.1x
+
+
+"""
+DO NOT CHANGE - VSSL Defined
+
 JSON Structure
 
-DO NOT CHANGE - VSSL Defined
+A.1x
+{
+    'B1Src': '3', 
+    'B2Src': '3', 
+    'B1Nm': 'OPT', 
+    'B2Nm': 'COAX', 
+    'dev': 'VSSL A.1x', 
+    'ver': 'p14598.020.3703'
+}
+
 
 A.1
 SUB OUT
@@ -137,14 +172,14 @@ class DeviceStatusExtKeys:
     ANALOG_OUTPUT_6_SOURCE = "B6Src"
 
     #
-    # A.1: Optical Input
-    # A.3x: Not Used
+    # A.1(x): Optical Input Name
+    # A.3x & A.6x: Not Used
     #
     BUS_1_NAME = "B1Nm"
 
     #
-    # A.1: Coax
-    # A.3x: Optical Input
+    # A.1(x): Coax Name
+    # A.3x & A.6x: Optical Input Name
     #
     BUS_2_NAME = "B2Nm"
 
@@ -166,6 +201,15 @@ DO NOT CHANGE - VSSL Defined
  These could potentially be related to Infrared (IR) remote control signals. 
  "IRMskL" and "IRMskH" might represent the low and high values of the modulation frequency or pulse width for an infrared signal.
 
+A.1x
+{
+    'IRMskL': '255', 
+    'IRMskH': '255', 
+    'BTSta': '2', 
+    'Crs': '100',
+    'Fes': '0', 
+    'Drk': '0'
+}
 A.1
 {
     'IRMskL': '255',
@@ -221,6 +265,23 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
+A.1x
+{
+    'id': '7', 
+    'ac': '0', 
+    'mc': 'XXXXXXXXXXXX', 
+    'vol': '20', 
+    'mt': '0', 
+    'pa': '0', 
+    'rm': '9', 
+    'ts': '1', 
+    'lb': '0', 
+    'tp': '11', 
+    'wr': '0', 
+    'as': '0', 
+    'rg': '0'
+}
+
 A.1
 {
     'id': '7', 
@@ -240,22 +301,22 @@ A.1
 
 A.3x
 {
-    "id": "1",
-    "ac": "0",
-    "mc": "XXXXXXXXXXXX",
-    "vol": "20",
-    "mt": "0",
-    "pa": "0",
-    "rm": "0",
-    "ts": "14",
-    "alex": "14",
-    "nmd": "0",
-    "ird": "14",
-    "lb": "24",
-    "tp": "13",
-    "wr": "0",
-    "as": "0",
-    "rg": "0"
+    'id': '1',
+    'ac': '0',
+    'mc': 'XXXXXXXXXXXX',
+    'vol': '20',
+    'mt': '0',
+    'pa': '0',
+    'rm': '0',
+    'ts': '14',
+    'alex': '14',
+    'nmd': '0',
+    'ird': '14',
+    'lb': '24',
+    'tp': '13',
+    'wr': '0',
+    'as': '0',
+    'rg': '0'
 }
 
 A.3
@@ -277,22 +338,22 @@ A.3
 
 A.6x
 {
-    "id": "1",
-    "ac": "0",
-    "mc": "XXXXXXXXXXXX",
-    "vol": "50",
-    "mt": "0",
-    "pa": "0",
-    "rm": "0",
-    "ts": "0",
-    "alex": "126",
-    "nmd": "0",
-    "ird": "255",
-    "lb": "17",
-    "tp": "16",
-    "wr": "0",
-    "as": "0",
-    "rg": "0"
+    'id': '1',
+    'ac': '0',
+    'mc': 'XXXXXXXXXXXX',
+    'vol': '50',
+    'mt': '0',
+    'pa': '0',
+    'rm': '0',
+    'ts': '0',
+    'alex': '126',
+    'nmd': '0',
+    'ird': '255',
+    'lb': '17',
+    'tp': '16',
+    'wr': '0',
+    'as': '0',
+    'rg': '0'
 }
 """
 
@@ -300,12 +361,12 @@ A.6x
 class ZoneStatusExtKeys:
     ID = "id"
     TRANSPORT_STATE = "ac"
-    SERIAL_NUMBER = "mc"
+    SERIAL_NUMBER = "mc"  # MAC address of zone 1
     VOLUME = "vol"
     MUTE = "mt"
     PARTY_ZONE = "pa"
-    GROUP_INDEX = "rm"
     TRACK_SOURCE = "lb"
+    MODEL_ID = "tp"  # Type
     DISABLED = "wr"
 
 
@@ -313,6 +374,22 @@ class ZoneStatusExtKeys:
 JSON Structure
 
 DO NOT CHANGE - VSSL Defined
+
+A.1x
+{
+    'mono': '0'
+    'AiNm': ''
+    'eq1': '100'
+    'eq2': '100'
+    'eq3': '100'
+    'eq4': '100'
+    'eq5': '100'
+    'eq6': '100'
+    'eq7': '100'
+    'voll': '75'
+    'volr': '75'
+    'vold': '0'
+}
 
 A.1
 {
@@ -400,6 +477,22 @@ JSON Structure
 
 DO NOT CHANGE - VSSL Defined
 
+A.1x
+{
+    'ECO': '0', 
+    'eqsw': '1', 
+    'inSrc': '3', 
+    'SP': '0', 
+    'BF1': '0', 
+    'BF2': '0', 
+    'GRM': '0', 
+    'GRS': '255', 
+    'Pwr': '1', 
+    'Bvr': '7', 
+    'fxv': '20', 
+    'AtPwr': '1'
+}
+
 A.1
 {
     "ECO":"0",
@@ -475,8 +568,8 @@ class ZoneRouterStatusExtKeys:
     EQ_ENABLED = "eqsw"
     INPUT_SOURCE = "inSrc"
     SOURCE_PRIORITY = "SP"
-    ANALOG_OUTPUT_1_FIXED_VOLUME = "BF1"  # TODO A3/A6: Bus 1? A1: is this AO1?
-    ANALOG_OUTPUT_2_FIXED_VOLUME = "BF2"  # TODO A6: Bus 2?
+    ANALOG_OUTPUT_1_FIXED_VOLUME = "BF1"  # A.3 / A.6: Bus 1
+    ANALOG_OUTPUT_2_FIXED_VOLUME = "BF2"  # A.6: Bus 2
     ANALOG_OUTPUT_3_FIXED_VOLUME = "BF3"
     ANALOG_OUTPUT_4_FIXED_VOLUME = "BF4"
     ANALOG_OUTPUT_5_FIXED_VOLUME = "BF5"
@@ -489,7 +582,9 @@ class ZoneRouterStatusExtKeys:
 
     @staticmethod
     def add_zone_to_ao_fixed_volume_key(zone_id: int):
-        # TODO - Does this work on the A.1(x)?
+        if not zone_id:
+            return None
+        # A.1(x) use zone 1
         zone_id = ZoneIDs.ZONE_1 if zone_id > ZoneIDs.ZONE_6 else zone_id
         return f"BF{zone_id}"
 
@@ -530,7 +625,6 @@ DO NOT CHANGE - VSSL Defined
 
 class TrackMetadataExtKeys:
     COMMAND_ID = "CMD ID"
-    WINDOW_CONTENTS = "Window CONTENTS"
     WINDOW_TITLE = "Title"
     DURATION = "TotalTime"
     TITLE = "TrackName"
@@ -569,7 +663,7 @@ class VsslDataClass(ABC):
 
             self._vssl._log_debug(message)
 
-            self._vssl.event_bus.publish(
+            event_bus().publish(
                 getattr(self.Events, property_name.upper() + "_CHANGE"),
                 self._vssl.ENTITY_ID,
                 updated_value,

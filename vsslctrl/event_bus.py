@@ -1,3 +1,4 @@
+import contextvars
 import asyncio
 import traceback
 import fnmatch
@@ -83,7 +84,7 @@ class EventBus:
             try:
                 return await asyncio.wait_for(future, timeout)
             except asyncio.TimeoutError as error:
-                self._log_error(f"Timeout waiting for eventbus future")
+                self._log_error(f"timeout waiting for eventbus future")
                 raise error
         else:
             return await future
@@ -154,3 +155,20 @@ class EventBus:
                 self._log_error(
                     f"exception occurred processing event: {e}\n{traceback_str}"
                 )
+
+
+#
+# Global Context
+#
+_event_bus = contextvars.ContextVar("event_bus", default=None)
+
+
+#
+# Import into modules (needs to be run inside eventloop)
+#
+def event_bus():
+    eb = _event_bus.get()
+    if eb == None:
+        _event_bus.set(EventBus())
+        return _event_bus.get()
+    return eb

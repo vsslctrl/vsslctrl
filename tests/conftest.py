@@ -8,10 +8,6 @@ def pytest_configure(config):
 def pytest_addoption(parser):
     parser.addoption("--integration", action="store_true", help="Run integration tests")
     parser.addoption("--ip", action="store", help="IP address for integration tests")
-    parser.addoption(
-        "--zone", default=1, action="store", help="IP address for integration tests"
-    )
-    parser.addoption("--model", action="store", help="VSSL device model")
 
 
 def pytest_runtest_setup(item):

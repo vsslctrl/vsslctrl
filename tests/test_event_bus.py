@@ -1,15 +1,15 @@
 import asyncio
 import pytest
 import pytest_asyncio
-from vsslctrl.event_bus import EventBus
+from vsslctrl.event_bus import event_bus as _event_bus
 
 
 class TestEventBus:
     @pytest_asyncio.fixture(autouse=True)
     async def event_bus(self):
-        bus = EventBus()
-        yield bus
-        bus.stop()  # Ensure the event bus is stopped after each test
+        event_bus = _event_bus()
+        yield event_bus
+        event_bus.stop()  # Ensure the event bus is stopped after each test
 
     @pytest.mark.asyncio
     async def test_event_bus(self, event_bus):
@@ -19,6 +19,7 @@ class TestEventBus:
         async def publish_with_entity(self, entity=None):
             # Define a callback function to be subscribed to the event
             async def callback(data, *args, **kwargs):
+                print("hello")
                 callback.called = True
                 callback.data = data
 

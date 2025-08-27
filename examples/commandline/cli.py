@@ -6,7 +6,7 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 
-from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
+from vsslctrl import Vssl
 
 from logging.handlers import RotatingFileHandler
 
@@ -26,11 +26,11 @@ logging.basicConfig(
 
 
 async def main():
-    vssl = Vssl(DeviceModels.A3X)
-    # vssl = Vssl('a3x')
-    zone1 = vssl.add_zone("192.168.1.10", ZoneIDs.ZONE_1)
-    zone2 = vssl.add_zone("192.168.1.11", ZoneIDs.ZONE_2)
-    zone3 = vssl.add_zone("192.168.1.12", ZoneIDs.ZONE_3)
+    vssl = Vssl()
+
+    zone1 = vssl.add_zone("192.168.1.10")
+    zone2 = vssl.add_zone("192.168.1.11")
+    zone3 = vssl.add_zone("192.168.1.12")
 
     try:
         # print(await vssl.discover())

@@ -1,4 +1,10 @@
-from .data_structure import VsslEnum, VsslIntEnum, ZoneIDs, DeviceFeatureFlags
+import re
+from .data_structure import (
+    VsslEnum,
+    ModelIDs,
+    ZoneIDs,
+    DeviceFeatureFlags,
+)
 from .io import AnalogOutput, InputRouter
 
 
@@ -25,8 +31,6 @@ OPTICAL IN
 OPTICAL OUT
 IR REMOTE
 
-
-
 A.3x:
 ANALOG IN 1
 ANALOG IN 2
@@ -44,8 +48,6 @@ ANALOG IN 1
 ANALOG IN 2
 ANALOG IN 3
 OPTICAL IN
-
-
 
 A.6x:
 ANALOG IN 1
@@ -213,6 +215,7 @@ ANALOG_OUTPUT_SOURCES_FOR_A6 = list(AnalogOutput.Sources)
 
 class Model:
     def __init__(self, model: dict):
+        self.model_id = model.get("model_id")
         self.name = model.get("name")
         self.zones = model.get("zones", [])
         self.input_sources = model.get("input_sources", [])
@@ -228,6 +231,10 @@ class Model:
     def is_multizone(self):
         return self.zone_count > 1
 
+    @property
+    def is_x_series(self):
+        return self.model_id in [ModelIDs.A1X, ModelIDs.A3X, ModelIDs.A6X]
+
     def supports_feature(self, feature: DeviceFeatureFlags):
         return feature in self.features
 
@@ -235,6 +242,7 @@ class Model:
 class Models(VsslEnum):
     A1X = Model(
         {
+            "model_id": ModelIDs.A1X,
             "name": "A.1x",
             "zones": SINGLE_ZONE,
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
@@ -248,12 +256,14 @@ class Models(VsslEnum):
     )
     A3X = Model(
         {
+            "model_id": ModelIDs.A3X,
             "name": "A.3x",
             "zones": THREE_ZONES,
             "input_sources": INPUT_SOURCES_FOR_3_ZONE_DEVICE,
             "analog_outputs": ANALOG_OUTPUTS_FOR_3_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_3_ZONE_DEVICE,
             "features": [
+                DeviceFeatureFlags.GROUPING,
                 DeviceFeatureFlags.INPUT_ROUTING,
                 DeviceFeatureFlags.OUTPUT_ROUTING,
             ],
@@ -261,12 +271,14 @@ class Models(VsslEnum):
     )
     A6X = Model(
         {
+            "model_id": ModelIDs.A6X,
             "name": "A.6x",
             "zones": SIX_ZONES,
             "input_sources": INPUT_SOURCES_FOR_6_ZONE_DEVICE,
             "analog_outputs": ANALOG_OUTPUTS_FOR_6_ZONE_DEVICE,
             "analog_output_sources": ANALOG_OUTPUT_SOURCES_FOR_6_ZONE_DEVICE,
             "features": [
+                DeviceFeatureFlags.GROUPING,
                 DeviceFeatureFlags.INPUT_ROUTING,
                 DeviceFeatureFlags.OUTPUT_ROUTING,
             ],
@@ -274,6 +286,7 @@ class Models(VsslEnum):
     )
     A1 = Model(
         {
+            "model_id": ModelIDs.A1,
             "name": "A.1",
             "zones": SINGLE_ZONE,
             "input_sources": INPUT_SOURCES_FOR_1_ZONE_DEVICE,
@@ -287,6 +300,7 @@ class Models(VsslEnum):
     )
     A3 = Model(
         {
+            "model_id": ModelIDs.A3,
             "name": "A.3",
             "zones": THREE_ZONES,
             "input_sources": INPUT_SOURCES_FOR_A3,
@@ -302,6 +316,7 @@ class Models(VsslEnum):
     )
     A6 = Model(
         {
+            "model_id": ModelIDs.A6,
             "name": "A.6",
             "zones": SIX_ZONES,
             "input_sources": INPUT_SOURCES_FOR_A6,
@@ -321,16 +336,46 @@ class Models(VsslEnum):
         return [model.value.name for model in cls]
 
     @classmethod
-    def get_model_by_name(cls, name):
-        # Return None immediately if input is None
-        if name is None:
+    def get_by_name(cls, name: str):
+        # return none immediately if input is None
+        if not isinstance(name, str):
             return None
 
-        # Preprocess input name: convert to lowercase and remove dots
-        name_cleaned = name.lower().replace(".", "")
+        # only keep exactly A, 1, 3, 6, and X
+        # this wont handle multi a or x
+        name_cleaned = re.sub(r"[^A136X]", "", name.upper())
+
+        # empty string
+        if not name_cleaned:
+            return None
+
+        if hasattr(cls, name_cleaned):
+            return getattr(cls, name_cleaned).value
+
+        return None
+
+    @classmethod
+    def get_by_id(cls, model_id: int):
+        try:
+            model_id = int(model_id)
+        except ValueError:
+            return None
 
         for model in cls:
-            # Preprocess model name: convert to lowercase and remove dots
-            if model.value.name.lower().replace(".", "") == name_cleaned:
+            if model.value.model_id == model_id:
                 return model.value
-        return None  # Return None if no match is found
+
+        return None
+
+    @classmethod
+    def find(cls, model_obj):
+        if cls.is_valid(model_obj):
+            return cls(model_obj).value
+        elif isinstance(model_obj, int):
+            return cls.get_by_id(model_obj)
+        elif isinstance(model_obj, str):
+            # Try to interpret string as an integer first
+            if model_obj.isdigit():
+                return cls.get_by_id(model_obj)
+            return cls.get_by_name(model_obj)
+        return None

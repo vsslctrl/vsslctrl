@@ -5,7 +5,7 @@ import pytest
 import pytest_asyncio
 
 import vsslctrl as vssl_module
-from vsslctrl import ZoneIDs, DeviceModels
+from vsslctrl.data_structure import ZoneIDs, DeviceFeatureFlags
 from vsslctrl.core import Vssl
 from vsslctrl.zone import Zone
 from vsslctrl.transport import ZoneTransport
@@ -23,14 +23,17 @@ from vsslctrl.utils import clamp_volume
 
 @pytest_asyncio.fixture(scope="session")
 async def zone(request):
-    vssl_instance = vssl_module.Vssl(DeviceModels.A1X)
+    vssl_instance = vssl_module.Vssl()
     zone_instance = vssl_instance.add_zone("192.168.168.1")
+
+    # we dont have to init to check
+    # await vssl.initialise()
 
     # Yield the device to the test function
     yield zone_instance
 
     # Tear down. Restore state
-    await vssl_instance.disconnect()
+    await vssl_instance.shutdown()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -51,28 +54,24 @@ def check_keys_have_events(keys_obj, events_obj):
 
 
 class TestVsslSettings:
-    @pytest.mark.asyncio(scope="session")
-    async def test_keys_exist(self, zone, eb):
+    def test_keys_exist(self):
         # check keys have events
         check_keys_have_events(VsslSettings.Keys, VsslSettings.Events)
 
 
 class TestVolumeSettings:
-    @pytest.mark.asyncio(scope="session")
-    async def test_keys_exist(self, zone, eb):
+    def test_keys_exist(self):
         # check keys have events
         check_keys_have_events(VolumeSettings.Keys, VolumeSettings.Events)
 
-    @pytest.mark.asyncio(scope="session")
-    async def test_clamp(self, zone, eb):
+    def test_clamp(self):
         assert clamp_volume(110) == 100
         assert clamp_volume(-10) == 0
         assert clamp_volume(50) == 50
 
 
 class TestEQSettings:
-    @pytest.mark.asyncio(scope="session")
-    async def test_keys_exist(self, zone, eb):
+    def test_keys_exist(self):
         # Check freq have keys
         for key, freq in enumerate(EQSettings.Freqs):
             assert hasattr(EQSettings.Keys, freq.name)
@@ -106,7 +105,7 @@ class TestEQSettings:
         test_values = [90, 96, 100, 105, 108]
 
         for test_val in test_values:
-            future_eq = eb.future(EQSettings.Events.KHZ1_CHANGE, zone.id)
+            future_eq = eb.future(EQSettings.Events.KHZ1_CHANGE, zone.host)
             eq._set_eq_freq(EQSettings.Freqs.KHZ1, test_val)
             assert getattr(eq, EQSettings.Keys.KHZ1) == test_val
             assert await future_eq == test_val

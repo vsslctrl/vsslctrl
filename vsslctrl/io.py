@@ -29,7 +29,7 @@ class InputRouter(ZoneDataClass):
     #
     # DO NOT CHANGE - VSSL Defined
     #
-    # A.1(x) doesnt support input routing, but has a fixed routing order of its inputs:
+    # A.1(x) doesnt support input routing, but has a fixed routing order:
     # Optical Input -> Coaxial Input -> Analog Input
     #
     class Sources(VsslIntEnum):
@@ -121,17 +121,7 @@ class InputRouter(ZoneDataClass):
 
 class AnalogOutput(ZoneDataClass):
     """
-
     AnalogOutput.Sources is the source which will play out the corrosponding analog output
-
-
-    On X series the zone will receive feedback for the corrosponding analog output id
-
-    TODO: Confirm on original series amps:
-        Zone 1 == ANALOG_OUTPUT_1 == Bus output 1
-        Zone 2 == ANALOG_OUTPUT_2 == Bus output 2
-
-    TODO: A.1(x) what ao_id need to be sent to fix the volume or change the input gain?
 
     Zones will be determined by source Input Priority @see InputRouter class
 
@@ -145,8 +135,8 @@ class AnalogOutput(ZoneDataClass):
     # DO NOT CHANGE - VSSL Defined
     #
     class IDs(VsslIntEnum):
-        ANALOG_OUTPUT_1 = 1  # TODO: Confirm BUS 1 Output on A.3/A.6
-        ANALOG_OUTPUT_2 = 2  # TODO: Confirm BUS 2 Output on A.3/A.6
+        ANALOG_OUTPUT_1 = 1  # A.3 / A.6: BUS 1
+        ANALOG_OUTPUT_2 = 2  # A.3 / A.6: BUS 2
         ANALOG_OUTPUT_3 = 3
         ANALOG_OUTPUT_4 = 4
         ANALOG_OUTPUT_5 = 5
@@ -191,13 +181,14 @@ class AnalogOutput(ZoneDataClass):
     #
     # Analog Output Fix Volume. i.e output wont respond to volume control
     #
+    # Note: A.1x will fix BF1 & BF2
+    #
     @property
     def is_fixed_volume(self):
         return self._is_fixed_volume
 
     @is_fixed_volume.setter
     def is_fixed_volume(self, state: Union[bool, int]):
-        # TODO - this needs testing on A.1(x)
         # Default to zone 1 for A.1(x)
         ao_id = (
             self.zone.id

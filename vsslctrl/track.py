@@ -44,7 +44,6 @@ class TrackMetadata(ZoneDataClass):
     class Events:
         PREFIX = "track."
         CHANGE = PREFIX + "change"
-        UPDATES = PREFIX + "updates"
         TITLE_CHANGE = PREFIX + "title_change"
         ALBUM_CHANGE = PREFIX + "album_change"
         ARTIST_CHANGE = PREFIX + "artist_change"
@@ -106,16 +105,14 @@ class TrackMetadata(ZoneDataClass):
     #
     def set_defaults(self):
         for key, default_value in self.DEFAULTS.items():
-            self._update_property(key, default_value, True)
+            self._update_property(key, default_value)
 
     #
     # Updade a property and emit and event if changed
     #
-    # Transport state is ignored when part of a group for its initial pull from master
-    #
-    def _update_property(self, key: str, new_value, ignore_transport_state=False):
+    def _update_property(self, key: str, new_value):
         # Default if stopped
-        if self.zone.transport.is_stopped and not ignore_transport_state:
+        if self.zone.transport.is_stopped:
             new_value = self.DEFAULTS[key]
 
         if getattr(self, key) != new_value:
@@ -126,16 +123,6 @@ class TrackMetadata(ZoneDataClass):
                 getattr(self.Events, f"{key.upper()}_CHANGE"), new_set_value
             )
             self.zone._event_publish(self.Events.CHANGE, (key, new_set_value))
-
-    #
-    # Update the track properties from a group master when part of a group.
-    # This is handled via the Eventbus
-    #
-    async def _update_property_from_group_master(
-        self, data: Dict[str, int], *args, **kwargs
-    ) -> None:
-        if hasattr(self, data[0]):
-            setattr(self, data[0], data[1])
 
     #
     # Update from a JSON dict passed
@@ -150,35 +137,6 @@ class TrackMetadata(ZoneDataClass):
             for track_data_key, metadata_key in self.KEY_MAP.items():
                 if track_data_key in track_data:
                     setattr(self, metadata_key, track_data[track_data_key])
-
-    """ TODO!
-
-        Now we added the child, lets propage the track to the new member.
-        This only needs to happen once, as after wards the track data will
-        be updated by the event bus
-
-        Sometime, the VSSL responses with old cached track metadata, on the member zones
-        but generally it responds with a BrowseView when its a member of a group
-
-        When a group is created, the child will get the group index first (generally this will be the same
-        as the index_id) then its transport state will be updated on the VSSL side.
-        When the transport state is changed, the zone will request the track meta. VSSL will respond
-        with the last cached metadata from the zone and not the correct meta from the current zone master.
-
-    """
-
-    def _pull_from_zone(self, zone: int) -> None:
-        master = self.zone.vssl.get_zone(zone)
-
-        if not master:
-            self.zone._log_error(
-                f"Zone {zone} was not avaiable on VSSL, maybe we are not managing it or it has not be initialised yet"
-            )
-            return
-
-        for key, default_value in self.DEFAULTS.items():
-            if hasattr(master.track, key):
-                self._update_property(key, getattr(master.track, key), True)
 
     #
     # Track Title

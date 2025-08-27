@@ -14,11 +14,20 @@ VSSL_SETTINGS_EVENT_PREFIX = "vssl.settings."
 
 
 class VsslSettings(VsslDataClass):
+    class StatusLightModes(VsslIntEnum):
+        """StatusLightModes
+
+        DO NOT CHANGE - VSSL Defined
+        """
+
+        ALWAYS_ON = 0
+        DARK_MDOE = 1
+
     class Keys:
         NAME = "name"
         BUS_1_NAME = "bus_1_name"
         BUS_2_NAME = "bus_2_name"
-        BLUETOOTH = "bluetooth"
+        STATUS_LIGHT_MODE = "status_light_mode"
 
     #
     # VSSL Events
@@ -26,9 +35,9 @@ class VsslSettings(VsslDataClass):
     class Events:
         PREFIX = VSSL_SETTINGS_EVENT_PREFIX
         NAME_CHANGE = PREFIX + "name_changed"
-        BUS_1_NAME_CHANGE = PREFIX + "bus_1_name_changed"
+        BUS_1_NAME_CHANGE = PREFIX + f"bus_1_name_changed"
         BUS_2_NAME_CHANGE = PREFIX + "bus_2_name_changed"
-        BLUETOOTH_CHANGE = PREFIX + "bluetooth_changed"
+        STATUS_LIGHT_MODE_CHANGE = PREFIX + "status_light_mode_changed"
 
     #
     # Defaults
@@ -37,7 +46,7 @@ class VsslSettings(VsslDataClass):
         Keys.NAME: None,
         Keys.BUS_1_NAME: "",
         Keys.BUS_2_NAME: "",
-        Keys.BLUETOOTH: 0,
+        Keys.STATUS_LIGHT_MODE: StatusLightModes.ALWAYS_ON,
     }
 
     def __init__(self, vssl: "vsslctrl.Vssl"):
@@ -46,8 +55,9 @@ class VsslSettings(VsslDataClass):
         self._name = None  # device name
         self._bus_1_name = self.DEFAULTS[self.Keys.BUS_1_NAME]
         self._bus_2_name = self.DEFAULTS[self.Keys.BUS_2_NAME]
-        self._bluetooth = self.DEFAULTS[self.Keys.BLUETOOTH]
+        self._status_light_mode = self.DEFAULTS[self.Keys.STATUS_LIGHT_MODE]
         self.power = VsslPowerSettings(vssl)
+        self.bluetooth = BluetoothSettings(vssl)
 
     #
     # Name
@@ -93,28 +103,135 @@ class VsslSettings(VsslDataClass):
             zone.api_alpha.request_action_15_12(name)
 
     #
-    # Bluetooth
-    #
-    # A.3 has 3 bluetooth states (0,1,2), but we simplfy to just a bool.
+    # Status Light Mode
     #
     @property
-    def bluetooth(self):
-        return bool(self._bluetooth)
+    def status_light_mode(self):
+        return self._status_light_mode
 
-    @bluetooth.setter
-    def bluetooth(self, enabled: bool):
+    @status_light_mode.setter
+    def status_light_mode(self, state: int):
+        zone = self._vssl.get_connected_zone()
+        if zone:
+            zone.api_alpha.request_action_59(not not state)
+
+    def _set_status_light_mode(self, state: int):
+        if self.status_light_mode != state:
+            if self.StatusLightModes.is_valid(state):
+                self._status_light_mode = self.StatusLightModes(state)
+                return True
+            else:
+                self.zone._log_error(
+                    f"ZoneSettings.StatusLightModes {state} doesnt exist"
+                )
+
+
+class BluetoothSettings(VsslDataClass):
+    class States(VsslIntEnum):
+        """BluetoothStates
+
+        DO NOT CHANGE - VSSL Defined
+        """
+
+        OFF = 0
+        DISCONNECTED = 1
+        PARING = 2
+        CONNECTED = 3
+
+    class Cmds(VsslIntEnum):
+        """BluetoothCmds
+
+        DO NOT CHANGE - VSSL Defined
+        """
+
+        CLEAR_ALL = 13
+        ON = 14
+        OFF = 15
+        ENTER_PAIRING = 16
+        EXIT_PAIRING = 17
+
+    #
+    # Events
+    #
+    class Events:
+        PREFIX = VSSL_SETTINGS_EVENT_PREFIX + "bluetooth."
+        STATE_CHANGE = PREFIX + "state_changed"
+
+    def __init__(self, vssl: "vsslctrl.Vssl"):
+        self._vssl = vssl
+
+        self._state = self.States.OFF
+
+    #
+    # Is On
+    #
+    @property
+    def is_on(self):
+        return self.state != self.States.OFF
+
+    #
+    # State
+    #
+    @property
+    def state(self):
+        return self._state
+
+    #
+    # State Setter
+    #
+    @state.setter
+    def state(self, state):
+        pass  # immutable
+
+    #
+    # Set Feedback
+    #
+    def _set_state(self, state: int):
+        if self.state != state:
+            if self.States.is_valid(state):
+                self._state = self.States(state)
+                return True
+            else:
+                self._vssl._log_warning(f"VsslSettings.States {state} doesnt exist")
+
+    #
+    # Send a CMD
+    #
+    def _request_bluetooth_cmd(self, cmd: int):
         if not self._vssl.model.supports_feature(DeviceFeatureFlags.BLUETOOTH):
             self._vssl._log_error(
                 f"VSSL {self._vssl.model.name} does not support Bluetooth"
             )
             return
 
+        if not self.Cmds.is_valid(cmd):
+            self._vssl._log_error(f"VsslSettings.Cmds {cmd} doesnt exist")
+            return
+
         zone = self._vssl.get_connected_zone()
         if zone:
-            zone.api_alpha.request_action_65(enabled)
+            zone.api_alpha.request_action_65(cmd)
 
-    def bluetooth_toggle(self):
-        self.bluetooth = False if self.bluetooth else True
+    def on(self):
+        self._request_bluetooth_cmd(self.Cmds.ON)
+
+    def off(self):
+        self._request_bluetooth_cmd(self.Cmds.OFF)
+
+    def clear_pairs(self):
+        self._request_bluetooth_cmd(self.Cmds.CLEAR_ALL)
+
+    def enter_pairing(self):
+        self._request_bluetooth_cmd(self.Cmds.ENTER_PAIRING)
+
+    def exit_pairing(self):
+        self._request_bluetooth_cmd(self.Cmds.EXIT_PAIRING)
+
+    def toggle(self):
+        if self.is_on:
+            self.off()
+        else:
+            self.on()
 
 
 class VsslPowerSettings(VsslDataClass):
@@ -193,14 +310,11 @@ class ZoneSettings(ZoneDataClass):
     class StereoMono(VsslIntEnum):
         """StereoMono
 
-        0: Stereo
-        1: Mono
-
         DO NOT CHANGE - VSSL Defined
         """
 
-        Stereo = 0
-        Mono = 1
+        STEREO = 0
+        MONO = 1
 
     class Events:
         """Setting Events"""
@@ -214,8 +328,8 @@ class ZoneSettings(ZoneDataClass):
         self.zone = zone
 
         self._disabled = False
-        self._name = f"Zone {zone.id}"
-        self._mono = self.StereoMono.Stereo
+        self._name = ""
+        self._mono = self.StereoMono.STEREO
 
         self.eq = EQSettings(zone)
         self.subwoofer = SubwooferSettings(zone)
@@ -268,7 +382,7 @@ class ZoneSettings(ZoneDataClass):
     @mono.setter
     def mono(self, mono: "ZoneSettings.StereoMono"):
         if self.StereoMono.is_valid(mono):
-            self.zone.api_alpha.request_action_mono_set(mono)
+            self.zone.api_alpha.request_action_0F(mono)
         else:
             self.zone._log_error(f"ZoneSettings.StereoMono {mono} doesnt exist")
 
@@ -282,9 +396,9 @@ class ZoneSettings(ZoneDataClass):
 
     def mono_toggle(self):
         self.mono = (
-            self.StereoMono.Stereo
-            if self.mono == self.StereoMono.Mono
-            else self.StereoMono.Mono
+            self.StereoMono.STEREO
+            if self.mono == self.StereoMono.MONO
+            else self.StereoMono.MONO
         )
 
 
@@ -301,6 +415,20 @@ class VolumeSettings(ZoneDataClass):
         DEFAULT_ON_CHANGE = PREFIX + "default_on_changed"
         MAX_LEFT_CHANGE = PREFIX + "max_left_changed"
         MAX_RIGHT_CHANGE = PREFIX + "max_right_changed"
+
+    """
+    DO NOT CHANGE - VSSL Defined
+
+    Volume Commands
+
+    """
+
+    class Commands:
+        ANALOG_INPUT_GAIN = 0
+        MAX_VOL_LEFT = 1
+        MAX_VOL_RIGHT = 2
+        VOLUME = 3
+        DEFAULT_ON = 8
 
     #
     # Defaults

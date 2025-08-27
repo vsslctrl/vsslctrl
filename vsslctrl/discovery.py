@@ -14,12 +14,14 @@ from zeroconf.asyncio import (
     InterfaceChoice,
 )
 
-from .utils import group_list_by_property
+from .device import Models as VSSLModels
+from .utils import group_list_by_property, is_ipv4
 from .api_alpha import APIAlpha
+from .api_base import APIBase
 from .decorators import logging_helpers
 from .exceptions import ZeroConfNotInstalled, ZoneConnectionError, ZoneError
 
-from .data_structure import ZoneStatusExtKeys
+from .data_structure import ZoneStatusExtKeys, ZoneIDs
 
 
 #
@@ -39,9 +41,13 @@ def check_zeroconf_availability():
 
 
 #
-# Attempt to connect to zone and return id and serial from a given host IP
+# Attempt to connect to zone and fetch the status JSON
 #
-async def fetch_zone_id_serial(host):
+async def fetch_zone_info(host: str):
+    # Check host is valid
+    if not is_ipv4(host):
+        raise ZoneError(f"{host} is not a valid IPv4 address")
+
     try:
         # Open a connection to the server
         reader, writer = await asyncio.wait_for(
@@ -54,30 +60,40 @@ async def fetch_zone_id_serial(host):
         # Wait until the data is flushed
         await writer.drain()
 
-        # Receive response
-        response = await reader.read(1024)
-        string = response[APIAlpha.JSON_HEADER_LENGTH :].decode("ascii")
-        metadata = json.loads(string)
+        # Read the header
+        frame_header = await reader.readexactly(APIAlpha.FRAME_HEADER_LENGTH)
+        # Read the frame data
+        frame_data = await reader.readexactly(frame_header[APIAlpha.FRAME_DATA_LENGTH])
+        # First byte is the JSON cmd
+        metadata = json.loads(
+            frame_data[1:].decode(APIAlpha.ENCODING, errors="replace")
+        )
 
         writer.close()
         await writer.wait_closed()
 
-        if (
-            ZoneStatusExtKeys.ID not in metadata
-            or ZoneStatusExtKeys.SERIAL_NUMBER not in metadata
-        ):
+        required_keys = {
+            ZoneStatusExtKeys.ID,
+            ZoneStatusExtKeys.SERIAL_NUMBER,
+            ZoneStatusExtKeys.MODEL_ID,
+        }
+
+        missing = required_keys - metadata.keys()
+        if missing:
             raise ZoneError(
-                f"Host {host}:{APIAlpha.TCP_PORT} didnt return ID or serial number"
+                f"Host {host}:{APIAlpha.TCP_PORT} didn't return correct JSON, missing: {', '.join(missing)}"
             )
 
     except (asyncio.TimeoutError, asyncio.CancelledError):
         raise ZoneConnectionError(f"Connection to {host}:{APIAlpha.TCP_PORT} timed out")
 
-    # Return the ID and serial
-    return (
-        metadata[ZoneStatusExtKeys.ID],
-        metadata[ZoneStatusExtKeys.SERIAL_NUMBER],
-    )
+    # convert to vsslctrl data
+    return {
+        "host": host,
+        "zone_id": ZoneIDs(int(metadata[ZoneStatusExtKeys.ID])),
+        "serial": metadata[ZoneStatusExtKeys.SERIAL_NUMBER],
+        "model": VSSLModels.find(int(metadata[ZoneStatusExtKeys.MODEL_ID])),
+    }
 
 
 @logging_helpers()
@@ -115,15 +131,14 @@ class VsslDiscovery:
         hosts = []
         for zone in self.discovered_zones:
             try:
-                zone_id, serial = await fetch_zone_id_serial(zone["host"])
-                if zone_id and serial:
-                    zone["zone_id"] = zone_id
-                    zone["serial"] = serial
-                    hosts.append(zone)
+                info = await fetch_zone_info(zone["host"])
+                zone["zone_id"] = info["zone_id"]
+                zone["serial"] = info["serial"]
+                hosts.append(zone)
 
-            except Exception:
+            except Exception as e:
                 self._log_error(
-                    f'Error fetching zone info for discovered host {zone["host"]}'
+                    f'Error fetching zone info for discovered host {zone["host"]}, {e}'
                 )
 
         return group_list_by_property(hosts, "serial")
@@ -183,11 +198,11 @@ class VsslDiscovery:
                         "host": info.parsed_addresses()[0],
                         "name": name.rstrip(f".{self.SERVICE_STRING}"),
                         "model": info.properties.get(b"model", b"")
-                        .decode("utf-8")
+                        .decode(APIBase.ENCODING, errors="replace")
                         .lstrip(f"VSSL")
                         .strip(),
                         "mac_addr": info.properties.get(b"deviceid", b"").decode(
-                            "utf-8"
+                            APIBase.ENCODING, errors="replace"
                         ),
                     }
                 )

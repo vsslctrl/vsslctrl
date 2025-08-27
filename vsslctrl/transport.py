@@ -170,10 +170,10 @@ class ZoneTransport(ZoneDataClass):
     # Track Control
     #
     def next(self):
-        self.zone.api_bravo.request_action_40_next()
+        self.zone.api_bravo.request_action_28_next()
 
     def prev(self):
-        self.zone.api_bravo.request_action_40_prev()
+        self.zone.api_bravo.request_action_28_prev()
 
     def back(self):
         self.prev()

@@ -7,12 +7,14 @@ import re
 import json
 import logging
 import asyncio
+import ipaddress
 from typing import Union
 
 from . import core
 from .api_alpha import APIAlpha
 from .api_bravo import APIBravo
-from .utils import RepeatTimer, clamp_volume
+from .event_bus import event_bus
+from .utils import is_ipv4, RepeatTimer, clamp_volume
 from .data_structure import VsslIntEnum, ZoneIDs
 from .track import TrackMetadata
 from .io import AnalogOutput, InputRouter
@@ -32,22 +34,29 @@ class Zone:
         PREFIX = "zone."
         INITIALISED = PREFIX + "initialised"
         ID_RECEIVED = PREFIX + "id_received"
+        MODEL_ID_RECEIVED = PREFIX + "model_id_received"
+        MODEL_NAME_RECEIVED = PREFIX + "model_name_received"
         SERIAL_RECEIVED = PREFIX + "serial_received"
         MAC_ADDR_CHANGE = PREFIX + "mac_addr_change"
         VOLUME_CHANGE = PREFIX + "volume_change"
         MUTE_CHANGE = PREFIX + "mute_change"
 
-    def __init__(self, vssl_host: "core.Vssl", zone_id: ZoneIDs, host: str):
-        self._log_prefix = f"Zone {zone_id}:"
+    def __init__(self, vsslctrl_core: "core.Vssl", host: str):
+        self.event_bus = event_bus()
 
-        self.vssl = vssl_host
+        self.vssl = vsslctrl_core
         self.initialisation = asyncio.Event()
 
-        # Data / Cache
-        self._host = host
-        self._id = ZoneIDs(zone_id)
+        # check and set the host
+        self._host = None
+        self.host = host
+
+        # ID
+        self._id = None
+
         self._mac_addr = None
         self._serial = None
+        self._model_id = None
         self._volume = 0
         self._mute = False
 
@@ -71,30 +80,30 @@ class Zone:
                 self._request_status_bus,
                 self._request_output_status,
                 self._request_eq_status,
-                self._request_track,
-                self._request_name,
                 self._request_status_extended,
             ],
         )
 
-    # Initialise
-    async def initialise(self, init_timeout: int = 10):
-        # Data we require from the device
-        future_id = self.vssl.event_bus.future(self.Events.ID_RECEIVED, self.id)
-        future_serial = self.vssl.event_bus.future(self.Events.SERIAL_RECEIVED, self.id)
-        future_name = self.vssl.event_bus.future(
-            ZoneSettings.Events.NAME_CHANGE, self.id
-        )
+    ##########################################################
+    #
+    # Logging Prefix
+    #
+    ##########################################################
+    @property
+    def _log_prefix(self):
+        zone = self.zone.id if self.zone.id != None else self.host
+        return f"Zone {zone}:"
 
-        # Subscribe to events
-        self.vssl.event_bus.subscribe(
-            ZoneTransport.Events.STATE_CHANGE,
-            self._event_transport_state_change,
-            self.id,
-        )
-        self.vssl.event_bus.subscribe(
-            ZoneGroup.Events.SOURCE_CHANGE, self._event_group_source_change, self.id
-        )
+    ##########################################################
+    #
+    # Initialise
+    #
+    ##########################################################
+    async def initialise(self, timeout: int = 20):
+        # Data we require from the device
+        future_id = self.event_bus.future(self.Events.ID_RECEIVED, self.host)
+        future_serial = self.event_bus.future(self.Events.SERIAL_RECEIVED, self.host)
+        future_name = self.event_bus.future(ZoneSettings.Events.NAME_CHANGE, self.host)
 
         # Connect the APIs
         await self.api_alpha.connect()
@@ -104,37 +113,34 @@ class Zone:
         self._poller.start()
 
         try:
-            # Wait for the ID, serial and name to be returned from the device
-            received_id = await self.vssl.event_bus.wait_future(future_id, init_timeout)
-            received_serial = await self.vssl.event_bus.wait_future(
-                future_serial, init_timeout
-            )
-            await self.vssl.event_bus.wait_future(future_name, init_timeout)
+            # wait and set the ID
+            self.id = await self.event_bus.wait_future(future_id, timeout)
+            # wait and set the serial
+            self.serial = await self.event_bus.wait_future(future_serial, timeout)
+            # wait for the zone name
+            self._request_name()
+            await self.event_bus.wait_future(future_name, timeout)
+
         except asyncio.TimeoutError:
-            message = f"Zone {self.id}: initialization timeout. Is the zone available?"
+            message = f"host {self.host} connection timeout."
             self._log_critical(message)
-            await self.disconnect()
+            await self.shutdown()
             raise ZoneError(message)
 
-        # Confirm the zone id is matches the returned zone ID
-        if received_id != self.id:
-            message = f"Zone {self.id}: ID mismatch. {self.host} returned zone ID {received_id} instead of {self.id}"
-            self._log_critical(message)
-            await self.disconnect()
-            raise ZoneError(message)
-
-        # Confirm the zone and VSSL serial numbers match
-        if self.vssl.serial != received_serial:
-            message = f"Zone {self.id}: ({received_serial}) and VSSL ({self.vssl.serial}) serial numbers do not match. Does this zone belong to this VSSL?"
-            self._log_critical(message)
-            await self.disconnect()
-            raise ZoneError(message)
+        # Subscribe to events
+        self.event_bus.subscribe(
+            ZoneTransport.Events.STATE_CHANGE,
+            self._event_transport_state_change,
+            self.host,
+        )
 
         # Initialised
         self.initialisation.set()
-        self.vssl.event_bus.publish(self.Events.INITIALISED, self.id, self)
-
+        self._event_publish(self.Events.INITIALISED, self)
         self._log_info(f"Zone {self.id} initialised")
+
+        # Request the track info
+        self._request_track()
 
         return self
 
@@ -148,56 +154,39 @@ class Zone:
         """Check that the zone is connected to both APIs"""
         return self.api_alpha.connected and self.api_bravo.connected
 
-    async def disconnect(self):
-        """Disconnect / Shutdown"""
+    async def shutdown(self):
         self._poller.cancel()
 
-        await self.api_alpha.disconnect()
-        await self.api_bravo.disconnect()
+        await self.api_alpha.shutdown()
+        await self.api_bravo.shutdown()
 
     def _event_publish(self, event_type, data=None):
         """Event Publish Wrapper"""
-        self.vssl.event_bus.publish(event_type, self.id, data)
+        self.event_bus.publish(event_type, self.host, data)
+
+    """Request track info on transport state change unless stopped
+
+
+    VSSL doens't clear some variables on stopping of the stream, so we will do it.
+
+    Doing this will fire the change events on the bus. Instead of conditionally
+    using the getter functions since we want the changes to be propogated
+
+    VSSL has a habit of caching the last songs metadata
+
+    """
 
     async def _event_transport_state_change(self, *args):
-        """Request track info on transport state change unless stopped
-
-
-        VSSL doenst clear some vars on stopping of the stream, so we will do it
-
-        Doing this will fire the change events on the bus. Instead of conditionally
-        using the getter functions since we want the changes to be propogated
-
-        VSSL has a habit of caching the last songs metadata
-
-        """
         if not self.transport.is_stopped:
             self._request_track()
         else:
             self.track.set_defaults()
             self.transport.set_defaults()
 
-    async def _event_group_source_change(self, source: int, *args):
-        """Propgate the track metadata from a group master to its members"""
-        if source == None:
-            self._log_debug(f"unsubscribe to group master {source} track updates")
-            self.vssl.event_bus.unsubscribe(
-                TrackMetadata.Events.CHANGE,
-                self.track._update_property_from_group_master,
-            )
-        else:
-            self._log_debug(f"subscribe to group master {source} track updates")
-            self.vssl.event_bus.subscribe(
-                TrackMetadata.Events.CHANGE,
-                self.track._update_property_from_group_master,
-                source,
-            )
-
-            # Populate group member from master
-            self.track._pull_from_zone(source)
-
+    #
+    # """TODO, use the ZoneDataClass here too? Needs some reconfig"""
+    #
     def _set_property(self, property_name: str, new_value):
-        """TODO, use the ZoneDataClass here too? Needs some reconfig"""
         log = False
         direct_setter = f"_set_{property_name}"
 
@@ -225,7 +214,10 @@ class Zone:
 
     @host.setter
     def host(self, host: str):
-        pass  # Immutable
+        host = host.strip()
+        if not is_ipv4(host):
+            raise ZoneError(f"{host} is not a valid IPv4 address")
+        self._host = host
 
     #
     # Zone ID
@@ -237,8 +229,10 @@ class Zone:
     @id.setter
     def id(self, zone_id: int):
         if not self.initialised:
-            # We wait for this in the initialise function
-            self._event_publish(self.Events.ID_RECEIVED, zone_id)
+            if ZoneIDs.is_not_valid(zone_id):
+                raise ZoneError(f"ZoneID {zone_id} does not exist")
+
+            self._id = zone_id
 
     #
     # Serial Number
@@ -249,46 +243,40 @@ class Zone:
 
     @serial.setter
     def serial(self, serial: str):
-        pass  # Immutable
-
-    def _set_serial(self, serial: str):
         if not self.initialised:
-            self._serial = serial
-            # We wait for this in the initialise function
-            self._event_publish(self.Events.SERIAL_RECEIVED, serial)
+            if self.vssl.serial and self.vssl.serial != serial:
+                raise ZoneError(
+                    f"vssl serial {self.vssl.serial} and zone serial {serial} do not match"
+                )
 
+            self._serial = serial
+
+    #
+    # MAC Address
+    #
     @property
     def mac_addr(self):
-        """MAC Address
-
-        Note: This command wont work if there is another VSSL agent running on the network
-
-        Known issue: zone 1 sometimes stops repsonding to the _request_mac_addr request.
-        rebooting all zones seems to fix it.
-        """
         return self._mac_addr
 
     @mac_addr.setter
     def mac_addr(self, mac: str):
-        pass  # Immutable
+        if not self.initialised:
+            mac = mac.strip()
+            if mac != self.mac_addr:
+                # Strip Wlan0: from beginging of string
+                # Original A series amps had this prefix
+                if mac.startswith("Wlan0:"):
+                    mac = mac[len("Wlan0:") :]
 
-    def _set_mac_addr(self, mac: str):
-        mac = mac.strip()
-        if mac != self.mac_addr:
-            # Strip Wlan0: from beginging of string
-            # Original A series amps had this prefix
-            if mac.startswith("Wlan0:"):
-                mac = mac[len("Wlan0:") :]
+                # Define the regular expression pattern for a MAC address
+                mac_pattern = re.compile(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
 
-            # Define the regular expression pattern for a MAC address
-            mac_pattern = re.compile(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
-
-            if mac_pattern.match(mac):
-                self._mac_addr = mac
-                self._poller.remove(self._request_mac_addr)
-                return True
-            else:
-                self._log_error(f"Invalid MAC address {mac}")
+                if mac_pattern.match(mac):
+                    self._mac_addr = mac
+                    self._poller.remove(self._request_mac_addr)
+                    return True
+                else:
+                    self._log_error(f"Invalid MAC address {mac}")
 
     #
     # Transport Helper Commands
@@ -385,8 +373,8 @@ class Zone:
     #
     # Play a URL
     #
-    def play_url(self, url: str, all_zones: bool = False):
-        self.api_alpha.request_action_55(url, all_zones)
+    def play_url(self, url: str, all_zones: bool = False, volume: int = None):
+        self.api_alpha.request_action_55(url, all_zones, volume)
         return self
 
     #
@@ -433,7 +421,7 @@ class Zone:
 
 
 class ZonePoller:
-    def __init__(self, zone, requests=[], interval=30):
+    def __init__(self, zone, requests=[], interval=60):
         self.zone = zone
         self._requests = requests
         self._interval = interval

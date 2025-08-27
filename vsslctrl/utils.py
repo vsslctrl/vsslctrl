@@ -1,12 +1,16 @@
 import asyncio
 import random
+import ipaddress
 
 
 #
-# Hex to Int
+# Check String is IPv4
 #
-def hex_to_int(str: str, base: int = 16):
-    return int(str, base)
+def is_ipv4(addr: str) -> bool:
+    try:
+        return isinstance(ipaddress.ip_address(addr), ipaddress.IPv4Address)
+    except ValueError:
+        return False
 
 
 #
@@ -40,20 +44,7 @@ def group_list_by_property(input_list, property_key):
 
 
 #
-# Logging Helper to show a command in bytearray([]) syntax
-#
-def hex_to_bytearray_string(hex_string):
-    # Convert the hex string to a bytearray
-    byte_array = bytearray.fromhex(hex_string)
-
-    # Create the bytearray string representation
-    bytearray_str = f'bytearray([{", ".join(map(str, byte_array))}])'
-
-    return bytearray_str
-
-
-#
-# Generate a random INT excliding
+# Generate a random int excliding - this is used in tests
 #
 def generate_number_excluding(excluded_number, lower: int = 1, upper: int = 100):
     while True:

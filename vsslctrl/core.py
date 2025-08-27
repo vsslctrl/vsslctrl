@@ -4,14 +4,15 @@
 import asyncio
 from typing import Dict, Union, List
 
-from . import VSSL_VERSION
+from . import VSSL_VERSION, LOG_DIVIDER
 from .zone import Zone
 from .exceptions import VsslCtrlException, ZoneError, ZeroConfNotInstalled
-from .event_bus import EventBus
+from .event_bus import event_bus
 from .settings import VsslSettings
 from .decorators import logging_helpers
-from .discovery import check_zeroconf_availability, fetch_zone_id_serial
+from .discovery import check_zeroconf_availability
 from .device import Models
+from .utils import is_ipv4
 from .data_structure import ZoneIDs
 
 
@@ -29,15 +30,22 @@ class Vssl:
         SW_VERSION_CHANGE = PREFIX + "sw_version_changed"
         SERIAL_CHANGE = PREFIX + "serial_changed"
 
-    def __init__(self, model: Models):
-        self.event_bus = EventBus()
+    def __init__(self, model: Models = None):
+        self.event_bus = event_bus()
         self.initialisation = asyncio.Event()
+
         self.zones = {}
+
         self._sw_version = None
         self._serial = None
         self._model = None
-        self.model = model
+
+        if model:
+            self.model = model
+
         self.settings = VsslSettings(self)
+
+        self._log_info(f"vsslctrl version: {VSSL_VERSION}")
 
     @property
     def initialised(self):
@@ -45,69 +53,95 @@ class Vssl:
         return self.initialisation.is_set()
 
     #
-    # Initialize the zones
+    # Initialise the zones
     #
-    async def initialise(self, init_timeout: int = 10):
+    async def initialise(self, timeout: int = 20):
         if len(self.zones) < 1:
-            raise VsslCtrlException("Add minimum one zone before initializing")
+            raise VsslCtrlException("one or more zones is required before initializing")
 
-        zones_to_init = self.zones.copy()
+        # Get a list of zone keys which need to be initialised
+        zone_hosts_to_init = list(self.zones.keys())
+        first_zone = self.zones[zone_hosts_to_init.pop(0)]
 
         try:
-            key, first_zone = zones_to_init.popitem()
-
+            # wildcard* listening futures
             future_serial = self.event_bus.future(Zone.Events.SERIAL_RECEIVED)
             future_sw_version = self.event_bus.future(self.Events.SW_VERSION_CHANGE)
             future_name = self.event_bus.future(VsslSettings.Events.NAME_CHANGE)
+            future_model_id = self.event_bus.future(Zone.Events.MODEL_ID_RECEIVED)
 
-            await first_zone.initialise()
+            # Init the fist zone to get some device info
+            await first_zone.initialise(timeout)
 
             # Wait until we have some basic infomation
-            await self.event_bus.wait_future(future_serial, init_timeout)
-            await self.event_bus.wait_future(future_sw_version, init_timeout)
-            await self.event_bus.wait_future(future_name, init_timeout)
+            self._serial = await self.event_bus.wait_future(future_serial, timeout)
+            await self.event_bus.wait_future(future_sw_version, timeout)
+            await self.event_bus.wait_future(future_name, timeout)
 
-            # Check we haven't added too many zones
-            if len(self.zones) > self.model.zone_count:
-                message = f"Device model {self.model.name} only has {self.model.zone_count} zones not {len(self.zones)}."
-                self._log_critical(message)
-                await first_zone.disconnect()
-                raise VsslCtrlException(message)
+            # wait for the device model
+            model_id = await self.event_bus.wait_future(future_model_id, timeout)
+            # setting model will have error checking
+            self.model = Models.find(model_id)
 
-            # Output a bit of helpful info
-            self._log_info(f"vsslctrl Version: {VSSL_VERSION}")
-            self._log_info(f"Device Serial: {self.serial}")
-            self._log_info(f"Device SW Version: {self.sw_version}")
-            self._log_info(f"Device Model: {self.model.name}")
+            # Request the device model for logging purpose
+            self._request_model_name()
 
-            # Initialise remaining zones
-            initialisations = [zone.initialise() for zone in zones_to_init.values()]
+            # wait for initialise of remaining zones
+            initialisations = []
+            for host in zone_hosts_to_init:
+                initialisations.append(self._initialise_secondry_zone(self.zones[host]))
             await asyncio.gather(*initialisations)
 
         except ZoneError as e:
-            message = f"Zone initializing error: {e}"
+            message = f"zone initializing error: {e}"
             self._log_critical(message)
-            await self.disconnect()
+            await self.shutdown()
             raise
 
         except asyncio.TimeoutError:
-            message = f"Timeout during VSSL initialization. Are any zones available?"
+            message = f"timeout during vsslctrl core initialization. Is {first_zone.host} online?"
             self._log_critical(message)
-            await first_zone.disconnect()
+            await first_zone.shutdown()
             raise VsslCtrlException(message)
 
         # Initialised
         self.initialisation.set()
         self.event_bus.publish(self.Events.INITIALISED, self.ENTITY_ID, self)
-        self._log_info(f"Core initialization complete")
+
+        # Output a bit of helpful info
+        self._log_info(LOG_DIVIDER)
+        self._log_info(f"device serial: {self.serial}")
+        self._log_info(f"device software version: {self.sw_version}")
+        self._log_info(f"device model: {self.model.name}")
+        self._log_info(LOG_DIVIDER)
 
         return self
+
+    #
+    # Initialise a secondry zone and check for errors
+    #
+    async def _initialise_secondry_zone(self, zone: "Zone", timeout: int = 10):
+        # init the zone
+        await zone.initialise(timeout)
+
+        # Check zone_id is unique
+        zone_to_compare = self.get_zone_by_id(zone.id)
+        if zone_to_compare != None and zone_to_compare.host != zone.host:
+            raise ZoneError(
+                f"zone ID conflict. {zone.host} and {zone_to_compare.host} both have ID {zone.id}"
+            )
+
+        # Check the ZoneID is valid for the model
+        if zone.id not in self.model.zones:
+            raise ZoneError(f"{self.model.name} does not support ZoneID {zone.id}")
 
     #
     # Shutdown
     #
     async def shutdown(self):
-        await self.disconnect()
+        for zone in self.zones.values():
+            await zone.shutdown()
+
         self.event_bus.stop()
 
     #
@@ -169,88 +203,65 @@ class Vssl:
         return self._model
 
     @model.setter
-    def model(self, model):
-        if Models.is_valid(model):
-            self._set_property("model", Models(model).value)
-        elif isinstance(model, str):
-            model = model.upper()
-            if hasattr(Models, model):
-                self._set_property("model", getattr(Models, model).value)
-        else:
-            message = f"VSSL model {model} doesnt exist"
-            self._log_error(message)
-            raise VsslCtrlException(message)
+    def model(self, model_obj):
+        model = Models.find(model_obj)
 
-    #
-    # Disconnect / Shutdown
-    #
-    async def disconnect(self):
-        for zone in self.zones.values():
-            await zone.disconnect()
+        if Models.is_valid(model):
+            # check we haven't added too many zones
+            if len(self.zones) > model.zone_count:
+                raise VsslCtrlException(
+                    f"{model.name} only has {model.zone_count} zones not {len(self.zones)}"
+                )
+
+            self._set_property("model", model)
+        else:
+            message = f"VSSL model {model} does not exist"
+            raise VsslCtrlException(message)
 
     #
     # Add a Zone
     #
-    def add_zone(self, host: str, zone_index: ZoneIDs = ZoneIDs.A1):
+    def add_zone(self, host: str):
+        host = host.strip()
+
         # Check if VSSL is already initialised
         if self.initialised:
-            error = f"Zones can not be added after VSSL is initialised. Error trying to add Zone {zone_index}"
-            self._log_error(error)
+            error = f"Zones can not be added after VSSL is initialised. Error trying to add zone {host}"
+            self._log_critical(error)
             raise ZoneError(error)
 
-        # Check the ZoneID is valid for the model
-        if zone_index not in self.model.zones:
-            error = f"ZoneIDs {zone_index} is not supported on device model {self.model.name}. Did you select the correct model?"
-            self._log_error(error)
-            raise ZoneError(error)
-
-        # Double check ZoneID is valid
-        if ZoneIDs.is_not_valid(zone_index):
-            error = f"ZoneIDs {zone_index} doesnt exist"
-            self._log_error(error)
-            raise ZoneError(error)
-
-        # Check ZoneID is unique
-        if zone_index in self.zones:
-            error = f"Zone {zone_index} already exists on this instance"
-            self._log_error(error)
-            raise ZoneError(error)
+        # Check host is valid
+        if not is_ipv4(host):
+            message = f"{host} is not a valid IPv4 address"
+            self._log_critical(message)
+            raise ZoneError(message)
 
         # Check IPs are unique
         if any(zone.host == host for zone in self.zones.values()):
-            error = f"Zone with IP {host} already exists"
-            self._log_error(error)
+            error = f"Zone with host {host} already exists"
+            self._log_critical(error)
             raise ZoneError(error)
 
-        self.zones[zone_index] = Zone(self, zone_index, host)
+        self.zones[host] = Zone(self, host)
 
-        return self.zones[zone_index]
-
-    #
-    # Add a Zones using a list.
-    #
-    async def add_zones(self, zones=Union[str, List[str]]):
-        zones_list = [zones] if isinstance(zones, str) else zones
-
-        # A.1(x)
-        if not self.model.is_multizone:
-            return self.add_zone(zones_list[0], ZoneIDs.A1)
-        else:
-            # Fetch the ZoneID from the device
-            for host in zones_list:
-                zone_id, serial = await fetch_zone_id_serial(host)
-                self.add_zone(host, ZoneIDs(int(zone_id)))
-
-        return self.zones
+        return self.zones[host]
 
     #
-    # Get a Zone by ID
+    # Get a Zone
     #
-    def get_zone(self, zone_index: ZoneIDs):
-        if zone_index in self.zones:
-            return self.zones[zone_index]
-        else:
-            return None
+    def get_zone(self, host: str):
+        if host in self.zones:
+            return self.zones[host]
+
+    #
+    # Get zone by ID
+    #
+    def get_zone_by_id(self, zone_id: ZoneIDs):
+        if self.zones:
+            for host in self.zones:
+                zone = self.zones[host]
+                if zone.id == zone_id:
+                    return zone
 
     #
     # Get a zone that is connected
@@ -269,6 +280,14 @@ class Vssl:
     @property
     def connected(self):
         return True if self.get_connected_zone() else False
+
+    #
+    # Get the model name
+    #
+    def _request_model_name(self):
+        zone = self.get_connected_zone()
+        if zone:
+            zone.api_alpha.request_action_01()
 
     #
     # Get the device name
@@ -293,30 +312,3 @@ class Vssl:
         zone = self.get_connected_zone()
         if zone:
             zone.api_alpha.request_action_2B()
-
-    #
-    # Get a Zone by group index
-    #
-    def get_zones_by_group_index(self, group_index: int):
-        zones = {}
-        if self.zones:
-            for zone_id in self.zones:
-                zone = self.zones[zone_id]
-                if zone.group.index == group_index:
-                    zones[zone_id] = zone
-        return zones
-
-    #
-    # Zones Groups. Build a dict of zone according to group membership
-    #
-    @property
-    def zone_groups(self):
-        MASTER = "master"
-        MEMBERS = "members"
-
-        groups = []
-        for zone in self.zones.values():
-            if zone.group.is_master:
-                groups.append({MASTER: zone, MEMBERS: zone.group.members})
-
-        return groups

@@ -1,24 +1,25 @@
 # vsslctrl
 
-Package for controlling [VSSL's](https://www.vssl.com/) range of streaming amplifiers.
+Python package for controlling [VSSL's](https://www.vssl.com/) range of streaming amplifiers.
 
 ## Coverage
 
-Tested on:
+Test suite run on:
 
-| Model       | Software Version | Note |
-| ------------|---------  | -------------
-| A.3x       | p15305.016.3701     | 
+| Model       | Software Version 
+| ------------|---------  
+| `A.1x`       | p15243.022.3703     
+| `A.3x`       | p15305.016.3701     
 
 
 Home Assistant [integration](https://github.com/vsslctrl/integration.home-assistant) with basic functionality working on:
 
 | Model       | Software Version | User Reported |
 | ------------|---------  | -------------
-| A.1       | p15265.033.3703    | ✔️
-| A.3       | p12013.141.3703     | ✔️
-| A.3x       | p15305.016.3701     | 
-| A.6x       | p15305.017.3701     | ✔️
+| `A.1`       | p15265.033.3703    | ✔️
+| `A.3`      | p12013.141.3703     | ✔️
+| `A.3x`       | p15305.016.3701     | 
+| `A.6x`       | p15305.017.3701     | ✔️
 
 
 ## Testers Needed
@@ -33,33 +34,28 @@ There should not be any *[VSSL Agent's](https://vssl.gitbook.io/vssl-rest-api/ge
 
  **`vsslctrl` is not endorsed or affiliated with [VSSL](https://www.vssl.com/) in any manner.**
 
-## TODOs
-
-* Better test coverage
-* A.1(x) testing - e.g output settings
-* More controls - e.g IR Control
-
 ## Basic Usage
 
 `vsslctrl` needs to be running inside a **[asyncio](https://docs.python.org/3/library/asyncio.html)** event loop.
 
-### A.1 Example
+### `A.1(x)` Example
 
 ```python
 import asyncio
-from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
+from vsslctrl import Vssl
 
 async def main():
   
   # Represents a physical VSSL amplifier
-  vssl = Vssl(DeviceModels.A1)
+  vssl = Vssl()
+  
   a1 = vssl.add_zone('192.168.1.10')
 
   # Connect and initialise zone.
   await vssl.initialise()
 
   """Control Examples"""
-  # Print device name
+  # Print zone/device name
   print(a1.settings.name)
   # Set volume to 25%
   a1.volume = 25
@@ -74,21 +70,21 @@ async def main():
 asyncio.run(main())
 ```
 
-### A.3x Example
+### `A.3(x)` Example
 
 ```python
 import asyncio
-from vsslctrl import Vssl, DeviceModels, Zone, ZoneIDs
+from vsslctrl import Vssl
 
 async def main():
 	
   # Represents a physical VSSL amplifier
-  vssl = Vssl(DeviceModels.A3X)
+  vssl = Vssl()
 
   # Add each you wish to control
-  zone1 = vssl.add_zone('192.168.1.10', ZoneIDs.ZONE_1)
-  zone2 = vssl.add_zone('192.168.1.11', ZoneIDs.ZONE_2)
-  zone3 = vssl.add_zone('192.168.1.12', ZoneIDs.ZONE_3)
+  zone1 = vssl.add_zone('192.168.1.10')
+  zone2 = vssl.add_zone('192.168.1.11')
+  zone3 = vssl.add_zone('192.168.1.12')
   #... up to 6 zones for A.6(x)
 
   # Connect and initialise zones.
@@ -184,37 +180,6 @@ print(zone1.settings.name)
 
 # API Reference
 
-# `DeviceModels`
-
-A device model has to be passed to VSSL so it knows internally what features are supported by the device.
-This might be removed in the future if we can differentiate different models from the API.
-
-| Property        | Description |
-| ------------|---------  | 
-| `A1X`       | A.1x      | 
-| `A3X`       | A.3x      | 
-| `A6X`       | A.6x      | 
-| `A1`        | A1        | 
-| `A3`        | A3        | 
-| `A6`        | A6        | 
-
-# `ZoneIDs`
-
-A `ZoneIDs` must be passed to each `zone` you which to control and it must match the zone on the VSSL device.
-
-If you are unsure of your `ZoneIDs` you could use the discovery helper to find out the correct mapping.
-
-| Property        | Description | A.1(x) | A.3(x) | A.6(x)
-| ------------|---------  |--------  | --------  | --------  |  
-| `A1`        |       |✔️ | | |
-| `ZONE_1`    | Zone 1   | | ✔️| ✔️|
-| `ZONE_2`    | Zone 2    |  | ✔️| ✔️|
-| `ZONE_3`    | Zone 3  |  | ✔️| ✔️|
-| `ZONE_4`    | Zone 4     |  | | ✔️|
-| `ZONE_5`    | Zone 5       |  | | ✔️|
-| `ZONE_6`    | Zone 6       |  | | ✔️|
-
-
 # `Vssl`
 
 | Property      	| Description | Type 		| 
@@ -236,11 +201,13 @@ vssl.factory_reset()
 
 ## `Vssl.settings`
 
+`A.1(x)` doesn't use `Vssl.settings.name` use `Zone.settings.name` instead.
+
 | Property      	| Description | Type 		| Model: Default |
 | ---------------------- 	| ----------- | ----------- | ----------- |
-| `name`     			 	| Device name |	`str` |
-| `bus_1_name`   			| Name of Bus 1        |	`str` | <ul><li>A.1: Optical Input</li><li>A.3x/6x: Not Used</li></ul>
-| `bus_2_name`        | Name of Bus 2        |  `str` | <ul><li>A.1: Coax Input</li><li>A.3x/6x: Optical Input</li></ul>
+| `name`     			 	| Device name |	`str` | 
+| `bus_1_name`   			| Name of Bus 1        |	`str` | <ul><li>`A.1`: Optical Input</li><li>`A.3x`/`A.6x`: Not Used</li></ul>
+| `bus_2_name`        | Name of Bus 2        |  `str` | <ul><li>`A.1`: Coax Input</li><li>`A.3x`/`A.6x`: Optical Input</li></ul>
 | `bluetooth`        | Bluetooth enabled / disabled        |  `bool` |
 | `bluetooth_toggle()`        | Toggle Bluetooth        | `func`  |
 
@@ -364,8 +331,8 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 | `priority`     			| Change input priority.<br/>Stream or local to have precedence  |	`int`	| `InputRouter.Priorities`
 
 
-### A.1(x) Source Routing Order
-A.1 and A.1x don't support manually changing the input source. Instead a fixed source routing order is used:
+### `A.1(x)` Source Routing Order
+`A.1` and `A.1x` don't support manually changing the input source. Instead a fixed source routing order is used:
   
   1. Optical Input
   2. Coaxial Input
@@ -445,7 +412,7 @@ zone1.analog_output.is_fixed_volume = True
 | `name`     			 	| Name |	`str`	| 
 | `disabled`   			| Disable the zone        |	`bool` || `False`
 | `disabled_toggle()`   			| disable / enable        |	`func`  |
-| `mono`   			| Set output to mono or stereo        |	`int`  | `ZoneSettings.StereoMono` | `Stereo`
+| `mono`   			| Set output to mono or stereo        |	`int`  | `ZoneSettings.StereoMono` | `STEREO`
 | `mono_toggle()`   			| Toggle mono or stereo        |	`func`  |
 
 ```python
@@ -453,9 +420,9 @@ zone1.analog_output.is_fixed_volume = True
 # Set name
 zone1.settings.name = 'Living Room'
 # Disable Zone
-zone1.disabled = True
+zone1.settings.disabled = True
 # Toggle mono output
-zone1.mono_toggle()
+zone1.settings.mono_toggle()
 ```
 
 ## `Zone.settings.analog_input`
@@ -488,7 +455,7 @@ zone1.settings.analog_input.fixed_gain = 50
 # Set default on volume to 50%
 zone1.settings.volume.default_on = 50
 # Set maximum volume for left channel to 75%
-zone1.settings.volume.default_on = 75
+zone1.settings.volume.max_left = 75
 ```
 
 ## `Zone.settings.eq`
@@ -540,12 +507,9 @@ Motivation for this project was to integrate VSSLs amplifiers into [Home Assista
 
 ## Known Issues & Limitiations
 
-* Not tested on A.1x or original A series range of amplifiers (testers welcome)
 * VSSL can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
 * Not all sources set the volume to 0 when the zone is muted
 * Airplay `Zone.track.progress` is not available.
-* Cant stop a URL playback, feedback is worng at least
 * VSSL likes to cache old track metadata. For example when playing a URL after Spotify, often the device will respond with the previous (Spotify) tracks metadata
 * `stop()` is intended to disconnect the client and pause the stream. Doesn’t always function this way, depending on stream source
-* Occasionally a zones might stop responding to certain commands, issuing the `reboot` command generally corrects
 

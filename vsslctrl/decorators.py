@@ -1,7 +1,7 @@
 import json
 import logging
 from functools import wraps
-from .utils import hex_to_int
+from . import LOG_DIVIDER
 
 
 def sterilizable(cls):
@@ -66,23 +66,44 @@ def logging_helpers(prefix=""):
 #
 # Validate response lengths
 #
-def validate_response_length(expected_length: int = 2, index: int = 2):
+def validate_response_length(expected_length: int = 2):
     def decorator(func):
         @wraps(func)
-        def wrapper(self, hexl, *args, **kwargs):
-            if index >= len(hexl):
+        def wrapper(
+            self,
+            frame_header: bytes,
+            frame_data: bytes,
+            *args,
+            **kwargs,
+        ):
+            # frame header is always 3 bytes in length
+            if len(frame_header) != 3:
+                self._log_debug(LOG_DIVIDER)
                 self._log_warning(
-                    f"Response length validation failed: hexl does not have enough elements. Expected at least {index + 1}, but got {len(hexl)}."
+                    f"response header validation failed: frame header requires 3 bytes, but got {len(frame_header)}."
                 )
+                self._log_debug(LOG_DIVIDER)
                 return None
 
-            if hex_to_int(hexl[index]) != expected_length:
+            # check length of data is expected
+            if frame_header[2] != expected_length:
+                self._log_debug(LOG_DIVIDER)
                 self._log_warning(
-                    f"Response length validation failed: hexl[{index}] is {hex_to_int(hexl[index])}, expected {expected_length}."
+                    f"response length validation failed: expected {expected_length}, but got {frame_header[2]}"
                 )
+                self._log_debug(LOG_DIVIDER)
                 return None
 
-            return func(self, hexl, *args, **kwargs)
+            # check data has correct length
+            if frame_header[2] != len(frame_data):
+                self._log_debug(LOG_DIVIDER)
+                self._log_warning(
+                    f"response data length validation failed: expected {expected_length}, but got {len(frame_data)}"
+                )
+                self._log_debug(LOG_DIVIDER)
+                return None
+
+            return func(self, frame_header, frame_data, *args, **kwargs)
 
         return wrapper
 
@@ -92,23 +113,33 @@ def validate_response_length(expected_length: int = 2, index: int = 2):
 #
 # Validate response Zone ID
 #
-def validate_response_zone_id(index: int = 3):
+def validate_response_zone_id(index: int = 0):
     def decorator(func):
         @wraps(func)
-        def wrapper(self, hexl, *args, **kwargs):
-            if index >= len(hexl):
+        def wrapper(
+            self,
+            frame_header: bytes,
+            frame_data: bytes,
+            *args,
+            **kwargs,
+        ):
+            if len(frame_data) < 1:
+                self._log_debug(LOG_DIVIDER)
                 self._log_warning(
-                    f"Response Zone ID validation failed: hexl does not have enough elements. Expected at least {index + 1}, but got {len(hexl)}."
+                    f"response zone ID validation failed: frame has no data."
                 )
+                self._log_debug(LOG_DIVIDER)
                 return None
 
-            if hex_to_int(hexl[index]) != self.zone.id:
+            if self.zone.id and frame_data[index] != self.zone.id:
+                self._log_debug(LOG_DIVIDER)
                 self._log_warning(
-                    f"Response Zone ID validation failed: hexl[{index}] is {hex_to_int(hexl[index])}, expected {self.zone.id}."
+                    f"response zone ID validation failed: expecting zone ID {self.zone.id}, but got {frame_data[index]}."
                 )
+                self._log_debug(LOG_DIVIDER)
                 return None
 
-            return func(self, hexl, *args, **kwargs)
+            return func(self, frame_header, frame_data, *args, **kwargs)
 
         return wrapper
 
