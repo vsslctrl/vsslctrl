@@ -208,8 +208,7 @@ vssl.factory_reset()
 | `name`     			 	| Device name |	`str` | 
 | `bus_1_name`   			| Name of Bus 1        |	`str` | <ul><li>`A.1`: Optical Input</li><li>`A.3x`/`A.6x`: Not Used</li></ul>
 | `bus_2_name`        | Name of Bus 2        |  `str` | <ul><li>`A.1`: Coax Input</li><li>`A.3x`/`A.6x`: Optical Input</li></ul>
-| `bluetooth`        | Bluetooth enabled / disabled        |  `bool` |
-| `bluetooth_toggle()`        | Toggle Bluetooth        | `func`  |
+| `status_light_mode`        | Status lights - Normal or Dark Mode        |  `str` | [`VsslSettings.StatusLightModes`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/settings.py#L17)
 
 ```python
 """Example"""
@@ -217,17 +216,35 @@ vssl.factory_reset()
 vssl.settings.name = 'My House'
 # Setting bus 2 name
 vssl.settings.bus_2_name = 'Optical Input'
+```
+
+## `Vssl.settings.bluetooth`
+
+`A.1(x)` only.
+
+| Property        | Description | Type    | Values    | 
+| ----------------------  | ----------- | ----------- |----------- |
+| `state`             | Bluetooth state | `int` readonly  | [`BluetoothSettings.States`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/settings.py#L130)
+| `on()`        | Enable Bluetooth        | `func`
+| `off()`        | Disable Bluetooth        | `func`
+| `clear_pairs()`        | Clear pairings        | `func`
+| `enter_pairing()`        | Enter pairing        | `func`
+| `exit_pairing()`        | Exit pairing        | `func`
+| `toggle()`        | Toggle Bluetooth        | `func`  |
+
+```python
+"""Example"""
 # Enable Bluetooth
-vssl.settings.bluetooth = True
+vssl.settings.bluetooth.on()
 # Toggle Bluetooth
-vssl.settings.bluetooth_toggle()
+vssl.settings.bluetooth.toggle()
 ```
 
 ## `Vssl.settings.power`
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `state`     			 	| Power state |	`int` readonly	| `VsslPowerSettings.States`
+| `state`     			 	| Power state |	`int` readonly	| [`VsslPowerSettings.States`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/settings.py#L243)
 | `adaptive`   			| Power adaptive        |	`bool`
 
 ```python
@@ -241,7 +258,7 @@ vssl.settings.power.adaptive = True
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `id`     			 	| Zone number / ID |	`int` readonly	| `ZoneIDs`
+| `id`     			 	| Zone number / ID |	`int` readonly	| [`ZoneIDs`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/data_structure.py#L75)
 | `host`   			| IP address        |	`str` readonly
 | `volume`   			| Volume        |	`int`  | `0...100`
 | `volume_raise([step=1])`   			| Raise volume by `step`       |	`func`  | step: `int` `1...100`
@@ -254,7 +271,7 @@ vssl.settings.power.adaptive = True
 | `next()`   			| Next track       |	`func`  |
 | `prev()`   			| Begining of track or previous track        |	`func`  |
 | `reboot()`   			| Reboot zone        |	`func`  |
-| `play_url([url], [all_zones])`   			| Play a URL       |	`func`  | url: `str`, all_zones: `bool`
+| `play_url([url], [all_zones], [volume])`   			| Play a URL       |	`func`  | url: `str`, all_zones: `bool`, volume: `int` `1...100`
 
 
 ```python
@@ -271,9 +288,9 @@ zone1.mute_toggle()
 zone1.pause()
 # Next track
 zone1.next()
-# Play a URL on this zone1
-zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3')
-# Play a URL on all zones
+# Play a URL on this zone1 at 15% volume
+zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', volume=15)
+# Play a URL on all zones at current volume level
 zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', True)
 ```
 
@@ -283,7 +300,7 @@ A VSSL amplifier can not start a stream except for playing a URL directly. This 
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- | ----------- | ----------- |----------- |
-| `state`     			 | Transport state. i.e Play, Stop, Pause | `int`	| `ZoneTransport.States`
+| `state`     			 | Transport state. i.e Play, Stop, Pause | `int`	| [`ZoneTransport.States`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/transport.py#L9)
 | `play()`   		 | Play   |	`func`  |
 | `stop()`   		 | Stop     |	`func`  |
 | `pause()`   		 | Pause     |	`func`  |
@@ -292,7 +309,7 @@ A VSSL amplifier can not start a stream except for playing a URL directly. This 
 | `is_playing`   			| Is the zone playing        |	`bool` readonly
 | `is_stopped`   			| Is the zone stopped        |	`bool` readonly
 | `is_pasued`   			| Is the zone pasued        |	`bool` readonly
-| `is_repeat`     			 | Repeat state. i.e all, one, off | `int` readonly	| `ZoneTransport.Repeat`
+| `is_repeat`     			 | Repeat state. i.e all, one, off | `int` readonly	| [`ZoneTransport.Repeat`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/transport.py#L19)
 | `is_shuffle`   			| Is shuffle enabled       |	`bool` readonly
 | `has_next`   			| Is the next button enabled       |	`bool` readonly
 | `has_prev`   			| Is the prev button enabled       |	`bool` readonly
@@ -319,7 +336,7 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 | `duration`     		| Length in miliseconds (ms) | `int` readonly	| 
 | `progress`     		| Current position in miliseconds (ms) | `int` readonly	|
 | `cover_art_url`     	| URL to cover art | `str` readonly	| 
-| `source`     			| Track source e.g Spotify |	`int` readonly	| `TrackMetadata.Sources`
+| `source`     			| Track source e.g Spotify |	`int` readonly	| [`TrackMetadata.Sources`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/track.py#L28)
 | `url`     	| URL of file or track | `str` readonly	| 
 
 
@@ -327,8 +344,8 @@ zone1.transport.state = ZoneTransport.States.PAUSE
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `source`     			 	| Change input source.<br/>Source to be played out the zones speakers |	`int`	| `InputRouter.Sources`
-| `priority`     			| Change input priority.<br/>Stream or local to have precedence  |	`int`	| `InputRouter.Priorities`
+| `source`     			 	| Change input source.<br/>Source to be played out the zones speakers |	`int`	| [`InputRouter.Sources`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/io.py#L35)
+| `priority`     			| Change input priority.<br/>Stream or local to have precedence  |	`int`	| [`InputRouter.Priorities`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/io.py#L23)
 
 
 ### `A.1(x)` Source Routing Order
@@ -362,10 +379,10 @@ Unsupported on X series amplifiers.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
-| `source`     			 	| Zone ID of group master / source |	`int` readonly	| `ZoneIDs`
+| `source`     			 	| Zone ID of group master / source |	`int` readonly	| [`ZoneIDs`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/data_structure.py#L75)
 | `is_master`   			| This zone is the group master        |	`bool` readonly
-| `add_member()`   			| Add zone to group / create group |	`func`  | `ZoneIDs`
-| `remove_member()`   		| Remove zone from group      |	`func`  | `ZoneIDs`
+| `add_member()`   			| Add zone to group / create group |	`func`  | [`ZoneIDs`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/data_structure.py#L75)
+| `remove_member()`   		| Remove zone from group      |	`func`  | [`ZoneIDs`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/data_structure.py#L75)
 | `dissolve()`   			| Dissolve group / remove all members       |	`func`  |
 | `leave()`   				| Leave the group if a member       |	`func`  |
 | `is_party_zone_member`  | Member of Party Zone |  `bool`  |
@@ -389,7 +406,7 @@ zone1.group.is_party_zone_member_toggle()
 
 | Property      	| Description | Type		| Values 		| Default |
 | ---------------------- 	| ----------- | ----------- |----------- |----------- |
-| `source`     			 	| Where the AO is routed from. i.e stream, optical input or off |	`int`	| `AnalogOutput.Sources` | `Off`
+| `source`     			 	| Where the AO is routed from. i.e stream, optical input or off |	`int`	| [`AnalogOutput.Sources`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/io.py#L150) | `Off`
 | `is_fixed_volume`   			| Fix the output volume. Output wont respond to volume control        |	`bool` | |`False`
 | `is_fixed_volume_toggle()`   			| Toggle fixed volume      |	`func`  |
 
@@ -412,7 +429,7 @@ zone1.analog_output.is_fixed_volume = True
 | `name`     			 	| Name |	`str`	| 
 | `disabled`   			| Disable the zone        |	`bool` || `False`
 | `disabled_toggle()`   			| disable / enable        |	`func`  |
-| `mono`   			| Set output to mono or stereo        |	`int`  | `ZoneSettings.StereoMono` | `STEREO`
+| `mono`   			| Set output to mono or stereo        |	`int`  | [`ZoneSettings.StereoMono`](https://github.com/vsslctrl/vsslctrl/blob/644586fa183def1f23f0bfd239454fa8422e3dbe/vsslctrl/settings.py#L310) | `STEREO`
 | `mono_toggle()`   			| Toggle mono or stereo        |	`func`  |
 
 ```python
@@ -484,7 +501,7 @@ zone1.settings.eq.khz1_db = -2
 
 ## `Zone.settings.subwoofer`
 
-* **A.1 and A.1x only**
+* **`A.1` and `A.1x` only**
 * Set `0` for full frequency range
 
 | Property        | Description | Type    | Values    | Default |
