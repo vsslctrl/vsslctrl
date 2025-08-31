@@ -271,8 +271,9 @@ vssl.settings.power.adaptive = True
 | `next()`   			| Next track       |	`func`  |
 | `prev()`   			| Begining of track or previous track        |	`func`  |
 | `reboot()`   			| Reboot zone        |	`func`  |
-| `play_url([url], [all_zones], [volume])`   			| Play a URL       |	`func`  | url: `str`, all_zones: `bool`, volume: `int` `1...100`
+| `play_url([url], [all_zones], [volume])`   			| Play a URL       |	`func`  | url: `str`<br/>all_zones: `bool`<br/>volume: `int` `1...100`
 
+**Note:** `play_url()` is intended as a PA system. The zone will stop repsonding to commands (e.g transport, volume etc.)  until the requested file has finished playing.
 
 ```python
 """Examples"""
@@ -296,7 +297,7 @@ zone1.play_url('http://soundbible.com/grab.php?id=2217&type=mp3', True)
 
 ## `Zone.transport`
 
-A VSSL amplifier can not start a stream except for playing a URL directly. This is a limitation of the hardware itself.
+A VSSL amplifier can not start a stream except for when using `zone.play_url()`. This is a limitation of the hardware itself.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- | ----------- | ----------- |----------- |
@@ -374,8 +375,6 @@ zone1.input.priority = InputRouter.Priorities.LOCAL
 ```
 
 ## `Zone.group`
-
-Unsupported on X series amplifiers.
 
 | Property      	| Description | Type		| Values 		| 
 | ---------------------- 	| ----------- | ----------- |----------- |
