@@ -523,6 +523,14 @@ class VolumeSettings(ZoneDataClass):
 
 
 class EQSettings(ZoneDataClass):
+    """
+    Simple EQ (as per VSSL apps):
+        Treble = 8khz + 15khz
+        Mid = 500hz + 1khz + 4khz
+        Bass = 60hz + 200hz
+
+    """
+
     MIN_VALUE = 90
     MAX_VALUE = 110
     MIN_VALUE_DB = -10
@@ -622,7 +630,7 @@ class EQSettings(ZoneDataClass):
         return int(max(self.MIN_VALUE, min(value, self.MAX_VALUE)))
 
     #
-    # Map between -10 and +10
+    # Map between -10-+10 and 90-110
     #
     # 90 = -10db
     # 100 = 0db

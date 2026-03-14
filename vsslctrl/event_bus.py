@@ -18,19 +18,35 @@ class EventBus:
         self.event_queue = asyncio.Queue()
 
         self.running = False
+        self.process = None
 
-        self.process = asyncio.create_task(self.process_events())
+        self.start()
 
     # Helper for wildcard matching, so we can use partial wildcards. e.g zone.api.connected
     def _matches_pattern(self, event_type, pattern):
         return fnmatch.fnmatch(event_type, pattern)
+
+    # Check we are actually processing
+    @property
+    def _is_alive(self):
+        return isinstance(self.process, asyncio.Task) and not self.process.done()
+
+    #
+    # Start
+    #
+    def start(self):
+        if self._is_alive:
+            return
+
+        self.process = asyncio.create_task(self.process_events())
 
     #
     # Stop
     #
     def stop(self):
         self.running = False
-        self.process.cancel()
+        if isinstance(self.process, asyncio.Task):
+            self.process.cancel()
         self._log_debug(f"stopped event processing")
 
     #
@@ -115,6 +131,8 @@ class EventBus:
     # Publish Async (Use when inside events loop)
     #
     async def publish_async(self, event_type, entity=None, data=None):
+        # Start if we have been stopped
+        self.start()
         event_type = event_type.lower()
         await self.event_queue.put((event_type, entity, data))
 

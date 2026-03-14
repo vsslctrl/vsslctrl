@@ -1,4 +1,4 @@
-VSSL_VERSION = "0.2.0"
+VSSL_VERSION = "0.2.1"
 VSSL_NAME = "VSSL"
 
 LOG_DIVIDER = "------------------------------------------------------"

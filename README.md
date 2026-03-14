@@ -166,7 +166,7 @@ print(zone1.settings.name)
 ```python
 from vsslctrl.settings import ZoneSettings
 # Setting the zone name and wait for feedback
-future_name = vssl.event_bus.future(ZoneSettings.Events.NAME_CHANGE, zone1.id)
+future_name = vssl.event_bus.future(ZoneSettings.Events.NAME_CHANGE, zone1.host)
 zone1.settings.name = 'Bathroom' 
 # Helper to await a future with timeout
 new_name = await vssl.event_bus.wait_future(future_name)
