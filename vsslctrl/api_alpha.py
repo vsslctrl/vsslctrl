@@ -1777,9 +1777,11 @@ class APIAlpha(APIBase):
         channel = 0 if all_zones else self.zone.id
         command.extend([channel])
 
-        # Volume
+        # Volume — the announcement plays at `volume` (0-100), falling back to the
+        # zone's current volume when not supplied. Previously this sent
+        # self.zone.volume unconditionally, so the `volume` argument was ignored.
         vol = self.zone.volume if volume == None else clamp_volume(volume)
-        command.extend([self.zone.volume])
+        command.extend([vol])
 
         # Add URL to request
         command.extend(self._encode_frame_data(string))
