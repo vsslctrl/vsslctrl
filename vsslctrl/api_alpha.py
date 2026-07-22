@@ -1773,11 +1773,7 @@ class APIAlpha(APIBase):
         command = bytearray([16, 85])
         command.extend(struct.pack(">B", len(string) + 2))
 
-        # Channel: 0 = all zones, 1 = this (the connected) zone. Each Zone has its
-        # own TCP connection (zone.host), so the target is always channel 1 from
-        # that connection's perspective. Previously this sent self.zone.id, which
-        # produced no playback on multi-zone units for zones with id > 1 (verified
-        # on an A.6x: zone 4 never played with channel byte 4; channel 1 works).
+        # Channel: 0 = all zones
         channel = 0 if all_zones else self.zone.id
         command.extend([channel])
 
