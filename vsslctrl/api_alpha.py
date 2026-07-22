@@ -1778,7 +1778,7 @@ class APIAlpha(APIBase):
         # that connection's perspective. Previously this sent self.zone.id, which
         # produced no playback on multi-zone units for zones with id > 1 (verified
         # on an A.6x: zone 4 never played with channel byte 4; channel 1 works).
-        channel = 0 if all_zones else 1
+        channel = 0 if all_zones else self.zone.id
         command.extend([channel])
 
         # Volume — the announcement plays at `volume` (0-100), falling back to the
