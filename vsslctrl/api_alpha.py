@@ -1773,13 +1773,19 @@ class APIAlpha(APIBase):
         command = bytearray([16, 85])
         command.extend(struct.pack(">B", len(string) + 2))
 
-        # Zone 0 will play on all zones
-        channel = 0 if all_zones else self.zone.id
+        # Channel: 0 = all zones, 1 = this (the connected) zone. Each Zone has its
+        # own TCP connection (zone.host), so the target is always channel 1 from
+        # that connection's perspective. Previously this sent self.zone.id, which
+        # produced no playback on multi-zone units for zones with id > 1 (verified
+        # on an A.6x: zone 4 never played with channel byte 4; channel 1 works).
+        channel = 0 if all_zones else 1
         command.extend([channel])
 
-        # Volume
+        # Volume — the announcement plays at `volume` (0-100), falling back to the
+        # zone's current volume when not supplied. Previously this sent
+        # self.zone.volume unconditionally, so the `volume` argument was ignored.
         vol = self.zone.volume if volume == None else clamp_volume(volume)
-        command.extend([self.zone.volume])
+        command.extend([vol])
 
         # Add URL to request
         command.extend(self._encode_frame_data(string))
